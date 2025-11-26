@@ -8,33 +8,15 @@
 
 @section('content')
 <div class="row">
-    <!-- Filtro por Cliente -->
+    <!-- Filtro por Estado -->
     <div class="col-md-12">
         <div class="card shadow">
             <div class="card-header bg-gradient-primary">
-                <h3 class="card-title text-white"><i class="fas fa-filter"></i> Filtrar por Cliente</h3>
+                <h3 class="card-title text-white"><i class="fas fa-filter"></i> Filtrar Envíos</h3>
             </div>
             <div class="card-body">
                 <form method="GET" action="{{ route('codigosqr.index') }}">
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="cliente_id"><i class="fas fa-user"></i> Seleccione un Cliente</label>
-                                <select name="cliente_id" id="cliente_id" class="form-control" onchange="this.form.submit()">
-                                    <option value="">Todos los clientes</option>
-                                    @php
-                                        $clientes = \App\Models\User::where('tipo', 'cliente')
-                                            ->orWhere('role', 'cliente')
-                                            ->get();
-                                    @endphp
-                                    @foreach($clientes as $cliente)
-                                        <option value="{{ $cliente->id }}" {{ request('cliente_id') == $cliente->id ? 'selected' : '' }}>
-                                            {{ $cliente->name }} - {{ $cliente->email }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="estado"><i class="fas fa-check-circle"></i> Estado del Envío</label>
@@ -46,6 +28,22 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="almacen_id"><i class="fas fa-warehouse"></i> Almacén Destino</label>
+                                <select name="almacen_id" id="almacen_id" class="form-control" onchange="this.form.submit()">
+                                    <option value="">Todos los almacenes</option>
+                                    @php
+                                        $almacenes = \App\Models\Almacen::where('es_planta', false)->where('activo', true)->get();
+                                    @endphp
+                                    @foreach($almacenes as $almacen)
+                                        <option value="{{ $almacen->id }}" {{ request('almacen_id') == $almacen->id ? 'selected' : '' }}>
+                                            {{ $almacen->nombre }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -53,17 +51,17 @@
     </div>
 </div>
 
-<!-- Envíos del Cliente -->
+<!-- Envíos de la Planta -->
 <div class="card shadow">
     <div class="card-header bg-gradient-success">
         <h3 class="card-title text-white"><i class="fas fa-shipping-fast"></i> Envíos y Documentos</h3>
     </div>
     <div class="card-body">
         @php
-            $query = \App\Models\Envio::with(['cliente', 'direccion', 'almacen', 'productos']);
+            $query = \App\Models\Envio::with(['almacenDestino', 'direccion', 'productos']);
             
-            if (request('cliente_id')) {
-                $query->where('cliente_id', request('cliente_id'));
+            if (request('almacen_id')) {
+                $query->where('almacen_destino_id', request('almacen_id'));
             }
             
             if (request('estado')) {
@@ -77,11 +75,11 @@
             <thead class="thead-dark">
                 <tr>
                     <th>Código</th>
-                    <th>Cliente</th>
+                    <th>Origen</th>
+                    <th>Destino</th>
                     <th>Fecha</th>
                     <th>Estado</th>
                     <th>Productos</th>
-                    <th>Destino</th>
                     <th width="200px">Acciones</th>
                 </tr>
             </thead>
@@ -89,7 +87,15 @@
                 @forelse($envios as $envio)
                 <tr>
                     <td><strong>{{ $envio->codigo }}</strong></td>
-                    <td>{{ $envio->cliente->name ?? 'N/A' }}</td>
+                    <td>
+                        <span class="badge badge-danger">
+                            <i class="fas fa-industry"></i> Planta Principal
+                        </span>
+                    </td>
+                    <td>
+                        <i class="fas fa-warehouse text-primary"></i>
+                        {{ $envio->almacenDestino->nombre ?? 'N/A' }}
+                    </td>
                     <td>{{ $envio->created_at->format('d/m/Y H:i') }}</td>
                     <td>
                         @if($envio->estado == 'pendiente')
@@ -107,7 +113,6 @@
                             {{ $envio->productos->count() }} producto(s)
                         </span>
                     </td>
-                    <td>{{ $envio->direccion->descripcion ?? 'N/A' }}</td>
                     <td>
                         <div class="btn-group-vertical btn-block">
                             <button class="btn btn-sm btn-info" onclick="verQR('{{ $envio->codigo }}')">

@@ -71,30 +71,35 @@
             </div>
 
             <div class="card-body" style="padding: 40px;">
-                <!-- Información del Cliente -->
+                <!-- Información del Envío -->
                 <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="info-box">
-                            <h5><i class="fas fa-user"></i> CLIENTE</h5>
-                            <p class="mb-1"><strong>Nombre:</strong> {{ $envio->cliente->name ?? 'N/A' }}</p>
-                            <p class="mb-1"><strong>Email:</strong> {{ $envio->cliente->email ?? 'N/A' }}</p>
-                            <p class="mb-0"><strong>Teléfono:</strong> {{ $envio->cliente->telefono ?? 'N/A' }}</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
+                    <div class="col-md-12">
                         <div class="info-box">
                             <h5><i class="fas fa-calendar"></i> INFORMACIÓN DEL ENVÍO</h5>
-                            <p class="mb-1"><strong>Fecha de Creación:</strong> {{ $envio->created_at->format('d/m/Y H:i') }}</p>
-                            <p class="mb-1"><strong>Fecha Estimada:</strong> {{ $envio->fecha_llegada ? \Carbon\Carbon::parse($envio->fecha_llegada)->format('d/m/Y') : 'N/A' }}</p>
-                            <p class="mb-0"><strong>Estado:</strong> 
-                                @if($envio->estado == 'pendiente')
-                                    <span class="badge badge-warning">PENDIENTE</span>
-                                @elseif($envio->estado == 'en_transito')
-                                    <span class="badge badge-info">EN TRÁNSITO</span>
-                                @elseif($envio->estado == 'entregado')
-                                    <span class="badge badge-success">ENTREGADO</span>
-                                @endif
-                            </p>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>Código:</strong> {{ $envio->codigo }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>Fecha de Creación:</strong> {{ $envio->created_at->format('d/m/Y H:i') }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>Fecha Estimada:</strong> {{ $envio->fecha_llegada ? \Carbon\Carbon::parse($envio->fecha_llegada)->format('d/m/Y') : 'N/A' }}</p>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <p class="mb-0"><strong>Estado:</strong> 
+                                        @if($envio->estado == 'pendiente')
+                                            <span class="badge badge-warning">PENDIENTE</span>
+                                        @elseif($envio->estado == 'en_transito')
+                                            <span class="badge badge-info">EN TRÁNSITO</span>
+                                        @elseif($envio->estado == 'entregado')
+                                            <span class="badge badge-success">ENTREGADO</span>
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -103,36 +108,40 @@
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <div class="info-box">
-                            <h5><i class="fas fa-warehouse"></i> ORIGEN</h5>
-                            <p class="mb-1"><strong>Almacén:</strong> {{ $envio->almacen->nombre ?? 'N/A' }}</p>
-                            <p class="mb-0"><strong>Dirección:</strong> {{ $envio->almacen->direccion->descripcion ?? 'N/A' }}</p>
+                            <h5><i class="fas fa-industry"></i> ORIGEN</h5>
+                            <p class="mb-1"><strong>Planta:</strong> Planta Principal</p>
+                            <p class="mb-0"><strong>Dirección:</strong> Santa Cruz de la Sierra, Bolivia</p>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="info-box">
-                            <h5><i class="fas fa-map-marker-alt"></i> DESTINO</h5>
-                            <p class="mb-0"><strong>Punto de Entrega:</strong> {{ $envio->direccion->descripcion ?? 'N/A' }}</p>
+                            <h5><i class="fas fa-warehouse"></i> DESTINO</h5>
+                            <p class="mb-1"><strong>Almacén:</strong> {{ $envio->almacenDestino->nombre ?? 'N/A' }}</p>
+                            <p class="mb-0"><strong>Dirección:</strong> {{ $envio->almacenDestino->direccion_completa ?? 'N/A' }}</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Transportista y Vehículo -->
-                @if($envio->transportista || $envio->vehiculo)
+                @if($envio->asignacion)
                 <div class="row mb-4">
-                    @if($envio->transportista)
+                    @if($envio->asignacion->transportista)
                     <div class="col-md-6">
                         <div class="info-box">
                             <h5><i class="fas fa-user-tie"></i> TRANSPORTISTA</h5>
-                            <p class="mb-1"><strong>Nombre:</strong> {{ $envio->transportista->name }}</p>
-                            <p class="mb-0"><strong>Email:</strong> {{ $envio->transportista->email }}</p>
+                            <p class="mb-1"><strong>Nombre:</strong> {{ $envio->asignacion->transportista->name }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ $envio->asignacion->transportista->email }}</p>
+                            <p class="mb-0"><strong>Licencia:</strong> {{ $envio->asignacion->transportista->licencia ?? 'N/A' }}</p>
                         </div>
                     </div>
                     @endif
-                    @if($envio->vehiculo)
+                    @if($envio->asignacion->vehiculo)
                     <div class="col-md-6">
                         <div class="info-box">
                             <h5><i class="fas fa-truck"></i> VEHÍCULO</h5>
-                            <p class="mb-0"><strong>Placa:</strong> {{ $envio->vehiculo->placa }}</p>
+                            <p class="mb-1"><strong>Placa:</strong> {{ $envio->asignacion->vehiculo->placa }}</p>
+                            <p class="mb-1"><strong>Modelo:</strong> {{ $envio->asignacion->vehiculo->modelo ?? 'N/A' }}</p>
+                            <p class="mb-0"><strong>Marca:</strong> {{ $envio->asignacion->vehiculo->marca ?? 'N/A' }}</p>
                         </div>
                     </div>
                     @endif

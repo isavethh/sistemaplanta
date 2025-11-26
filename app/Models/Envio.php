@@ -43,6 +43,12 @@ class Envio extends Model
         return $this->belongsTo(Almacen::class, 'almacen_destino_id');
     }
 
+    public function direccion()
+    {
+        // Alias para mantener compatibilidad
+        return $this->almacenDestino();
+    }
+
     public function productos()
     {
         return $this->hasMany(EnvioProducto::class);
