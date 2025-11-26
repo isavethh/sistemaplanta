@@ -8,47 +8,90 @@
 
 @section('content')
 <div class="row">
-    <!-- Envíos Pendientes -->
+    <!-- Envíos Activos -->
     <div class="col-md-4">
         <div class="card shadow">
-            <div class="card-header bg-gradient-warning">
-                <h3 class="card-title text-dark"><i class="fas fa-list"></i> Envíos Pendientes</h3>
+            <div class="card-header bg-gradient-primary">
+                <h3 class="card-title text-white"><i class="fas fa-list"></i> Estado de Envíos</h3>
             </div>
             <div class="card-body" style="max-height: 600px; overflow-y: auto;">
                 @php
-                    $enviosPendientes = \App\Models\Envio::with(['almacenDestino', 'asignacion.vehiculo', 'asignacion.transportista'])
-                        ->whereIn('estado', ['pendiente', 'en_transito'])
+                    // Solo mostrar envíos en tránsito (iniciados por transportista desde la app)
+                    $enviosEnTransito = \App\Models\Envio::with(['almacenDestino', 'asignacion.vehiculo', 'asignacion.transportista.usuario'])
+                        ->where('estado', 'en_transito')
+                        ->get();
+                    
+                    // Envíos asignados/aceptados (esperando inicio del transportista)
+                    $enviosEsperando = \App\Models\Envio::with(['almacenDestino', 'asignacion.vehiculo', 'asignacion.transportista.usuario'])
+                        ->whereIn('estado', ['asignado', 'aceptado'])
                         ->get();
                 @endphp
 
-                @forelse($enviosPendientes as $envio)
-                    <div class="envio-card mb-3 p-3 border rounded {{ $envio->estado == 'en_transito' ? 'bg-info text-white' : 'bg-light' }}" 
+                <!-- Envíos en Tránsito -->
+                <h6 class="text-info mt-3"><i class="fas fa-truck-moving"></i> En Tránsito ({{ $enviosEnTransito->count() }})</h6>
+                @forelse($enviosEnTransito as $envio)
+                    <div class="envio-card mb-3 p-3 border rounded bg-info text-white" 
                          data-envio-id="{{ $envio->id }}"
                          data-codigo="{{ $envio->codigo }}"
                          data-lat="{{ $envio->almacenDestino->latitud ?? -17.78 }}"
                          data-lng="{{ $envio->almacenDestino->longitud ?? -63.18 }}"
                          style="cursor: pointer;">
                         <h5 class="mb-2">
-                            <span class="badge {{ $envio->estado == 'en_transito' ? 'badge-warning' : 'badge-secondary' }}">
-                                {{ strtoupper($envio->estado) }}
+                            <span class="badge badge-warning">
+                                🚚 EN RUTA
                             </span>
                         </h5>
                         <p class="mb-1"><strong>Código:</strong> {{ $envio->codigo }}</p>
                         <p class="mb-1"><strong>Destino:</strong> 📦 {{ $envio->almacenDestino->nombre ?? 'N/A' }}</p>
                         <p class="mb-1"><strong>Dirección:</strong> {{ $envio->almacenDestino->direccion_completa ?? 'N/A' }}</p>
                         @if($envio->asignacion && $envio->asignacion->transportista)
-                            <p class="mb-1"><strong>Transportista:</strong> {{ $envio->asignacion->transportista->name }}</p>
+                            <p class="mb-1"><strong>Transportista:</strong> 
+                                {{ $envio->asignacion->transportista->usuario->nombre ?? 'N/A' }} 
+                                {{ $envio->asignacion->transportista->usuario->apellido ?? '' }}
+                            </p>
                         @endif
                         @if($envio->asignacion && $envio->asignacion->vehiculo)
                             <p class="mb-1"><strong>Vehículo:</strong> {{ $envio->asignacion->vehiculo->placa }}</p>
                         @endif
-                        <button class="btn btn-sm btn-primary mt-2" onclick="iniciarSimulacion({{ $envio->id }}, '{{ $envio->codigo }}', {{ $envio->almacenDestino->latitud ?? -17.78 }}, {{ $envio->almacenDestino->longitud ?? -63.18 }})">
-                            <i class="fas fa-play"></i> {{ $envio->estado == 'pendiente' ? 'Iniciar Ruta' : 'Ver en Mapa' }}
+                        @if($envio->fecha_inicio_transito)
+                            <p class="mb-1"><small><strong>Iniciado:</strong> {{ \Carbon\Carbon::parse($envio->fecha_inicio_transito)->format('d/m/Y H:i') }}</small></p>
+                        @endif
+                        <button class="btn btn-sm btn-light mt-2" onclick="verRutaEnMapa({{ $envio->id }}, '{{ $envio->codigo }}', {{ $envio->almacenDestino->latitud ?? -17.78 }}, {{ $envio->almacenDestino->longitud ?? -63.18 }})">
+                            <i class="fas fa-map-marked-alt"></i> Ver en Mapa
                         </button>
                     </div>
                 @empty
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> No hay envíos pendientes o en tránsito
+                    <div class="alert alert-secondary">
+                        <i class="fas fa-info-circle"></i> No hay envíos en tránsito
+                    </div>
+                @endforelse
+
+                <!-- Envíos Esperando Inicio -->
+                <h6 class="text-warning mt-3"><i class="fas fa-clock"></i> Esperando Inicio ({{ $enviosEsperando->count() }})</h6>
+                @forelse($enviosEsperando as $envio)
+                    <div class="envio-card mb-3 p-3 border rounded bg-light" 
+                         style="opacity: 0.8;">
+                        <h5 class="mb-2">
+                            <span class="badge badge-{{ $envio->estado == 'aceptado' ? 'success' : 'secondary' }}">
+                                {{ strtoupper($envio->estado) }}
+                            </span>
+                        </h5>
+                        <p class="mb-1"><strong>Código:</strong> {{ $envio->codigo }}</p>
+                        <p class="mb-1"><strong>Destino:</strong> 📦 {{ $envio->almacenDestino->nombre ?? 'N/A' }}</p>
+                        @if($envio->asignacion && $envio->asignacion->transportista)
+                            <p class="mb-1"><strong>Transportista:</strong> 
+                                {{ $envio->asignacion->transportista->usuario->nombre ?? 'N/A' }} 
+                                {{ $envio->asignacion->transportista->usuario->apellido ?? '' }}
+                            </p>
+                        @endif
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> 
+                            {{ $envio->estado == 'asignado' ? 'Esperando aceptación del transportista' : 'Esperando que el transportista inicie la ruta desde la app' }}
+                        </small>
+                    </div>
+                @empty
+                    <div class="alert alert-secondary">
+                        <i class="fas fa-check-circle"></i> No hay envíos esperando
                     </div>
                 @endforelse
             </div>
@@ -153,7 +196,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }).addTo(map).bindPopup('<b>Planta - Punto de Origen</b><br>Santa Cruz de la Sierra').openPopup();
 });
 
-function iniciarSimulacion(envioId, codigo, lat, lng) {
+// Función para ver la ruta en el mapa (solo visualización)
+function verRutaEnMapa(envioId, codigo, lat, lng) {
     if (simulacionActiva) {
         alert('Ya hay una simulación en curso. Deténgala primero.');
         return;
@@ -164,105 +208,43 @@ function iniciarSimulacion(envioId, codigo, lat, lng) {
     
     // Limpiar mapa
     if (vehiculoMarker) map.removeLayer(vehiculoMarker);
-    if (routingControl) map.removeControl(routingControl);
+    if (rutaPolyline) map.removeLayer(rutaPolyline);
     
-    // Actualizar info panel
-    document.getElementById('info-panel').innerHTML = `<i class="fas fa-spinner fa-spin"></i> Calculando ruta real del envío <strong>${codigo}</strong>...`;
-    document.getElementById('info-panel').className = 'alert alert-info mb-3';
-    
-    // Marcador de destino con icono personalizado
-    const destinoMarker = L.marker(destino, {
+    // Marcador de destino
+    L.marker(destino, {
         icon: L.icon({
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-            iconSize: [35, 57],
-            iconAnchor: [17, 57],
-            popupAnchor: [1, -45],
-            shadowSize: [57, 57]
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
         })
-    }).addTo(map).bindPopup('<b>📦 Punto de Entrega</b>');
+    }).addTo(map).bindPopup('<b>Punto de Entrega</b>').openPopup();
     
-    // Crear ruta REAL usando OpenStreetMap Routing Service (OSRM)
-    routingControl = L.Routing.control({
-        waypoints: [
-            L.latLng(PLANTA_COORDS[0], PLANTA_COORDS[1]),
-            L.latLng(destino[0], destino[1])
-        ],
-        routeWhileDragging: false,
-        addWaypoints: false,
-        draggableWaypoints: false,
-        fitSelectedRoutes: true,
-        showAlternatives: false,
-        lineOptions: {
-            styles: [{
-                color: '#2196F3',
-                opacity: 0.8,
-                weight: 6
-            }],
-            extendToWaypoints: true,
-            missingRouteTolerance: 0
-        },
-        createMarker: function(i, waypoint, n) {
-            if (i === 0) {
-                // Marcador de origen (Planta)
-                return L.marker(waypoint.latLng, {
-                    icon: L.icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-                        iconSize: [35, 57],
-                        iconAnchor: [17, 57],
-                        popupAnchor: [1, -45],
-                        shadowSize: [57, 57]
-                    })
-                }).bindPopup('<b>🏭 Planta - Origen</b><br>Santa Cruz de la Sierra');
-            }
-            // El destino ya lo creamos arriba
-            return null;
-        }
+    // Crear ruta
+    rutaPolyline = L.polyline([PLANTA_COORDS, destino], {
+        color: 'blue',
+        weight: 3,
+        opacity: 0.7,
+        dashArray: '10, 5'
     }).addTo(map);
     
-    // Cuando la ruta esté lista
-    routingControl.on('routesfound', function(e) {
-        rutaReal = e.routes[0].coordinates; // Guardar coordenadas de la ruta real
-        const distanciaKm = (e.routes[0].summary.totalDistance / 1000).toFixed(2);
-        const tiempoMin = Math.round(e.routes[0].summary.totalTime / 60);
-        
-        // Actualizar info panel
-        document.getElementById('info-panel').innerHTML = `
-            <i class="fas fa-route"></i> Ruta calculada: <strong>${distanciaKm} km</strong> | 
-            Tiempo estimado: <strong>${tiempoMin} min</strong>
-        `;
-        document.getElementById('info-panel').className = 'alert alert-success mb-3';
-        
-        // Esperar 2 segundos y comenzar simulación
-        setTimeout(() => {
-            comenzarSimulacionRuta(envioId, codigo, rutaReal, destinoMarker);
-        }, 2000);
-    });
+    // Ajustar vista al mapa
+    map.fitBounds(rutaPolyline.getBounds(), {padding: [50, 50]});
     
-    routingControl.on('routingerror', function(e) {
-        console.error('Error al calcular ruta:', e);
-        document.getElementById('info-panel').innerHTML = `
-            <i class="fas fa-exclamation-triangle"></i> No se pudo calcular una ruta real. 
-            Usando ruta directa...
-        `;
-        document.getElementById('info-panel').className = 'alert alert-warning mb-3';
-        
-        // Fallback a ruta simple
-        rutaReal = [
-            {lat: PLANTA_COORDS[0], lng: PLANTA_COORDS[1]},
-            {lat: destino[0], lng: destino[1]}
-        ];
-        setTimeout(() => {
-            comenzarSimulacionRuta(envioId, codigo, rutaReal, destinoMarker);
-        }, 2000);
-    });
+    // Crear marcador del vehículo (empezar desde la planta)
+    vehiculoMarker = L.marker(PLANTA_COORDS, {
+        icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+    }).addTo(map).bindPopup(`<b>Envío: ${codigo}</b><br>En tránsito...`).openPopup();
     
-    // Actualizar estado a "en_transito"
-    actualizarEstado(envioId, 'en_transito');
-}
-
-function comenzarSimulacionRuta(envioId, codigo, rutaCoords, destinoMarker) {
     // Mostrar panel de control
     document.getElementById('control-panel').style.display = 'block';
     document.getElementById('envio-codigo').textContent = codigo;
@@ -270,71 +252,44 @@ function comenzarSimulacionRuta(envioId, codigo, rutaCoords, destinoMarker) {
     document.getElementById('envio-estado').className = 'badge badge-info';
     
     // Actualizar info panel
-    document.getElementById('info-panel').innerHTML = `<i class="fas fa-truck"></i> Vehículo en ruta hacia <strong>${codigo}</strong>...`;
+    document.getElementById('info-panel').innerHTML = `<i class="fas fa-truck"></i> Simulando ruta del envío <strong>${codigo}</strong>...<br><small class="text-muted">Iniciado por el transportista desde la app móvil</small>`;
     document.getElementById('info-panel').className = 'alert alert-info mb-3';
     
-    // Crear marcador del vehículo con icono de camión
-    vehiculoMarker = L.marker([rutaCoords[0].lat, rutaCoords[0].lng], {
-        icon: L.divIcon({
-            className: 'custom-truck-icon',
-            html: '<div style="font-size: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">🚚</div>',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
-        }),
-        zIndexOffset: 1000
-    }).addTo(map).bindPopup(`<b>Envío: ${codigo}</b><br>En tránsito...`).openPopup();
-    
-    // Simular movimiento a lo largo de la ruta REAL
+    // Simular movimiento
     simulacionActiva = true;
-    let puntoActual = 0;
-    const totalPuntos = rutaCoords.length;
-    const velocidad = Math.max(50, Math.floor(totalPuntos / 100)); // Ajustar velocidad según longitud de ruta
+    let paso = 0;
+    const totalPasos = 50;
     
     simulacionInterval = setInterval(() => {
-        if (puntoActual < totalPuntos) {
-            const coord = rutaCoords[puntoActual];
-            const progreso = (puntoActual / totalPuntos) * 100;
-            
-            // Actualizar barra de progreso
-            document.getElementById('progress-bar').style.width = progreso + '%';
-            document.getElementById('progress-bar').textContent = Math.round(progreso) + '%';
-            
-            // Mover vehículo
-            vehiculoMarker.setLatLng([coord.lat, coord.lng]);
-            
-            // Centrar mapa en el vehículo suavemente
-            if (puntoActual % 10 === 0) {
-                map.panTo([coord.lat, coord.lng], {animate: true, duration: 0.5});
-            }
-            
-            puntoActual += velocidad;
-        } else {
-            // Llegó al destino
+        paso++;
+        const progreso = (paso / totalPasos) * 100;
+        
+        // Actualizar barra de progreso
+        document.getElementById('progress-bar').style.width = progreso + '%';
+        document.getElementById('progress-bar').textContent = Math.round(progreso) + '%';
+        
+        // Interpolar posición
+        const latActual = PLANTA_COORDS[0] + (destino[0] - PLANTA_COORDS[0]) * (paso / totalPasos);
+        const lngActual = PLANTA_COORDS[1] + (destino[1] - PLANTA_COORDS[1]) * (paso / totalPasos);
+        
+        vehiculoMarker.setLatLng([latActual, lngActual]);
+        
+        if (paso >= totalPasos) {
             clearInterval(simulacionInterval);
             simulacionActiva = false;
             
-            // Posicionar en el destino exacto
-            const ultimoCoord = rutaCoords[totalPuntos - 1];
-            vehiculoMarker.setLatLng([ultimoCoord.lat, ultimoCoord.lng]);
-            
             // Envío completado
-            vehiculoMarker.bindPopup(`<b>Envío: ${codigo}</b><br>✅ ¡Entregado!`).openPopup();
+            vehiculoMarker.bindPopup(`<b>Envío: ${codigo}</b><br>¡Entregado!`).openPopup();
             document.getElementById('envio-estado').textContent = 'ENTREGADO';
             document.getElementById('envio-estado').className = 'badge badge-success';
-            document.getElementById('progress-bar').className = 'progress-bar bg-success';
             
-            // Actualizar estado a "entregado"
-            actualizarEstado(envioId, 'entregado');
-            
-            document.getElementById('info-panel').innerHTML = `<i class="fas fa-check-circle"></i> ¡Envío <strong>${codigo}</strong> entregado exitosamente!`;
+            // Actualizar estado a "entregado" (esto solo es visual, la app lo marca oficialmente)
+            document.getElementById('info-panel').innerHTML = `<i class="fas fa-check-circle"></i> Envío <strong>${codigo}</strong> completó su recorrido. <small>(Esperando confirmación de entrega del transportista)</small>`;
             document.getElementById('info-panel').className = 'alert alert-success mb-3';
-            
-            // Mostrar destino
-            destinoMarker.openPopup();
             
             setTimeout(() => {
                 location.reload();
-            }, 4000);
+            }, 3000);
         }
     }, 100);
 }
@@ -344,12 +299,7 @@ function detenerSimulacion() {
         clearInterval(simulacionInterval);
         simulacionActiva = false;
         document.getElementById('control-panel').style.display = 'none';
-        document.getElementById('info-panel').innerHTML = '<i class="fas fa-stop-circle"></i> Simulación detenida';
-        document.getElementById('info-panel').className = 'alert alert-warning mb-3';
-        
-        setTimeout(() => {
-            location.reload();
-        }, 2000);
+        alert('Simulación detenida');
     }
 }
 

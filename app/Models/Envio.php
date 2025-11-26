@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
 class Envio extends Model
 {
@@ -11,6 +12,7 @@ class Envio extends Model
 
     protected $fillable = [
         'codigo',
+        'cliente_id',
         'almacen_destino_id',
         'categoria',
         'fecha_creacion',
@@ -38,15 +40,14 @@ class Envio extends Model
     ];
 
     // Relaciones
+    public function cliente()
+    {
+        return $this->belongsTo(User::class, 'cliente_id');
+    }
+
     public function almacenDestino()
     {
         return $this->belongsTo(Almacen::class, 'almacen_destino_id');
-    }
-
-    public function direccion()
-    {
-        // Alias para mantener compatibilidad
-        return $this->almacenDestino();
     }
 
     public function productos()

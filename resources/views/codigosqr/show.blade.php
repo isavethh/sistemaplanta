@@ -71,35 +71,30 @@
             </div>
 
             <div class="card-body" style="padding: 40px;">
-                <!-- Información del Envío -->
+                <!-- Información del Cliente -->
                 <div class="row mb-4">
-                    <div class="col-md-12">
+                    <div class="col-md-6">
+                        <div class="info-box">
+                            <h5><i class="fas fa-user"></i> CLIENTE</h5>
+                            <p class="mb-1"><strong>Nombre:</strong> {{ $envio->cliente->name ?? 'N/A' }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ $envio->cliente->email ?? 'N/A' }}</p>
+                            <p class="mb-0"><strong>Teléfono:</strong> {{ $envio->cliente->telefono ?? 'N/A' }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
                         <div class="info-box">
                             <h5><i class="fas fa-calendar"></i> INFORMACIÓN DEL ENVÍO</h5>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <p class="mb-1"><strong>Código:</strong> {{ $envio->codigo }}</p>
-                                </div>
-                                <div class="col-md-4">
-                                    <p class="mb-1"><strong>Fecha de Creación:</strong> {{ $envio->created_at->format('d/m/Y H:i') }}</p>
-                                </div>
-                                <div class="col-md-4">
-                                    <p class="mb-1"><strong>Fecha Estimada:</strong> {{ $envio->fecha_llegada ? \Carbon\Carbon::parse($envio->fecha_llegada)->format('d/m/Y') : 'N/A' }}</p>
-                                </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-md-12">
-                                    <p class="mb-0"><strong>Estado:</strong> 
-                                        @if($envio->estado == 'pendiente')
-                                            <span class="badge badge-warning">PENDIENTE</span>
-                                        @elseif($envio->estado == 'en_transito')
-                                            <span class="badge badge-info">EN TRÁNSITO</span>
-                                        @elseif($envio->estado == 'entregado')
-                                            <span class="badge badge-success">ENTREGADO</span>
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
+                            <p class="mb-1"><strong>Fecha de Creación:</strong> {{ $envio->created_at->format('d/m/Y H:i') }}</p>
+                            <p class="mb-1"><strong>Fecha Estimada:</strong> {{ $envio->fecha_llegada ? \Carbon\Carbon::parse($envio->fecha_llegada)->format('d/m/Y') : 'N/A' }}</p>
+                            <p class="mb-0"><strong>Estado:</strong> 
+                                @if($envio->estado == 'pendiente')
+                                    <span class="badge badge-warning">PENDIENTE</span>
+                                @elseif($envio->estado == 'en_transito')
+                                    <span class="badge badge-info">EN TRÁNSITO</span>
+                                @elseif($envio->estado == 'entregado')
+                                    <span class="badge badge-success">ENTREGADO</span>
+                                @endif
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -108,14 +103,17 @@
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <div class="info-box">
-                            <h5><i class="fas fa-industry"></i> ORIGEN</h5>
-                            <p class="mb-1"><strong>Planta:</strong> Planta Principal</p>
-                            <p class="mb-0"><strong>Dirección:</strong> Santa Cruz de la Sierra, Bolivia</p>
+                            <h5><i class="fas fa-warehouse"></i> ORIGEN</h5>
+                            @php
+                                $planta = \App\Models\Almacen::where('es_planta', true)->first();
+                            @endphp
+                            <p class="mb-1"><strong>Almacén:</strong> {{ $planta->nombre ?? 'Planta Principal' }}</p>
+                            <p class="mb-0"><strong>Dirección:</strong> {{ $planta->direccion_completa ?? 'N/A' }}</p>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="info-box">
-                            <h5><i class="fas fa-warehouse"></i> DESTINO</h5>
+                            <h5><i class="fas fa-map-marker-alt"></i> DESTINO</h5>
                             <p class="mb-1"><strong>Almacén:</strong> {{ $envio->almacenDestino->nombre ?? 'N/A' }}</p>
                             <p class="mb-0"><strong>Dirección:</strong> {{ $envio->almacenDestino->direccion_completa ?? 'N/A' }}</p>
                         </div>
@@ -130,8 +128,7 @@
                         <div class="info-box">
                             <h5><i class="fas fa-user-tie"></i> TRANSPORTISTA</h5>
                             <p class="mb-1"><strong>Nombre:</strong> {{ $envio->asignacion->transportista->name }}</p>
-                            <p class="mb-1"><strong>Email:</strong> {{ $envio->asignacion->transportista->email }}</p>
-                            <p class="mb-0"><strong>Licencia:</strong> {{ $envio->asignacion->transportista->licencia ?? 'N/A' }}</p>
+                            <p class="mb-0"><strong>Email:</strong> {{ $envio->asignacion->transportista->email }}</p>
                         </div>
                     </div>
                     @endif
@@ -140,8 +137,7 @@
                         <div class="info-box">
                             <h5><i class="fas fa-truck"></i> VEHÍCULO</h5>
                             <p class="mb-1"><strong>Placa:</strong> {{ $envio->asignacion->vehiculo->placa }}</p>
-                            <p class="mb-1"><strong>Modelo:</strong> {{ $envio->asignacion->vehiculo->modelo ?? 'N/A' }}</p>
-                            <p class="mb-0"><strong>Marca:</strong> {{ $envio->asignacion->vehiculo->marca ?? 'N/A' }}</p>
+                            <p class="mb-0"><strong>Marca/Modelo:</strong> {{ $envio->asignacion->vehiculo->marca }} {{ $envio->asignacion->vehiculo->modelo }}</p>
                         </div>
                     </div>
                     @endif
@@ -167,8 +163,8 @@
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $producto->producto_nombre ?? $producto->nombre }}</td>
                             <td>{{ $producto->cantidad }}</td>
-                            <td>{{ number_format($producto->peso_por_unidad, 3) }} kg</td>
-                            <td>${{ number_format($producto->precio_por_unidad, 2) }}</td>
+                            <td>{{ number_format($producto->peso_unitario, 3) }} kg</td>
+                            <td>${{ number_format($producto->precio_unitario, 2) }}</td>
                             <td>${{ number_format($producto->total_precio, 2) }}</td>
                         </tr>
                         @empty

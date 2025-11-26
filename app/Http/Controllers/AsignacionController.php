@@ -1,0 +1,160 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Envio;
+use App\Models\AsignacionTransportista;
+use App\Models\Transportista;
+use App\Models\Vehiculo;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class AsignacionController extends Controller
+{
+    /**
+     * Mostrar lista de envíos pendientes y asignados
+     */
+    public function index()
+    {
+        $enviosPendientes = Envio::with(['almacenDestino'])
+            ->where('estado', 'pendiente')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $enviosAsignados = Envio::with(['almacenDestino', 'asignacion.transportista.usuario', 'asignacion.vehiculo'])
+            ->whereIn('estado', ['asignado', 'aceptado'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        $transportistas = Transportista::with('usuario')->whereHas('usuario', function($query) {
+            $query->where('activo', true);
+        })->get();
+
+        $vehiculos = Vehiculo::where('activo', true)->get();
+
+        return view('asignaciones.index', compact('enviosPendientes', 'enviosAsignados', 'transportistas', 'vehiculos'));
+    }
+
+    /**
+     * Asignar transportista y vehículo a un envío
+     */
+    public function asignar(Request $request)
+    {
+        $request->validate([
+            'envio_id' => 'required|exists:envios,id',
+            'transportista_id' => 'required|exists:transportistas,id',
+            'vehiculo_id' => 'required|exists:vehiculos,id',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Verificar que el envío esté pendiente
+            $envio = Envio::findOrFail($request->envio_id);
+            if ($envio->estado !== 'pendiente') {
+                return back()->with('error', 'El envío ya fue asignado o está en otro estado.');
+            }
+
+            // Verificar que el vehículo no esté ocupado
+            $vehiculoOcupado = AsignacionTransportista::whereHas('envio', function($query) {
+                $query->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);
+            })->where('vehiculo_id', $request->vehiculo_id)->exists();
+
+            if ($vehiculoOcupado) {
+                return back()->with('error', 'El vehículo seleccionado ya está asignado a otro envío activo.');
+            }
+
+            // Crear asignación
+            AsignacionTransportista::create([
+                'envio_id' => $request->envio_id,
+                'transportista_id' => $request->transportista_id,
+                'vehiculo_id' => $request->vehiculo_id,
+                'fecha_asignacion' => now(),
+            ]);
+
+            // Actualizar estado del envío
+            $envio->update([
+                'estado' => 'asignado',
+                'updated_at' => now(),
+            ]);
+
+            // Sincronizar con Node.js backend (opcional)
+            $this->sincronizarConNodeJS($envio);
+
+            DB::commit();
+            return back()->with('success', 'Envío asignado correctamente. El transportista podrá verlo en la app.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Error al asignar: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remover asignación (solo si no ha sido aceptada ni iniciada)
+     */
+    public function remover($envioId)
+    {
+        DB::beginTransaction();
+        try {
+            $envio = Envio::with('asignacion')->findOrFail($envioId);
+            
+            if ($envio->estado !== 'asignado') {
+                return back()->with('error', 'Solo se pueden remover asignaciones no aceptadas.');
+            }
+
+            // Eliminar asignación
+            if ($envio->asignacion) {
+                $envio->asignacion->delete();
+            }
+
+            // Volver estado a pendiente
+            $envio->update(['estado' => 'pendiente']);
+
+            DB::commit();
+            return back()->with('success', 'Asignación removida. El envío vuelve a estar pendiente.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Error al remover: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Sincronizar con backend de Node.js
+     */
+    private function sincronizarConNodeJS($envio)
+    {
+        try {
+            $envio->load(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo']);
+
+            $data = [
+                'laravel_envio_id' => $envio->id,
+                'codigo' => $envio->codigo,
+                'almacen_destino_id' => $envio->almacen_destino_id,
+                'almacen_destino_nombre' => $envio->almacenDestino->nombre ?? null,
+                'fecha_estimada_entrega' => $envio->fecha_estimada_entrega,
+                'hora_estimada' => $envio->hora_estimada,
+                'estado' => $envio->estado,
+                'total_cantidad' => $envio->productos->sum('cantidad'),
+                'total_peso' => $envio->productos->sum('total_peso'),
+                'total_precio' => $envio->productos->sum('total_precio'),
+                'transportista_id' => $envio->asignacion->transportista_id ?? null,
+                'vehiculo_id' => $envio->asignacion->vehiculo_id ?? null,
+            ];
+
+            $nodeApiUrl = env('NODE_API_URL', 'http://localhost:3000/api');
+            
+            $ch = curl_init($nodeApiUrl . '/envios/sync');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_exec($ch);
+            curl_close($ch);
+        } catch (\Exception $e) {
+            // Log error pero no fallar
+            \Log::warning('Error sincronizando con Node.js: ' . $e->getMessage());
+        }
+    }
+}
+

@@ -18,6 +18,7 @@ use App\Http\Controllers\AlmacenController;
 use App\Http\Controllers\EnvioController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TipoTransporteController;
+use App\Http\Controllers\AsignacionController;
 
 Route::get('/', function () {
     return view('dashboard');
@@ -43,6 +44,11 @@ Route::resource('envios', EnvioController::class);
 Route::post('envios/asignacion-multiple', [EnvioController::class, 'asignacionMultiple'])->name('envios.asignacionMultiple');
 Route::get('envios/{envio}/tracking', [EnvioController::class, 'tracking'])->name('envios.tracking');
 Route::post('envios/{envio}/actualizar-estado', [EnvioController::class, 'actualizarEstado'])->name('envios.actualizarEstado');
+
+// Rutas de Asignaciones
+Route::get('asignaciones', [AsignacionController::class, 'index'])->name('asignaciones.index');
+Route::post('asignaciones/asignar', [AsignacionController::class, 'asignar'])->name('asignaciones.asignar');
+Route::delete('asignaciones/{envio}/remover', [AsignacionController::class, 'remover'])->name('asignaciones.remover');
 
 // Rutas adicionales para gestión completa
 Route::resource('productos', App\Http\Controllers\ProductoController::class);

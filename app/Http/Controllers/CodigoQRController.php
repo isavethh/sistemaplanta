@@ -14,7 +14,7 @@ class CodigoQRController extends Controller
 
     public function show($id)
     {
-        $envio = Envio::with(['almacenDestino', 'direccion', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
+        $envio = Envio::with(['cliente', 'almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
             ->findOrFail($id);
         
         return view('codigosqr.show', compact('envio'));

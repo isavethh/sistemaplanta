@@ -25,11 +25,6 @@
         <form action="{{ route('almacenes.store') }}" method="POST" id="formAlmacen">
             @csrf
             
-            <div class="alert alert-warning">
-                <i class="fas fa-info-circle"></i> <strong>Nota:</strong> 
-                Solo se crean <strong>almacenes de destino</strong>. La <strong>Planta</strong> ya está creada y es fija en Santa Cruz.
-            </div>
-
             <div class="form-group">
                 <label><i class="fas fa-warehouse"></i> Nombre del Almacén *</label>
                 <input type="text" name="nombre" class="form-control @error('nombre') is-invalid @enderror" 
@@ -37,19 +32,20 @@
                 @error('nombre')
                     <span class="invalid-feedback">{{ $message }}</span>
                 @enderror
-                <small class="text-muted">Este será un almacén de destino para los envíos</small>
             </div>
 
-            <!-- Campo oculto para asegurar que siempre sea almacén (no planta) -->
-            <input type="hidden" name="es_planta" value="0">
+            <div class="form-check mb-3">
+                <input type="checkbox" name="es_planta" class="form-check-input" id="es_planta">
+                <label class="form-check-label" for="es_planta">
+                    <i class="fas fa-industry"></i> <strong>Esta es la Planta Principal</strong>
+                </label>
+                <small class="d-block text-muted">Marque solo si este es el punto de origen fijo (Santa Cruz)</small>
+            </div>
 
             <div class="form-group">
-                <label><i class="fas fa-map-marker-alt"></i> Dirección Completa *</label>
-                <textarea name="direccion_completa" class="form-control @error('direccion_completa') is-invalid @enderror" rows="2" 
-                          placeholder="Ej: Av. Banzer 500, Santa Cruz de la Sierra" required>{{ old('direccion_completa') }}</textarea>
-                @error('direccion_completa')
-                    <span class="invalid-feedback">{{ $message }}</span>
-                @enderror
+                <label><i class="fas fa-map-marker-alt"></i> Dirección Completa</label>
+                <textarea name="direccion_completa" class="form-control" rows="2" 
+                          placeholder="Ej: Av. Banzer 500, Santa Cruz de la Sierra">{{ old('direccion_completa') }}</textarea>
             </div>
 
             <div class="alert alert-info">

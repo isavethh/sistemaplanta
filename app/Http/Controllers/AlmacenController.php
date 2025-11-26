@@ -25,12 +25,11 @@ class AlmacenController extends Controller
             'nombre' => 'required|string|max:255',
             'latitud' => 'required|numeric',
             'longitud' => 'required|numeric',
-            'direccion_completa' => 'required|string',
+            'direccion_completa' => 'nullable|string',
         ]);
 
         $validated['activo'] = $request->has('activo');
-        // Siempre crear como almacén normal, no planta (la planta ya existe y es única)
-        $validated['es_planta'] = false;
+        $validated['es_planta'] = $request->has('es_planta');
         
         Almacen::create($validated);
         return redirect()->route('almacenes.index')->with('success', 'Almacén creado exitosamente.');
@@ -47,12 +46,11 @@ class AlmacenController extends Controller
             'nombre' => 'required|string|max:255',
             'latitud' => 'required|numeric',
             'longitud' => 'required|numeric',
-            'direccion_completa' => 'required|string',
+            'direccion_completa' => 'nullable|string',
         ]);
 
         $validated['activo'] = $request->has('activo');
-        // No permitir cambiar es_planta desde el formulario (proteger la planta)
-        // Solo se mantiene el valor actual
+        $validated['es_planta'] = $request->has('es_planta');
         
         $almacen->update($validated);
         return redirect()->route('almacenes.index')->with('success', 'Almacén actualizado exitosamente.');

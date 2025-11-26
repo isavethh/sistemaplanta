@@ -309,50 +309,81 @@ return [
         // Dashboard
         [ 'text' => 'Dashboard', 'url' => '/', 'icon' => 'fas fa-tachometer-alt', 'icon_color' => 'primary' ],
         
-        ['header' => 'GESTIÓN DE USUARIOS'],
-        [ 'text' => 'Administradores', 'url' => 'administradores', 'icon' => 'fas fa-user-shield', 'icon_color' => 'danger' ],
-        [ 'text' => 'Transportistas', 'url' => 'transportistas', 'icon' => 'fas fa-id-card', 'icon_color' => 'primary' ],
-        [ 'text' => 'Almacenes (Usuarios)', 'url' => 'almacenes', 'icon' => 'fas fa-warehouse', 'icon_color' => 'success' ],
+        // =============================================
+        // SECCIÓN: PARAMETRIZACIÓN (CRUDS)
+        // =============================================
+        ['header' => '📋 PARAMETRIZACIÓN'],
         
-        ['header' => 'GESTIÓN DE INVENTARIO'],
-        [ 'text' => 'Inventario', 'url' => 'inventarios', 'icon' => 'fas fa-boxes', 'icon_color' => 'primary' ],
-        
-        ['header' => 'GESTIÓN DE ENVÍOS'],
-        [ 'text' => 'Envíos', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'success' ],
-        [ 'text' => 'Rutas en Tiempo Real', 'url' => 'rutas', 'icon' => 'fas fa-route', 'icon_color' => 'info' ],
-        [ 'text' => 'Códigos QR y Documentos', 'url' => 'codigosqr', 'icon' => 'fas fa-qrcode', 'icon_color' => 'warning' ],
-        [ 'text' => 'Direcciones', 'url' => 'direcciones', 'icon' => 'fas fa-map-marked-alt', 'icon_color' => 'danger' ],
-        
-        ['header' => 'VEHÍCULOS Y TRANSPORTE'],
-        [ 'text' => 'Vehículos', 'url' => 'vehiculos', 'icon' => 'fas fa-truck', 'icon_color' => 'warning' ],
-        [ 'text' => 'Tipos de Transporte', 'url' => 'tipos-transporte', 'icon' => 'fas fa-truck-loading', 'icon_color' => 'info' ],
-        
-        ['header' => 'CONFIGURACIÓN'],
-        [ 'text' => 'Unidades de Medida', 'url' => 'unidadesmedida', 'icon' => 'fas fa-balance-scale', 'icon_color' => 'primary' ],
-        [ 'text' => 'Tipos de Empaque', 'url' => 'tiposempaque', 'icon' => 'fas fa-box', 'icon_color' => 'success' ],
-        
-        ['header' => 'GESTIÓN DE INVENTARIO'],
+        // Usuarios y Roles
         [
-            'text' => 'Inventario',
-            'icon' => 'fas fa-warehouse',
+            'text' => 'Usuarios',
+            'icon' => 'fas fa-users',
             'icon_color' => 'primary',
             'submenu' => [
-                [ 'text' => 'Almacenes', 'url' => 'almacenes', 'icon' => 'fas fa-warehouse' ],
-                [ 'text' => 'Gestión de Inventario', 'url' => 'inventarios', 'icon' => 'fas fa-boxes' ],
-                [ 'text' => 'Productos', 'url' => 'productos', 'icon' => 'fas fa-box-open' ],
-                [ 'text' => 'Categorías', 'url' => 'categorias', 'icon' => 'fas fa-folder' ],
+                [ 'text' => 'Administradores', 'url' => 'administradores', 'icon' => 'fas fa-user-shield' ],
+                [ 'text' => 'Transportistas', 'url' => 'transportistas', 'icon' => 'fas fa-id-card' ],
+                [ 'text' => 'Almacenes (Usuarios)', 'url' => 'almacenes', 'icon' => 'fas fa-warehouse' ],
             ],
         ],
         
-        ['header' => 'GESTIÓN DE ENVÍOS'],
-        [ 'text' => 'Envíos', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'success' ],
-        [ 'text' => 'Rutas en Tiempo Real', 'url' => 'rutas', 'icon' => 'fas fa-route', 'icon_color' => 'info' ],
-        [ 'text' => 'Códigos QR y Documentos', 'url' => 'codigosqr', 'icon' => 'fas fa-qrcode', 'icon_color' => 'warning' ],
-        [ 'text' => 'Direcciones', 'url' => 'direcciones', 'icon' => 'fas fa-map-marker-alt', 'icon_color' => 'danger' ],
+        // Inventario y Productos
+        [
+            'text' => 'Inventario',
+            'icon' => 'fas fa-warehouse',
+            'icon_color' => 'success',
+            'submenu' => [
+                [ 'text' => 'Productos', 'url' => 'productos', 'icon' => 'fas fa-box-open' ],
+                [ 'text' => 'Categorías', 'url' => 'categorias', 'icon' => 'fas fa-folder' ],
+                [ 'text' => 'Gestión de Inventario', 'url' => 'inventarios', 'icon' => 'fas fa-boxes' ],
+            ],
+        ],
         
-        ['header' => 'VEHÍCULOS Y TRANSPORTE'],
-        [ 'text' => 'Vehículos', 'url' => 'vehiculos', 'icon' => 'fas fa-truck', 'icon_color' => 'warning' ],
-        [ 'text' => 'Transportistas', 'url' => 'transportistas', 'icon' => 'fas fa-id-card', 'icon_color' => 'primary' ],
+        // Vehículos y Transporte
+        [
+            'text' => 'Vehículos y Transporte',
+            'icon' => 'fas fa-truck',
+            'icon_color' => 'warning',
+            'submenu' => [
+                [ 'text' => 'Vehículos', 'url' => 'vehiculos', 'icon' => 'fas fa-truck' ],
+                [ 'text' => 'Tipos de Transporte', 'url' => 'tipos-transporte', 'icon' => 'fas fa-truck-loading' ],
+            ],
+        ],
+        
+        // Configuración General
+        [
+            'text' => 'Configuración',
+            'icon' => 'fas fa-cogs',
+            'icon_color' => 'secondary',
+            'submenu' => [
+                [ 'text' => 'Unidades de Medida', 'url' => 'unidadesmedida', 'icon' => 'fas fa-balance-scale' ],
+                [ 'text' => 'Tipos de Empaque', 'url' => 'tiposempaque', 'icon' => 'fas fa-box' ],
+                [ 'text' => 'Direcciones', 'url' => 'direcciones', 'icon' => 'fas fa-map-marked-alt' ],
+            ],
+        ],
+        
+        // =============================================
+        // SECCIÓN: TRANSACCIONAL (OPERACIONES)
+        // =============================================
+        ['header' => '🚚 TRANSACCIONAL'],
+        
+        // Asignación de Envíos (NUEVO)
+        [ 
+            'text' => 'Asignación de Envíos', 
+            'url' => 'asignaciones', 
+            'icon' => 'fas fa-clipboard-check', 
+            'icon_color' => 'info',
+            'label' => 'NUEVO',
+            'label_color' => 'success',
+        ],
+        
+        // Envíos
+        [ 'text' => 'Envíos', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'success' ],
+        
+        // Rutas en Tiempo Real
+        [ 'text' => 'Rutas en Tiempo Real', 'url' => 'rutas', 'icon' => 'fas fa-route', 'icon_color' => 'danger' ],
+        
+        // Códigos QR y Documentos
+        [ 'text' => 'Códigos QR y Documentos', 'url' => 'codigosqr', 'icon' => 'fas fa-qrcode', 'icon_color' => 'warning' ],
     ],
 
     /*
