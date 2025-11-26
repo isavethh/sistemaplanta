@@ -1,5 +1,7 @@
 @extends('adminlte::page')
+
 @section('title', 'Vehículos')
+
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
         <h1><i class="fas fa-truck"></i> Vehículos</h1>
@@ -19,6 +21,15 @@
     </div>
 @endif
 
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+@endif
+
 <div class="card shadow">
     <div class="card-header bg-gradient-primary">
         <h3 class="card-title text-white"><i class="fas fa-list"></i> Listado de Vehículos</h3>
@@ -27,33 +38,71 @@
         <table id="vehiculosTable" class="table table-striped table-bordered table-hover">
             <thead class="thead-dark">
                 <tr>
-                    <th>ID</th>
                     <th>Placa</th>
-                    <th>Tipo</th>
+                    <th>Marca/Modelo</th>
+                    <th>Tamaño</th>
+                    <th>Licencia</th>
                     <th>Capacidad</th>
                     <th>Transportista</th>
                     <th>Estado</th>
-                    <th width="150px">Acciones</th>
+                    <th width="120px">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($vehiculos as $vehiculo)
                 <tr>
-                    <td>{{ $vehiculo->id }}</td>
                     <td><strong>{{ $vehiculo->placa }}</strong></td>
                     <td>
-                        @if($vehiculo->tipo)
-                            <span class="badge badge-info">
-                                {{ optional(App\Models\TipoVehiculo::find($vehiculo->tipo))->nombre ?? 'N/A' }}
-                            </span>
+                        @if($vehiculo->marca || $vehiculo->modelo)
+                            {{ $vehiculo->marca ?? '' }} {{ $vehiculo->modelo ?? '' }}
+                            @if($vehiculo->anio)
+                                <small class="text-muted">({{ $vehiculo->anio }})</small>
+                            @endif
                         @else
-                            <span class="text-muted">N/A</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
-                    <td>{{ $vehiculo->capacidad ?? 'N/A' }}</td>
-                    <td>{{ optional($vehiculo->transportista)->name ?? 'Sin asignar' }}</td>
                     <td>
-                        <span class="badge badge-success">Activo</span>
+                        @if($vehiculo->tamanoVehiculo)
+                            <span class="badge badge-info">
+                                {{ $vehiculo->tamanoVehiculo->nombre }}
+                            </span>
+                        @else
+                            <span class="text-muted">-</span>
+                        @endif
+                    </td>
+                    <td>
+                        <span class="badge badge-secondary">{{ $vehiculo->licencia_requerida }}</span>
+                    </td>
+                    <td>
+                        @if($vehiculo->capacidad_carga)
+                            {{ number_format($vehiculo->capacidad_carga, 2) }}
+                            @if($vehiculo->unidadMedidaCarga)
+                                {{ $vehiculo->unidadMedidaCarga->abreviatura }}
+                            @endif
+                        @else
+                            -
+                        @endif
+                    </td>
+                    <td>
+                        @if($vehiculo->transportista)
+                            <span class="badge badge-success">
+                                {{ $vehiculo->transportista->name }}
+                            </span>
+                        @else
+                            <span class="badge badge-secondary">Sin asignar</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if($vehiculo->disponible && $vehiculo->estado == 'activo')
+                            <span class="badge badge-success">Disponible</span>
+                        @elseif($vehiculo->estado == 'mantenimiento')
+                            <span class="badge badge-warning">Mantenimiento</span>
+                        @elseif($vehiculo->estado == 'inactivo')
+                            <span class="badge badge-danger">Inactivo</span>
+                        @else
+                            <span class="badge badge-secondary">Ocupado</span>
+                        @endif
                     </td>
                     <td>
                         <div class="btn-group" role="group">

@@ -36,6 +36,7 @@ Route::resource('estadosvehiculo', EstadoVehiculoController::class);
 Route::resource('tiposempaque', TipoEmpaqueController::class);
 Route::resource('unidadesmedida', UnidadMedidaController::class);
 Route::resource('tipos-transporte', TipoTransporteController::class);
+Route::resource('tamanos-transporte', App\Http\Controllers\TamanoTransporteController::class);
 
 Route::resource('users', UserController::class);
 Route::resource('almacenes', AlmacenController::class);

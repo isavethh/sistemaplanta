@@ -17,6 +17,7 @@ class Vehiculo extends Model
         'modelo',
         'anio',
         'tipo_vehiculo',
+        'tamano_vehiculo_id',
         'tipo_transporte_id',
         'licencia_requerida',
         'capacidad_carga',
@@ -38,6 +39,11 @@ class Vehiculo extends Model
     public function transportista()
     {
         return $this->belongsTo(User::class, 'transportista_id');
+    }
+
+    public function tamanoVehiculo()
+    {
+        return $this->belongsTo(TamanoVehiculo::class, 'tamano_vehiculo_id');
     }
 
     public function tipoTransporte()

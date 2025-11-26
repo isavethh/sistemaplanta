@@ -1,0 +1,71 @@
+@extends('adminlte::page')
+
+@section('title', 'Editar Tamaño de Vehículo')
+
+@section('content_header')
+    <h1><i class="fas fa-ruler"></i> Editar Tamaño de Vehículo</h1>
+@endsection
+
+@section('content')
+<div class="card">
+    <div class="card-body">
+        <form action="{{ route('tamanos-vehiculo.update', $tamano->id) }}" method="POST">
+            @csrf
+            @method('PUT')
+            
+            <div class="form-group">
+                <label for="nombre">Nombre *</label>
+                <input type="text" name="nombre" id="nombre" class="form-control @error('nombre') is-invalid @enderror" 
+                       value="{{ old('nombre', $tamano->nombre) }}" required placeholder="Ej: Pequeño, Mediano, Grande">
+                @error('nombre')
+                    <span class="invalid-feedback">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <div class="form-group">
+                <label for="descripcion">Descripción</label>
+                <textarea name="descripcion" id="descripcion" class="form-control @error('descripcion') is-invalid @enderror" 
+                          rows="3" placeholder="Descripción opcional del tamaño">{{ old('descripcion', $tamano->descripcion) }}</textarea>
+                @error('descripcion')
+                    <span class="invalid-feedback">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="capacidad_min">Capacidad Mínima (toneladas)</label>
+                        <input type="number" step="0.01" name="capacidad_min" id="capacidad_min" 
+                               class="form-control @error('capacidad_min') is-invalid @enderror" 
+                               value="{{ old('capacidad_min', $tamano->capacidad_min) }}" placeholder="0.00">
+                        @error('capacidad_min')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="capacidad_max">Capacidad Máxima (toneladas)</label>
+                        <input type="number" step="0.01" name="capacidad_max" id="capacidad_max" 
+                               class="form-control @error('capacidad_max') is-invalid @enderror" 
+                               value="{{ old('capacidad_max', $tamano->capacidad_max) }}" placeholder="0.00">
+                        @error('capacidad_max')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Actualizar
+                </button>
+                <a href="{{ route('tamanos-vehiculo.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection
+

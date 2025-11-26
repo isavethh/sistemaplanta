@@ -135,10 +135,12 @@
                                                     <option value="">Seleccione un transportista</option>
                                                     @foreach($transportistas as $transportista)
                                                         <option value="{{ $transportista->id }}">
-                                                            {{ $transportista->usuario->nombre ?? 'N/A' }} 
-                                                            {{ $transportista->usuario->apellido ?? '' }}
+                                                            {{ $transportista->name }}
                                                             @if($transportista->licencia)
                                                                 - Lic: {{ $transportista->licencia }}
+                                                            @endif
+                                                            @if($transportista->telefono)
+                                                                - Tel: {{ $transportista->telefono }}
                                                             @endif
                                                         </option>
                                                     @endforeach
@@ -226,8 +228,10 @@
                             </td>
                             <td>
                                 <i class="fas fa-user"></i> 
-                                {{ $envio->asignacion->transportista->usuario->nombre ?? 'N/A' }}
-                                {{ $envio->asignacion->transportista->usuario->apellido ?? '' }}
+                                {{ $envio->asignacion->transportista->name ?? 'N/A' }}
+                                @if($envio->asignacion->transportista->licencia)
+                                    <br><small class="text-muted">Lic: {{ $envio->asignacion->transportista->licencia }}</small>
+                                @endif
                             </td>
                             <td>
                                 <i class="fas fa-truck"></i> 

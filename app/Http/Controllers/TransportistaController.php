@@ -9,7 +9,10 @@ class TransportistaController extends Controller
 {
     public function index()
     {
-        $transportistas = User::where('role', 'transportista')->get();
+        $transportistas = User::where('role', 'transportista')
+            ->orWhere('tipo', 'transportista')
+            ->orderBy('name')
+            ->get();
         return view('transportistas.index', compact('transportistas'));
     }
 
@@ -20,20 +23,41 @@ class TransportistaController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        // Debug: verificar datos recibidos
+        \Log::info('Datos recibidos para crear transportista:', $request->all());
+
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
+            'licencia' => 'required|in:A,B,C',
+            'telefono' => 'nullable|string|max:20',
         ]);
 
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'transportista',
-        ]);
+        try {
+            $userData = [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role' => 'transportista',
+                'tipo' => 'transportista',
+                'licencia' => $validated['licencia'],
+                'telefono' => $validated['telefono'] ?? null,
+                'disponible' => $request->has('disponible') ? 1 : 0,
+            ];
 
-        return redirect()->route('transportistas.index')->with('success', 'Transportista creado');
+            \Log::info('Datos a crear:', $userData);
+
+            $user = User::create($userData);
+
+            \Log::info('Usuario creado con ID: ' . $user->id);
+
+            return redirect()->route('transportistas.index')->with('success', 'Transportista creado correctamente');
+        } catch (\Exception $e) {
+            \Log::error('Error al crear transportista: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return back()->withInput()->withErrors(['error' => 'Error al crear transportista: ' . $e->getMessage()]);
+        }
     }
 
     public function edit(User $transportista)
@@ -47,19 +71,41 @@ class TransportistaController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $transportista->id,
             'password' => 'nullable|string|min:6',
+            'licencia' => 'required|in:A,B,C',
+            'telefono' => 'nullable|string|max:20',
+            'disponible' => 'nullable|boolean',
         ]);
 
-        $data = ['name' => $request->name, 'email' => $request->email];
-        if ($request->password) { $data['password'] = Hash::make($request->password); }
+        $data = [
+            'name' => $request->name, 
+            'email' => $request->email,
+            'licencia' => $request->licencia,
+            'telefono' => $request->telefono,
+            'disponible' => $request->has('disponible'),
+        ];
+        
+        if ($request->filled('password')) { 
+            $data['password'] = Hash::make($request->password); 
+        }
 
         $transportista->update($data);
 
-        return redirect()->route('transportistas.index')->with('success', 'Transportista actualizado');
+        return redirect()->route('transportistas.index')->with('success', 'Transportista actualizado correctamente');
     }
 
     public function destroy(User $transportista)
     {
+        // Verificar que no tenga asignaciones activas antes de eliminar
+        $tieneAsignacionesActivas = $transportista->enviosComoTransportista()
+            ->whereIn('estado', ['asignado', 'aceptado', 'en_transito'])
+            ->exists();
+
+        if ($tieneAsignacionesActivas) {
+            return redirect()->route('transportistas.index')
+                ->with('error', 'No se puede eliminar el transportista porque tiene envíos activos asignados.');
+        }
+
         $transportista->delete();
-        return redirect()->route('transportistas.index')->with('success', 'Transportista eliminado');
+        return redirect()->route('transportistas.index')->with('success', 'Transportista eliminado correctamente');
     }
 }

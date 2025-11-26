@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Envio;
-use App\Models\AsignacionTransportista;
-use App\Models\Transportista;
+use App\Models\EnvioAsignacion;
 use App\Models\Vehiculo;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -22,16 +21,16 @@ class AsignacionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $enviosAsignados = Envio::with(['almacenDestino', 'asignacion.transportista.usuario', 'asignacion.vehiculo'])
+        $enviosAsignados = Envio::with(['almacenDestino', 'asignacion.transportista', 'asignacion.vehiculo'])
             ->whereIn('estado', ['asignado', 'aceptado'])
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        $transportistas = Transportista::with('usuario')->whereHas('usuario', function($query) {
-            $query->where('activo', true);
-        })->get();
+        $transportistas = User::transportistas()
+            ->where('disponible', true)
+            ->get();
 
-        $vehiculos = Vehiculo::where('activo', true)->get();
+        $vehiculos = Vehiculo::disponibles()->get();
 
         return view('asignaciones.index', compact('enviosPendientes', 'enviosAsignados', 'transportistas', 'vehiculos'));
     }
@@ -43,7 +42,7 @@ class AsignacionController extends Controller
     {
         $request->validate([
             'envio_id' => 'required|exists:envios,id',
-            'transportista_id' => 'required|exists:transportistas,id',
+            'transportista_id' => 'required|exists:users,id',
             'vehiculo_id' => 'required|exists:vehiculos,id',
         ]);
 
@@ -56,7 +55,7 @@ class AsignacionController extends Controller
             }
 
             // Verificar que el vehículo no esté ocupado
-            $vehiculoOcupado = AsignacionTransportista::whereHas('envio', function($query) {
+            $vehiculoOcupado = EnvioAsignacion::whereHas('envio', function($query) {
                 $query->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);
             })->where('vehiculo_id', $request->vehiculo_id)->exists();
 
@@ -65,7 +64,7 @@ class AsignacionController extends Controller
             }
 
             // Crear asignación
-            AsignacionTransportista::create([
+            EnvioAsignacion::create([
                 'envio_id' => $request->envio_id,
                 'transportista_id' => $request->transportista_id,
                 'vehiculo_id' => $request->vehiculo_id,

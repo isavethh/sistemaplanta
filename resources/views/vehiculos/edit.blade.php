@@ -1,38 +1,160 @@
 @extends('adminlte::page')
+
 @section('title', 'Editar Vehículo')
+
 @section('content_header')
-    <h1>Editar Vehículo</h1>
+    <h1><i class="fas fa-truck"></i> Editar Vehículo</h1>
 @endsection
+
 @section('content')
-<form action="{{ route('vehiculos.update', $vehiculo) }}" method="POST">
-    @csrf
-    @method('PUT')
-    <div class="form-group">
-        <label>Placa</label>
-        <input type="text" name="placa" class="form-control" value="{{ $vehiculo->placa }}" required>
+<div class="card">
+    <div class="card-body">
+        <form action="{{ route('vehiculos.update', $vehiculo) }}" method="POST">
+            @csrf
+            @method('PUT')
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="placa">Placa *</label>
+                        <input type="text" name="placa" id="placa" class="form-control @error('placa') is-invalid @enderror" 
+                               value="{{ old('placa', $vehiculo->placa) }}" required>
+                        @error('placa')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="marca">Marca</label>
+                        <input type="text" name="marca" id="marca" class="form-control @error('marca') is-invalid @enderror" 
+                               value="{{ old('marca', $vehiculo->marca) }}">
+                        @error('marca')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="modelo">Modelo</label>
+                        <input type="text" name="modelo" id="modelo" class="form-control @error('modelo') is-invalid @enderror" 
+                               value="{{ old('modelo', $vehiculo->modelo) }}">
+                        @error('modelo')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="anio">Año</label>
+                        <input type="number" name="anio" id="anio" class="form-control @error('anio') is-invalid @enderror" 
+                               value="{{ old('anio', $vehiculo->anio) }}" min="1900" max="{{ date('Y') + 1 }}">
+                        @error('anio')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="tipo_transporte_id">Tipo de Transporte</label>
+                        <select name="tipo_transporte_id" id="tipo_transporte_id" class="form-control @error('tipo_transporte_id') is-invalid @enderror">
+                            <option value="">-- Seleccione --</option>
+                            @foreach($tiposTransporte as $tipo)
+                                <option value="{{ $tipo->id }}" {{ old('tipo_transporte_id', $vehiculo->tipo_transporte_id) == $tipo->id ? 'selected' : '' }}>
+                                    {{ $tipo->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('tipo_transporte_id')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="licencia_requerida">Licencia Requerida *</label>
+                        <select name="licencia_requerida" id="licencia_requerida" class="form-control @error('licencia_requerida') is-invalid @enderror" required>
+                            <option value="">-- Seleccione --</option>
+                            <option value="A" {{ old('licencia_requerida', $vehiculo->licencia_requerida) == 'A' ? 'selected' : '' }}>A (Motocicletas)</option>
+                            <option value="B" {{ old('licencia_requerida', $vehiculo->licencia_requerida) == 'B' ? 'selected' : '' }}>B (Automóviles)</option>
+                            <option value="C" {{ old('licencia_requerida', $vehiculo->licencia_requerida) == 'C' ? 'selected' : '' }}>C (Camiones)</option>
+                        </select>
+                        @error('licencia_requerida')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="capacidad_carga">Capacidad de Carga</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" name="capacidad_carga" id="capacidad_carga" 
+                                   class="form-control @error('capacidad_carga') is-invalid @enderror" 
+                                   value="{{ old('capacidad_carga', $vehiculo->capacidad_carga) }}">
+                            <select name="unidad_medida_carga_id" class="form-control" style="max-width: 120px;">
+                                <option value="">Unidad</option>
+                                @foreach($unidadesMedida as $unidad)
+                                    <option value="{{ $unidad->id }}" {{ old('unidad_medida_carga_id', $vehiculo->unidad_medida_carga_id) == $unidad->id ? 'selected' : '' }}>
+                                        {{ $unidad->abreviatura }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @error('capacidad_carga')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="disponible" name="disponible" 
+                                   {{ old('disponible', $vehiculo->disponible) ? 'checked' : '' }}>
+                            <label class="custom-control-label" for="disponible">Disponible</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="estado">Estado</label>
+                        <select name="estado" id="estado" class="form-control @error('estado') is-invalid @enderror">
+                            <option value="activo" {{ old('estado', $vehiculo->estado) == 'activo' ? 'selected' : '' }}>Activo</option>
+                            <option value="mantenimiento" {{ old('estado', $vehiculo->estado) == 'mantenimiento' ? 'selected' : '' }}>Mantenimiento</option>
+                            <option value="inactivo" {{ old('estado', $vehiculo->estado) == 'inactivo' ? 'selected' : '' }}>Inactivo</option>
+                        </select>
+                        @error('estado')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Actualizar
+                </button>
+                <a href="{{ route('vehiculos.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
     </div>
-    <div class="form-group">
-        <label>Tipo</label>
-        <select name="tipo" class="form-control">
-            <option value="">--</option>
-            @foreach($tipos as $t)
-                <option value="{{ $t->id }}" {{ $vehiculo->tipo == $t->id ? 'selected' : '' }}>{{ $t->nombre }}</option>
-            @endforeach
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Capacidad</label>
-        <input type="number" step="0.01" name="capacidad" class="form-control" value="{{ $vehiculo->capacidad }}">
-    </div>
-    <div class="form-group">
-        <label>Transportista</label>
-        <select name="user_id" class="form-control">
-            <option value="">--</option>
-            @foreach($users as $u)
-                <option value="{{ $u->id }}" {{ $vehiculo->transportista_id == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ $u->email }})</option>
-            @endforeach
-        </select>
-    </div>
-    <button class="btn btn-primary mt-2">Actualizar</button>
-</form>
+</div>
 @endsection

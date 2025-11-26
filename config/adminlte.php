@@ -346,6 +346,7 @@ return [
             'submenu' => [
                 [ 'text' => 'Vehículos', 'url' => 'vehiculos', 'icon' => 'fas fa-truck' ],
                 [ 'text' => 'Tipos de Transporte', 'url' => 'tipos-transporte', 'icon' => 'fas fa-truck-loading' ],
+                [ 'text' => 'Tamaños de Transporte', 'url' => 'tamanos-transporte', 'icon' => 'fas fa-ruler-combined' ],
             ],
         ],
         
