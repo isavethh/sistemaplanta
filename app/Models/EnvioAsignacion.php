@@ -16,11 +16,13 @@ class EnvioAsignacion extends Model
         'transportista_id',
         'vehiculo_id',
         'fecha_asignacion',
+        'fecha_aceptacion',
         'observaciones',
     ];
 
     protected $casts = [
         'fecha_asignacion' => 'datetime',
+        'fecha_aceptacion' => 'datetime',
     ];
 
     public function envio()

@@ -46,13 +46,30 @@ Route::get('/usuarios', function () {
     ]);
 });
 
-// Rutas de envíos (API)
+// Rutas públicas (sin autenticación para la app móvil)
+Route::prefix('public')->group(function () {
+    // Login y lista de transportistas
+    Route::get('/transportistas-login', [\App\Http\Controllers\Api\TransportistaController::class, 'getTransportistasLogin']);
+    Route::post('/login-transportista', [\App\Http\Controllers\Api\TransportistaController::class, 'loginTransportista']);
+});
+
+// Rutas de transportistas (sin prefix para que funcione con /api/transportista/{id}/envios)
+Route::get('/transportista/{id}/envios', [\App\Http\Controllers\Api\TransportistaController::class, 'getEnviosAsignados']);
+
+// Rutas de envíos (API) - NUEVAS PARA APP MÓVIL
 Route::prefix('envios')->group(function () {
     Route::get('/', [EnvioApiController::class, 'index']);
     Route::post('/', [EnvioApiController::class, 'store']);
-    Route::get('/{id}', [EnvioApiController::class, 'show']);
+    // NOTA: La ruta de transportista está FUERA de este grupo (línea 57)
+    Route::get('/{id}', [\App\Http\Controllers\Api\EnvioController::class, 'show']);
+    Route::get('/{id}/documento', [\App\Http\Controllers\Api\DocumentoController::class, 'generarDocumento']);
     Route::put('/{id}/estado', [EnvioApiController::class, 'updateEstado']);
-    Route::post('/{id}/iniciar', [EnvioApiController::class, 'iniciar']);
+    Route::post('/{id}/aceptar', [\App\Http\Controllers\Api\EnvioController::class, 'aceptar']);
+    Route::post('/{id}/rechazar', [\App\Http\Controllers\Api\EnvioController::class, 'rechazar']);
+    Route::post('/{id}/iniciar', [\App\Http\Controllers\Api\EnvioController::class, 'iniciar']);
+    Route::post('/{id}/entregado', [\App\Http\Controllers\Api\EnvioController::class, 'marcarEntregado']);
+    Route::post('/{id}/simular-movimiento', [\App\Http\Controllers\Api\EnvioController::class, 'simularMovimiento']);
+    Route::get('/{id}/seguimiento', [\App\Http\Controllers\Api\EnvioController::class, 'getSeguimiento']);
     Route::get('/qr/{codigo}', [EnvioApiController::class, 'getByQrCode']);
 });
 

@@ -40,18 +40,33 @@ class AsignacionController extends Controller
      */
     public function asignar(Request $request)
     {
-        $request->validate([
-            'envio_id' => 'required|exists:envios,id',
-            'transportista_id' => 'required|exists:users,id',
-            'vehiculo_id' => 'required|exists:vehiculos,id',
-        ]);
+        try {
+            $validated = $request->validate([
+                'envio_id' => 'required|exists:envios,id',
+                'transportista_id' => 'required|exists:users,id',
+                'vehiculo_id' => 'required|exists:vehiculos,id',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->with('error', 'Datos inválidos: ' . implode(', ', $e->validator->errors()->all()));
+        }
 
         DB::beginTransaction();
         try {
             // Verificar que el envío esté pendiente
             $envio = Envio::findOrFail($request->envio_id);
             if ($envio->estado !== 'pendiente') {
-                return back()->with('error', 'El envío ya fue asignado o está en otro estado.');
+                DB::rollBack();
+                return back()->with('error', 'El envío ya fue asignado o está en otro estado. Estado actual: ' . $envio->estado);
+            }
+
+            // Verificar que el transportista exista y sea tipo transportista
+            $transportista = User::where('id', $request->transportista_id)
+                ->where('tipo', 'transportista')
+                ->first();
+            
+            if (!$transportista) {
+                DB::rollBack();
+                return back()->with('error', 'El transportista seleccionado no es válido.');
             }
 
             // Verificar que el vehículo no esté ocupado
@@ -60,31 +75,34 @@ class AsignacionController extends Controller
             })->where('vehiculo_id', $request->vehiculo_id)->exists();
 
             if ($vehiculoOcupado) {
+                DB::rollBack();
                 return back()->with('error', 'El vehículo seleccionado ya está asignado a otro envío activo.');
             }
 
             // Crear asignación
-            EnvioAsignacion::create([
+            $asignacion = EnvioAsignacion::create([
                 'envio_id' => $request->envio_id,
                 'transportista_id' => $request->transportista_id,
                 'vehiculo_id' => $request->vehiculo_id,
                 'fecha_asignacion' => now(),
             ]);
 
-            // Actualizar estado del envío
+            // Actualizar estado del envío y fecha de asignación
             $envio->update([
                 'estado' => 'asignado',
+                'fecha_asignacion' => now(),
                 'updated_at' => now(),
             ]);
 
-            // Sincronizar con Node.js backend (opcional)
-            $this->sincronizarConNodeJS($envio);
-
             DB::commit();
-            return back()->with('success', 'Envío asignado correctamente. El transportista podrá verlo en la app.');
+            
+            \Log::info("✅ Envío {$envio->codigo} asignado a transportista {$transportista->name}");
+            
+            return back()->with('success', "✅ Envío {$envio->codigo} asignado correctamente a {$transportista->name}. El transportista podrá verlo en la app móvil.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Error al asignar: ' . $e->getMessage());
+            \Log::error("❌ Error al asignar envío: " . $e->getMessage());
+            return back()->with('error', 'Error al asignar: ' . $e->getMessage() . ' | Línea: ' . $e->getLine());
         }
     }
 
@@ -156,4 +174,8 @@ class AsignacionController extends Controller
         }
     }
 }
+
+
+
+
 
