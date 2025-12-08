@@ -25,7 +25,7 @@ use App\Http\Controllers\RutaMultiEntregaController;
 // Dashboard - Personalizado por rol
 Route::get('/', function () {
     $user = auth()->user();
-    
+
     if ($user->hasRole('planta')) {
         return view('dashboards.planta');
     } elseif ($user->hasRole('administrador')) {
@@ -35,7 +35,7 @@ Route::get('/', function () {
     } elseif ($user->hasRole('almacen')) {
         return view('dashboards.almacen');
     }
-    
+
     // Si no tiene rol específico, mostrar dashboard general
     return view('dashboard');
 })->middleware('auth');
@@ -62,21 +62,21 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class);
     Route::resource('almacenes', AlmacenController::class);
     Route::get('almacenes/{almacen}/inventario', [AlmacenController::class, 'inventario'])->name('almacenes.inventario');
-    
+
     Route::resource('envios', EnvioController::class);
     Route::post('envios/asignacion-multiple', [EnvioController::class, 'asignacionMultiple'])->name('envios.asignacionMultiple');
     Route::get('envios/{envio}/tracking', [EnvioController::class, 'tracking'])->name('envios.tracking');
     Route::post('envios/{envio}/actualizar-estado', [EnvioController::class, 'actualizarEstado'])->name('envios.actualizarEstado');
     Route::post('envios/{envio}/aprobar', [EnvioController::class, 'aprobar'])->name('envios.aprobar');
-    
+
     Route::get('notas-venta', [App\Http\Controllers\NotaVentaController::class, 'index'])->name('notas-venta.index');
     Route::get('notas-venta/{id}', [App\Http\Controllers\NotaVentaController::class, 'show'])->name('notas-venta.show');
     Route::get('notas-venta/{id}/html', [App\Http\Controllers\NotaVentaController::class, 'verHTML'])->name('notas-venta.html');
-    
+
     Route::get('asignaciones', [AsignacionController::class, 'index'])->name('asignaciones.index');
     Route::post('asignaciones/asignar', [AsignacionController::class, 'asignar'])->name('asignaciones.asignar');
     Route::delete('asignaciones/{envio}/remover', [AsignacionController::class, 'remover'])->name('asignaciones.remover');
-    
+
     Route::resource('productos', App\Http\Controllers\ProductoController::class);
     Route::resource('categorias', App\Http\Controllers\CategoriaController::class);
     Route::resource('inventarios', App\Http\Controllers\InventarioAlmacenController::class);

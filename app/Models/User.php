@@ -94,35 +94,35 @@ class User extends Authenticatable
     public function esPlanta()
     {
         // Planta = Cliente que crea envíos desde planta
-        return $this->hasRole('planta') || 
-               $this->tipo === 'cliente' || 
-               $this->role === 'cliente' ||
-               $this->tipo === 'planta' ||
-               $this->role === 'planta';
+        return $this->hasRole('planta') ||
+            $this->tipo === 'cliente' ||
+            $this->role === 'cliente' ||
+            $this->tipo === 'planta' ||
+            $this->role === 'planta';
     }
 
     public function esAdministrador()
     {
         // Administrador = Asigna envíos a transportistas
-        return $this->hasRole('administrador') || 
-               $this->tipo === 'admin' || 
-               $this->role === 'admin';
+        return $this->hasRole('administrador') ||
+            $this->tipo === 'admin' ||
+            $this->role === 'admin';
     }
 
     public function esTransportista()
     {
         // Transportista = Acepta/rechaza, monitorea, entrega
-        return $this->hasRole('transportista') || 
-               $this->tipo === 'transportista' || 
-               $this->role === 'transportista';
+        return $this->hasRole('transportista') ||
+            $this->tipo === 'transportista' ||
+            $this->role === 'transportista';
     }
 
     public function esAlmacen()
     {
         // Almacén = Recibe envíos, firma, reporta incidentes
-        return $this->hasRole('almacen') || 
-               $this->tipo === 'almacen' || 
-               $this->role === 'almacen';
+        return $this->hasRole('almacen') ||
+            $this->tipo === 'almacen' ||
+            $this->role === 'almacen';
     }
 
     // Alias para compatibilidad
@@ -138,8 +138,9 @@ class User extends Authenticatable
 
     public function puedeConducir($licenciaRequerida)
     {
-        if (!$this->licencia) return false;
-        
+        if (!$this->licencia)
+            return false;
+
         $jerarquia = ['A' => 3, 'B' => 2, 'C' => 1];
         return $jerarquia[$this->licencia] >= $jerarquia[$licenciaRequerida];
     }

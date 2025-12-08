@@ -37,6 +37,12 @@ class RoleFilter implements FilterInterface
 
         $user = Auth::user();
 
+        // Super users should see everything. Use the Spanish role name
+        // 'administrador' (not 'admin') as requested.
+        if ($user->hasRole('super-admin') || $user->hasRole('administrador')) {
+            return false;
+        }
+
         if (empty($item['role'])) {
             return false;
         }
