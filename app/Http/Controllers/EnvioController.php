@@ -108,37 +108,45 @@ class EnvioController extends Controller
     {
         $request->validate([
             'almacen_destino_id' => 'required|exists:almacenes,id',
-            'categoria' => 'required|in:Verduras,Frutas',
         ]);
 
-        $envio->update($request->except('productos'));
-        
-        if ($request->has('productos')) {
-            $envio->productos()->delete();
-            foreach ($request->productos as $prod) {
-                EnvioProducto::create([
-                    'envio_id' => $envio->id,
-                    'producto_nombre' => $prod['producto_nombre'],
-                    'cantidad' => $prod['cantidad'],
-                    'peso_unitario' => $prod['peso_unitario'],
-                    'unidad_medida_id' => $prod['unidad_medida_id'] ?? null,
-                    'tipo_empaque_id' => $prod['tipo_empaque_id'] ?? null,
-                    'precio_unitario' => $prod['precio_unitario'],
-                    'total_peso' => $prod['cantidad'] * $prod['peso_unitario'],
-                    'total_precio' => $prod['cantidad'] * $prod['precio_unitario'],
-                ]);
-            }
-            
-            $envio->calcularTotales();
-        }
+        $envio->update([
+            'almacen_destino_id' => $request->almacen_destino_id,
+            'fecha_estimada_entrega' => $request->fecha_estimada_entrega,
+            'hora_estimada' => $request->hora_estimada,
+            'observaciones' => $request->observaciones,
+        ]);
 
         return redirect()->route('envios.index')->with('success', 'Envío actualizado exitosamente');
     }
 
     public function destroy(Envio $envio)
     {
-        $envio->delete();
-        return redirect()->route('envios.index')->with('success', 'Envío eliminado exitosamente');
+        try {
+            \DB::beginTransaction();
+            
+            // Eliminar notas de venta asociadas
+            \DB::table('notas_venta')->where('envio_id', $envio->id)->delete();
+            
+            // Eliminar seguimiento/tracking
+            \DB::table('envio_seguimiento')->where('envio_id', $envio->id)->delete();
+            
+            // Eliminar asignaciones (por si acaso no tiene cascade)
+            \DB::table('envio_asignaciones')->where('envio_id', $envio->id)->delete();
+            
+            // Eliminar productos del envío (por si acaso no tiene cascade)
+            \DB::table('envio_productos')->where('envio_id', $envio->id)->delete();
+            
+            // Finalmente eliminar el envío
+            $envio->delete();
+            
+            \DB::commit();
+            
+            return redirect()->route('envios.index')->with('success', 'Envío eliminado exitosamente');
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return redirect()->route('envios.index')->with('error', 'Error al eliminar el envío: ' . $e->getMessage());
+        }
     }
 
     public function tracking(Envio $envio)
@@ -152,5 +160,49 @@ class EnvioController extends Controller
     {
         $envio->update(['estado' => $request->estado]);
         return response()->json(['success' => true, 'message' => 'Estado actualizado']);
+    }
+
+    public function aprobar(Envio $envio)
+    {
+        try {
+            // Solo se puede aprobar un envío pendiente
+            if ($envio->estado !== 'pendiente') {
+                return redirect()->back()->with('error', 'Solo se pueden aprobar envíos pendientes');
+            }
+
+            // Cambiar estado a 'aprobado'
+            $envio->estado = 'aprobado';
+            $envio->save();
+
+            // Generar nota de venta automáticamente llamando al backend Node.js
+            $nodeBackendUrl = env('NODE_BACKEND_URL', 'http://localhost:3001');
+            
+            try {
+                $client = new \GuzzleHttp\Client();
+                $response = $client->post("{$nodeBackendUrl}/api/notas-venta/generar", [
+                    'json' => [
+                        'envio_id' => $envio->id
+                    ],
+                    'timeout' => 10
+                ]);
+
+                $result = json_decode($response->getBody(), true);
+                
+                if ($result['success']) {
+                    return redirect()->route('envios.show', $envio)
+                        ->with('success', 'Envío aprobado exitosamente. Nota de venta generada: ' . $result['numero_nota']);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error al generar nota de venta: ' . $e->getMessage());
+                return redirect()->route('envios.show', $envio)
+                    ->with('warning', 'Envío aprobado, pero no se pudo generar la nota de venta automáticamente.');
+            }
+
+            return redirect()->route('envios.show', $envio)
+                ->with('success', 'Envío aprobado exitosamente');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error al aprobar envío: ' . $e->getMessage());
+        }
     }
 }

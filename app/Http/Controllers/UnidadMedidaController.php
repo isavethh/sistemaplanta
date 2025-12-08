@@ -29,7 +29,20 @@ class UnidadMedidaController extends Controller
     }
 
     public function destroy(UnidadMedida $unidadesmedida) {
-        $unidadesmedida->delete();
-        return redirect()->route('unidadesmedida.index');
+        try {
+            // Verificar si tiene productos asociados
+            $tieneProductos = \DB::table('envio_productos')->where('unidad_medida_id', $unidadesmedida->id)->exists();
+            
+            if ($tieneProductos) {
+                return redirect()->route('unidadesmedida.index')
+                    ->with('error', 'No se puede eliminar porque hay productos con esta unidad de medida.');
+            }
+            
+            $unidadesmedida->delete();
+            return redirect()->route('unidadesmedida.index')->with('success', 'Unidad de medida eliminada');
+        } catch (\Exception $e) {
+            return redirect()->route('unidadesmedida.index')
+                ->with('error', 'Error al eliminar: ' . $e->getMessage());
+        }
     }
 }

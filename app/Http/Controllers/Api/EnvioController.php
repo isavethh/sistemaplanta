@@ -85,6 +85,31 @@ class EnvioController extends Controller
             }
 
             $envio->estado = 'aceptado';
+            
+            // Guardar firma digital del transportista automáticamente al aceptar
+            if ($envio->asignacion && $envio->asignacion->transportista) {
+                $transportista = $envio->asignacion->transportista;
+                $firma = "FIRMA DIGITAL DE ACEPTACIÓN\n\n";
+                $firma .= "Yo, {$transportista->name}, con documento de identidad, ";
+                $firma .= "acepto la responsabilidad del envío {$envio->codigo}.\n\n";
+                $firma .= "Detalles del envío:\n";
+                $firma .= "- Código: {$envio->codigo}\n";
+                $firma .= "- Destino: " . ($envio->almacenDestino->nombre ?? 'N/A') . "\n";
+                $firma .= "- Total productos: {$envio->total_cantidad} unidades\n";
+                $firma .= "- Peso total: {$envio->total_peso} kg\n\n";
+                $firma .= "Fecha y hora de aceptación: " . now()->format('d/m/Y H:i:s') . "\n";
+                $firma .= "Transportista: {$transportista->name}\n";
+                if ($transportista->email) {
+                    $firma .= "Email: {$transportista->email}\n";
+                }
+                if ($transportista->licencia) {
+                    $firma .= "Licencia de conducir: {$transportista->licencia}\n";
+                }
+                $firma .= "\nEsta firma digital certifica que el transportista ha aceptado el envío y asume la responsabilidad de su entrega.";
+                
+                $envio->firma_transportista = $firma;
+            }
+            
             $envio->save();
 
             // Actualizar fecha de aceptación en la asignación
@@ -96,7 +121,7 @@ class EnvioController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Envío aceptado correctamente',
+                'message' => 'Envío aceptado correctamente. Firma digital registrada.',
                 'envio' => $envio
             ]);
         } catch (\Exception $e) {
@@ -115,18 +140,30 @@ class EnvioController extends Controller
         try {
             $envio = Envio::findOrFail($id);
 
-            // Volver a estado pendiente
-            $envio->estado = 'pendiente';
+            $motivo = $request->input('motivo', 'Sin motivo especificado');
+            $transportistaNombre = $envio->asignacion && $envio->asignacion->transportista 
+                ? $envio->asignacion->transportista->name 
+                : 'Transportista desconocido';
+
+            // Cambiar a estado rechazado
+            $envio->estado = 'rechazado';
+            $envio->fecha_rechazo = now();
+            $envio->motivo_rechazo = "Rechazado por: {$transportistaNombre}\nMotivo: {$motivo}\nFecha: " . now()->format('d/m/Y H:i:s');
             $envio->save();
 
-            // Eliminar asignación
+            // NO eliminar la asignación, mantenerla para historial
             if ($envio->asignacion) {
-                $envio->asignacion->delete();
+                $envio->asignacion->update([
+                    'estado' => 'rechazado',
+                    'fecha_rechazo' => now(),
+                    'observaciones' => $motivo
+                ]);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Asignación rechazada. El envío volverá a estar disponible.'
+                'message' => 'Envío rechazado. El administrador será notificado.',
+                'envio' => $envio
             ]);
         } catch (\Exception $e) {
             return response()->json([

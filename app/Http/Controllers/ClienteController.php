@@ -59,7 +59,20 @@ class ClienteController extends Controller
 
     public function destroy(User $cliente)
     {
-        $cliente->delete();
-        return redirect()->route('clientes.index')->with('success', 'Cliente eliminado');
+        try {
+            // Verificar si tiene envíos asociados
+            $tieneEnvios = \DB::table('envios')->where('cliente_id', $cliente->id)->exists();
+            
+            if ($tieneEnvios) {
+                return redirect()->route('clientes.index')
+                    ->with('error', 'No se puede eliminar el cliente porque tiene envíos asociados.');
+            }
+            
+            $cliente->delete();
+            return redirect()->route('clientes.index')->with('success', 'Cliente eliminado');
+        } catch (\Exception $e) {
+            return redirect()->route('clientes.index')
+                ->with('error', 'Error al eliminar: ' . $e->getMessage());
+        }
     }
 }

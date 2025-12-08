@@ -1,0 +1,65 @@
+/* Eliminar espacios en blanco innecesarios en todas las vistas */
+
+/* Reducir espacios en el wrapper principal */
+.content-wrapper {
+    padding-top: 15px !important;
+    padding-bottom: 15px !important;
+    min-height: auto !important;
+}
+
+/* Reducir espacios en las tarjetas */
+.card {
+    margin-bottom: 15px !important;
+}
+
+/* Reducir espacios en filas */
+.row {
+    margin-bottom: 0 !important;
+}
+
+/* Reducir espacios en columnas */
+.col-12, .col-md-6, .col-lg-3, .col-lg-4, .col-lg-6 {
+    margin-bottom: 10px !important;
+}
+
+/* Reducir espacios en alertas */
+.alert {
+    margin-bottom: 15px !important;
+}
+
+/* Reducir espacios en el header de contenido */
+.content-header {
+    padding: 10px 15px !important;
+    margin-bottom: 10px !important;
+}
+
+/* Eliminar espacios extra en tablas */
+.table-responsive {
+    margin-bottom: 0 !important;
+}
+
+/* Reducir espacios en list-group */
+.list-group {
+    margin-bottom: 0 !important;
+}
+
+/* Ajustar espacios en pequeñas cajas */
+.small-box {
+    margin-bottom: 15px !important;
+}
+
+/* Ajustar espacios en info-box */
+.info-box {
+    margin-bottom: 15px !important;
+}
+
+/* Reducir padding en card-body cuando hay tablas */
+.card-body.table-responsive {
+    padding: 0 !important;
+}
+
+/* Asegurar que el footer no tenga espacios extra */
+.main-footer {
+    margin-top: 15px !important;
+    padding: 10px !important;
+}

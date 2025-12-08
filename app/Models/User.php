@@ -6,10 +6,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -89,15 +90,50 @@ class User extends Authenticatable
         return $query->where('disponible', true);
     }
 
-    // Helpers
-    public function esCliente()
+    // Helpers - Según el flujo real del sistema
+    public function esPlanta()
     {
-        return $this->tipo === 'cliente' || $this->role === 'cliente';
+        // Planta = Cliente que crea envíos desde planta
+        return $this->hasRole('planta') || 
+               $this->tipo === 'cliente' || 
+               $this->role === 'cliente' ||
+               $this->tipo === 'planta' ||
+               $this->role === 'planta';
+    }
+
+    public function esAdministrador()
+    {
+        // Administrador = Asigna envíos a transportistas
+        return $this->hasRole('administrador') || 
+               $this->tipo === 'admin' || 
+               $this->role === 'admin';
     }
 
     public function esTransportista()
     {
-        return $this->tipo === 'transportista' || $this->role === 'transportista';
+        // Transportista = Acepta/rechaza, monitorea, entrega
+        return $this->hasRole('transportista') || 
+               $this->tipo === 'transportista' || 
+               $this->role === 'transportista';
+    }
+
+    public function esAlmacen()
+    {
+        // Almacén = Recibe envíos, firma, reporta incidentes
+        return $this->hasRole('almacen') || 
+               $this->tipo === 'almacen' || 
+               $this->role === 'almacen';
+    }
+
+    // Alias para compatibilidad
+    public function esCliente()
+    {
+        return $this->esPlanta();
+    }
+
+    public function esAdmin()
+    {
+        return $this->esAdministrador();
     }
 
     public function puedeConducir($licenciaRequerida)

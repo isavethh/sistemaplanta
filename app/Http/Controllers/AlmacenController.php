@@ -58,8 +58,29 @@ class AlmacenController extends Controller
 
     public function destroy(Almacen $almacen)
     {
-        $almacen->delete();
-        return redirect()->route('almacenes.index')->with('success', 'Almacén eliminado exitosamente.');
+        try {
+            // Verificar si tiene envíos asociados
+            $tieneEnvios = \DB::table('envios')->where('almacen_destino_id', $almacen->id)->exists();
+            
+            if ($tieneEnvios) {
+                return redirect()->route('almacenes.index')
+                    ->with('error', 'No se puede eliminar el almacén porque tiene envíos asociados.');
+            }
+            
+            // Verificar si tiene usuario asociado
+            $tieneUsuario = \DB::table('users')->where('almacen_id', $almacen->id)->exists();
+            
+            if ($tieneUsuario) {
+                return redirect()->route('almacenes.index')
+                    ->with('error', 'No se puede eliminar el almacén porque tiene usuarios asociados.');
+            }
+            
+            $almacen->delete();
+            return redirect()->route('almacenes.index')->with('success', 'Almacén eliminado exitosamente.');
+        } catch (\Exception $e) {
+            return redirect()->route('almacenes.index')
+                ->with('error', 'Error al eliminar el almacén: ' . $e->getMessage());
+        }
     }
 
     public function inventario(Almacen $almacen)

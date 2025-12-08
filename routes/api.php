@@ -97,3 +97,71 @@ Route::post('/sync/envio-estado', function (Request $request) {
     ], 404);
 });
 
+// ========== RUTAS EN TIEMPO REAL ==========
+Route::prefix('rutas')->group(function () {
+    // Obtener envíos activos para el mapa en tiempo real
+    Route::get('/envios-activos', function () {
+        // Envíos en tránsito
+        $enTransito = \Illuminate\Support\Facades\DB::select("
+            SELECT 
+                e.id,
+                e.codigo,
+                e.estado,
+                e.fecha_inicio_transito,
+                a.nombre as almacen_nombre,
+                a.latitud as destino_lat,
+                a.longitud as destino_lng,
+                a.direccion_completa,
+                u.name as transportista_nombre,
+                v.placa as vehiculo_placa
+            FROM envios e
+            LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+            LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+            LEFT JOIN users u ON ea.transportista_id = u.id
+            LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
+            WHERE e.estado = 'en_transito'
+            ORDER BY e.fecha_inicio_transito DESC
+        ");
+        
+        // Envíos esperando inicio (asignados o aceptados)
+        $esperando = \Illuminate\Support\Facades\DB::select("
+            SELECT 
+                e.id,
+                e.codigo,
+                e.estado,
+                a.nombre as almacen_nombre,
+                a.latitud as destino_lat,
+                a.longitud as destino_lng,
+                u.name as transportista_nombre
+            FROM envios e
+            LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+            LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+            LEFT JOIN users u ON ea.transportista_id = u.id
+            WHERE e.estado IN ('asignado', 'aceptado')
+            ORDER BY e.created_at DESC
+        ");
+        
+        return response()->json([
+            'success' => true,
+            'en_transito' => $enTransito,
+            'esperando' => $esperando,
+            'timestamp' => now()->toIso8601String()
+        ]);
+    });
+    
+    // Obtener seguimiento de un envío específico
+    Route::get('/seguimiento/{id}', function ($id) {
+        $seguimiento = \Illuminate\Support\Facades\DB::select("
+            SELECT latitud, longitud, velocidad, timestamp as created_at
+            FROM seguimiento_envio
+            WHERE envio_id = ?
+            ORDER BY timestamp ASC
+        ", [$id]);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $seguimiento
+        ]);
+    });
+});
+

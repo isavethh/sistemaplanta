@@ -27,43 +27,6 @@
                 
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label for="marca">Marca</label>
-                        <input type="text" name="marca" id="marca" class="form-control @error('marca') is-invalid @enderror" 
-                               value="{{ old('marca', $vehiculo->marca) }}">
-                        @error('marca')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="modelo">Modelo</label>
-                        <input type="text" name="modelo" id="modelo" class="form-control @error('modelo') is-invalid @enderror" 
-                               value="{{ old('modelo', $vehiculo->modelo) }}">
-                        @error('modelo')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="anio">Año</label>
-                        <input type="number" name="anio" id="anio" class="form-control @error('anio') is-invalid @enderror" 
-                               value="{{ old('anio', $vehiculo->anio) }}" min="1900" max="{{ date('Y') + 1 }}">
-                        @error('anio')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
                         <label for="tipo_transporte_id">Tipo de Transporte</label>
                         <select name="tipo_transporte_id" id="tipo_transporte_id" class="form-control @error('tipo_transporte_id') is-invalid @enderror">
                             <option value="">-- Seleccione --</option>
@@ -74,6 +37,25 @@
                             @endforeach
                         </select>
                         @error('tipo_transporte_id')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="tamano_vehiculo_id">Tamaño del Vehículo</label>
+                        <select name="tamano_vehiculo_id" id="tamano_vehiculo_id" class="form-control @error('tamano_vehiculo_id') is-invalid @enderror">
+                            <option value="">-- Seleccione --</option>
+                            @foreach($tamanosVehiculo as $tamano)
+                                <option value="{{ $tamano->id }}" {{ old('tamano_vehiculo_id', $vehiculo->tamano_vehiculo_id) == $tamano->id ? 'selected' : '' }}>
+                                    {{ $tamano->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('tamano_vehiculo_id')
                             <span class="invalid-feedback">{{ $message }}</span>
                         @enderror
                     </div>

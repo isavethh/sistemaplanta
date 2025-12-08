@@ -166,6 +166,9 @@
                                     <a href="{{ route('rutas.index') }}" class="btn btn-sm btn-outline-success">
                                         <i class="fas fa-route"></i> Rutas
                                     </a>
+                                    <a href="{{ route('notas-venta.index') }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-file-invoice-dollar"></i> Notas de Venta
+                                    </a>
                                     <a href="{{ route('codigosqr.index') }}" class="btn btn-sm btn-outline-success">
                                         <i class="fas fa-qrcode"></i> Códigos QR
                                     </a>

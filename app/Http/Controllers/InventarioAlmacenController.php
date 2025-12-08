@@ -6,13 +6,43 @@ use App\Models\InventarioAlmacen;
 use App\Models\Almacen;
 use App\Models\EnvioProducto;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class InventarioAlmacenController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $inventarios = InventarioAlmacen::with(['almacen', 'envioProducto'])->get();
-        return view('inventarios.index', compact('inventarios'));
+        // Obtener todos los almacenes (excepto la planta) para el dropdown
+        $almacenes = Almacen::where('es_planta', false)->where('activo', true)->get();
+        
+        // Almacén seleccionado (por defecto el primero)
+        $almacenSeleccionado = $request->get('almacen_id');
+        
+        if ($almacenSeleccionado) {
+            // Obtener productos de envíos entregados a este almacén
+            $inventarios = DB::table('envio_productos as ep')
+                ->join('envios as e', 'ep.envio_id', '=', 'e.id')
+                ->where('e.almacen_destino_id', $almacenSeleccionado)
+                ->where('e.estado', 'entregado')
+                ->select(
+                    'ep.producto_nombre',
+                    'e.categoria',
+                    DB::raw('SUM(ep.cantidad) as cantidad'),
+                    DB::raw('SUM(ep.total_peso) as peso'),
+                    DB::raw('AVG(ep.precio_unitario) as precio_unitario'),
+                    DB::raw('SUM(ep.total_precio) as total_precio'),
+                    DB::raw('MAX(e.fecha_entrega) as fecha_llegada')
+                )
+                ->groupBy('ep.producto_nombre', 'e.categoria')
+                ->get();
+            
+            $almacenActual = Almacen::find($almacenSeleccionado);
+        } else {
+            $inventarios = collect([]);
+            $almacenActual = null;
+        }
+        
+        return view('inventarios.index', compact('inventarios', 'almacenes', 'almacenSeleccionado', 'almacenActual'));
     }
 
     public function create()

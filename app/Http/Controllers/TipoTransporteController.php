@@ -45,8 +45,21 @@ class TipoTransporteController extends Controller
 
     public function destroy(TipoTransporte $tiposTransporte)
     {
-        $tiposTransporte->delete();
-        return redirect()->route('tipos-transporte.index')->with('success', 'Tipo de transporte eliminado exitosamente');
+        try {
+            // Verificar si tiene vehículos asociados
+            $tieneVehiculos = \DB::table('vehiculos')->where('tipo_transporte_id', $tiposTransporte->id)->exists();
+            
+            if ($tieneVehiculos) {
+                return redirect()->route('tipos-transporte.index')
+                    ->with('error', 'No se puede eliminar porque hay vehículos con este tipo de transporte.');
+            }
+            
+            $tiposTransporte->delete();
+            return redirect()->route('tipos-transporte.index')->with('success', 'Tipo de transporte eliminado exitosamente');
+        } catch (\Exception $e) {
+            return redirect()->route('tipos-transporte.index')
+                ->with('error', 'Error al eliminar: ' . $e->getMessage());
+        }
     }
 }
 

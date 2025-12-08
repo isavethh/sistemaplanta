@@ -39,7 +39,7 @@
             <thead class="thead-dark">
                 <tr>
                     <th>Placa</th>
-                    <th>Marca/Modelo</th>
+                    <th>Tipo de Transporte</th>
                     <th>Tamaño</th>
                     <th>Licencia</th>
                     <th>Capacidad</th>
@@ -53,11 +53,10 @@
                 <tr>
                     <td><strong>{{ $vehiculo->placa }}</strong></td>
                     <td>
-                        @if($vehiculo->marca || $vehiculo->modelo)
-                            {{ $vehiculo->marca ?? '' }} {{ $vehiculo->modelo ?? '' }}
-                            @if($vehiculo->anio)
-                                <small class="text-muted">({{ $vehiculo->anio }})</small>
-                            @endif
+                        @if($vehiculo->tipoTransporte)
+                            <span class="badge badge-primary">
+                                <i class="fas fa-truck-loading"></i> {{ $vehiculo->tipoTransporte->nombre }}
+                            </span>
                         @else
                             <span class="text-muted">-</span>
                         @endif

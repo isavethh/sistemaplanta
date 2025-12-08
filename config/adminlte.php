@@ -63,7 +63,7 @@ return [
     |
     */
 
-    'logo' => '<b>Planta</b>CRUDS',
+    'logo' => '<b>Sistema</b> Planta',
     'logo_img' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
     'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
@@ -114,8 +114,8 @@ return [
         'mode' => 'fullscreen',
         'img' => [
             'path' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
-            'alt' => 'AdminLTE Preloader Image',
-            'effect' => 'animation__shake',
+            'alt' => 'Sistema Planta',
+            'effect' => 'animation__wobble',
             'width' => 60,
             'height' => 60,
         ],
@@ -154,8 +154,8 @@ return [
 
     'layout_topnav' => null,
     'layout_boxed' => null,
-    'layout_fixed_sidebar' => null,
-    'layout_fixed_navbar' => null,
+    'layout_fixed_sidebar' => true,
+    'layout_fixed_navbar' => true,
     'layout_fixed_footer' => null,
     'layout_dark_mode' => null,
 
@@ -191,13 +191,13 @@ return [
     */
 
     'classes_body' => '',
-    'classes_brand' => '',
-    'classes_brand_text' => '',
+    'classes_brand' => 'navbar-dark',
+    'classes_brand_text' => 'font-weight-light',
     'classes_content_wrapper' => '',
     'classes_content_header' => '',
     'classes_content' => '',
     'classes_sidebar' => 'sidebar-dark-primary elevation-4',
-    'classes_sidebar_nav' => '',
+    'classes_sidebar_nav' => 'nav-pills nav-sidebar flex-column nav-child-indent nav-compact',
     'classes_topnav' => 'navbar-white navbar-light',
     'classes_topnav_nav' => 'navbar-expand',
     'classes_topnav_container' => 'container',
@@ -306,85 +306,100 @@ return [
         // Sidebar items:
         [ 'type' => 'sidebar-menu-search', 'text' => 'search' ],
         
-        // Dashboard
+        // Dashboard (todos)
         [ 'text' => 'Dashboard', 'url' => '/', 'icon' => 'fas fa-tachometer-alt', 'icon_color' => 'primary' ],
         
         // =============================================
-        // SECCIÓN: PARAMETRIZACIÓN (CRUDS)
+        // MENÚ PARA PLANTA (Cliente)
         // =============================================
-        ['header' => '📋 PARAMETRIZACIÓN'],
-        
-        // Usuarios y Roles
-        [
-            'text' => 'Usuarios',
-            'icon' => 'fas fa-users',
-            'icon_color' => 'primary',
-            'submenu' => [
-                [ 'text' => 'Administradores', 'url' => 'administradores', 'icon' => 'fas fa-user-shield' ],
-                [ 'text' => 'Transportistas', 'url' => 'transportistas', 'icon' => 'fas fa-id-card' ],
-                [ 'text' => 'Almacenes (Usuarios)', 'url' => 'almacenes', 'icon' => 'fas fa-warehouse' ],
-            ],
-        ],
-        
-        // Inventario y Productos
-        [
-            'text' => 'Inventario',
-            'icon' => 'fas fa-warehouse',
-            'icon_color' => 'success',
-            'submenu' => [
-                [ 'text' => 'Productos', 'url' => 'productos', 'icon' => 'fas fa-box-open' ],
-                [ 'text' => 'Categorías', 'url' => 'categorias', 'icon' => 'fas fa-folder' ],
-                [ 'text' => 'Gestión de Inventario', 'url' => 'inventarios', 'icon' => 'fas fa-boxes' ],
-            ],
-        ],
-        
-        // Vehículos y Transporte
-        [
-            'text' => 'Vehículos y Transporte',
-            'icon' => 'fas fa-truck',
-            'icon_color' => 'warning',
-            'submenu' => [
-                [ 'text' => 'Vehículos', 'url' => 'vehiculos', 'icon' => 'fas fa-truck' ],
-                [ 'text' => 'Tipos de Transporte', 'url' => 'tipos-transporte', 'icon' => 'fas fa-truck-loading' ],
-                [ 'text' => 'Tamaños de Transporte', 'url' => 'tamanos-transporte', 'icon' => 'fas fa-ruler-combined' ],
-            ],
-        ],
-        
-        // Configuración General
-        [
-            'text' => 'Configuración',
-            'icon' => 'fas fa-cogs',
-            'icon_color' => 'secondary',
-            'submenu' => [
-                [ 'text' => 'Unidades de Medida', 'url' => 'unidadesmedida', 'icon' => 'fas fa-balance-scale' ],
-                [ 'text' => 'Tipos de Empaque', 'url' => 'tiposempaque', 'icon' => 'fas fa-box' ],
-                [ 'text' => 'Direcciones', 'url' => 'direcciones', 'icon' => 'fas fa-map-marked-alt' ],
-            ],
-        ],
+        ['header' => '📦 MIS ENVÍOS', 'role' => 'planta'],
+        [ 'text' => 'Crear Envío', 'url' => 'envios/create', 'icon' => 'fas fa-plus-circle', 'icon_color' => 'success', 'role' => 'planta' ],
+        [ 'text' => 'Mis Envíos', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'primary', 'role' => 'planta' ],
+        [ 'text' => 'Documentos', 'url' => 'codigosqr', 'icon' => 'fas fa-file-alt', 'icon_color' => 'warning', 'role' => 'planta' ],
+        [ 'text' => 'Monitoreo en Tiempo Real', 'url' => 'rutas', 'icon' => 'fas fa-map-marked-alt', 'icon_color' => 'danger', 'role' => 'planta' ],
+        [ 'text' => 'Notas de Venta', 'url' => 'notas-venta', 'icon' => 'fas fa-file-invoice-dollar', 'icon_color' => 'info', 'role' => 'planta' ],
         
         // =============================================
-        // SECCIÓN: TRANSACCIONAL (OPERACIONES)
+        // MENÚ PARA ADMINISTRADOR
         // =============================================
-        ['header' => '🚚 TRANSACCIONAL'],
+        ['header' => '📋 GESTIÓN', 'role' => 'administrador'],
         
-        // Asignación de Envíos (NUEVO)
+        // Asignación de Envíos
         [ 
             'text' => 'Asignación de Envíos', 
             'url' => 'asignaciones', 
             'icon' => 'fas fa-clipboard-check', 
             'icon_color' => 'info',
-            'label' => 'NUEVO',
-            'label_color' => 'success',
+            'role' => 'administrador'
+        ],
+        
+        // Rutas Multi-Entrega
+        [
+            'text' => 'Rutas Multi-Entrega',
+            'icon' => 'fas fa-route',
+            'icon_color' => 'purple',
+            'role' => 'administrador',
+            'submenu' => [
+                [ 'text' => 'Crear Ruta', 'url' => 'rutas-multi/crear', 'icon' => 'fas fa-plus-circle' ],
+                [ 'text' => 'Lista de Rutas', 'url' => 'rutas-multi', 'icon' => 'fas fa-list' ],
+                [ 'text' => 'Monitoreo en Vivo', 'url' => 'rutas-multi/monitoreo', 'icon' => 'fas fa-satellite-dish text-success' ],
+            ],
         ],
         
         // Envíos
-        [ 'text' => 'Envíos', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'success' ],
+        [ 'text' => 'Todos los Envíos', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'success', 'role' => 'administrador' ],
         
-        // Rutas en Tiempo Real
-        [ 'text' => 'Rutas en Tiempo Real', 'url' => 'rutas', 'icon' => 'fas fa-route', 'icon_color' => 'danger' ],
+        // Usuarios y Transportistas
+        [
+            'text' => 'Gestión de Usuarios',
+            'icon' => 'fas fa-users',
+            'icon_color' => 'primary',
+            'role' => 'administrador',
+            'submenu' => [
+                [ 'text' => 'Transportistas', 'url' => 'transportistas', 'icon' => 'fas fa-id-card' ],
+                [ 'text' => 'Vehículos', 'url' => 'vehiculos', 'icon' => 'fas fa-truck' ],
+            ],
+        ],
         
-        // Códigos QR y Documentos
-        [ 'text' => 'Códigos QR y Documentos', 'url' => 'codigosqr', 'icon' => 'fas fa-qrcode', 'icon_color' => 'warning' ],
+        // Incidentes
+        [ 
+            'text' => 'Incidentes', 
+            'url' => 'incidentes', 
+            'icon' => 'fas fa-exclamation-triangle', 
+            'icon_color' => 'danger',
+            'role' => 'administrador'
+        ],
+        
+        // Configuración
+        [
+            'text' => 'Configuración',
+            'icon' => 'fas fa-cogs',
+            'icon_color' => 'secondary',
+            'role' => 'administrador',
+            'submenu' => [
+                [ 'text' => 'Almacenes', 'url' => 'almacenes', 'icon' => 'fas fa-warehouse' ],
+                [ 'text' => 'Tipos de Transporte', 'url' => 'tipos-transporte', 'icon' => 'fas fa-truck-loading' ],
+                [ 'text' => 'Tamaños de Transporte', 'url' => 'tamanos-transporte', 'icon' => 'fas fa-ruler-combined' ],
+            ],
+        ],
+        
+        // =============================================
+        // MENÚ PARA TRANSPORTISTA
+        // =============================================
+        ['header' => '🚚 MIS ENTREGAS', 'role' => 'transportista'],
+        [ 'text' => 'Envíos Asignados', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'primary', 'role' => 'transportista' ],
+        [ 'text' => 'Mis Rutas', 'url' => 'rutas-multi', 'icon' => 'fas fa-route', 'icon_color' => 'info', 'role' => 'transportista' ],
+        [ 'text' => 'Documentos de Entrega', 'url' => 'notas-venta', 'icon' => 'fas fa-file-invoice', 'icon_color' => 'success', 'role' => 'transportista' ],
+        [ 'text' => 'Reportar Incidente', 'url' => 'incidentes', 'icon' => 'fas fa-exclamation-triangle', 'icon_color' => 'warning', 'role' => 'transportista' ],
+        
+        // =============================================
+        // MENÚ PARA ALMACÉN
+        // =============================================
+        ['header' => '📦 MIS RECEPCIONES', 'role' => 'almacen'],
+        [ 'text' => 'Envíos Recibidos', 'url' => 'envios', 'icon' => 'fas fa-box-open', 'icon_color' => 'success', 'role' => 'almacen' ],
+        [ 'text' => 'Notas de Entrega', 'url' => 'notas-venta', 'icon' => 'fas fa-receipt', 'icon_color' => 'primary', 'role' => 'almacen' ],
+        [ 'text' => 'Inventario', 'url' => 'inventarios', 'icon' => 'fas fa-boxes', 'icon_color' => 'info', 'role' => 'almacen' ],
+        [ 'text' => 'Reportar Incidente', 'url' => 'incidentes', 'icon' => 'fas fa-exclamation-circle', 'icon_color' => 'danger', 'role' => 'almacen' ],
     ],
 
     /*
@@ -400,6 +415,7 @@ return [
     */
 
     'filters' => [
+        App\Menu\Filters\RoleFilter::class,
         JeroenNoten\LaravelAdminLte\Menu\Filters\GateFilter::class,
         JeroenNoten\LaravelAdminLte\Menu\Filters\HrefFilter::class,
         JeroenNoten\LaravelAdminLte\Menu\Filters\SearchFilter::class,
@@ -483,17 +499,22 @@ return [
             ],
         ],
         'Select2' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
                     'type' => 'js',
                     'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js',
+                    'location' => '//cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js',
                 ],
                 [
                     'type' => 'css',
                     'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.css',
+                    'location' => '//cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css',
+                ],
+                [
+                    'type' => 'css',
+                    'asset' => false,
+                    'location' => '//cdnjs.cloudflare.com/ajax/libs/select2-bootstrap-theme/0.1.0-beta.10/select2-bootstrap.min.css',
                 ],
             ],
         ],
@@ -508,27 +529,32 @@ return [
             ],
         ],
         'Sweetalert2' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
                     'type' => 'js',
                     'asset' => false,
-                    'location' => '//cdn.jsdelivr.net/npm/sweetalert2@8',
+                    'location' => '//cdn.jsdelivr.net/npm/sweetalert2@11',
+                ],
+                [
+                    'type' => 'css',
+                    'asset' => false,
+                    'location' => '//cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.min.css',
                 ],
             ],
         ],
         'Pace' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
                     'type' => 'css',
                     'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/themes/blue/pace-theme-center-radar.min.css',
+                    'location' => '//cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/blue/pace-theme-minimal.min.css',
                 ],
                 [
                     'type' => 'js',
                     'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/pace.min.js',
+                    'location' => '//cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js',
                 ],
             ],
         ],

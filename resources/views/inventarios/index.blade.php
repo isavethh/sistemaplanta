@@ -4,10 +4,7 @@
 
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
-        <h1><i class="fas fa-warehouse"></i> Gestión de Inventario</h1>
-        <a href="{{ route('inventarios.create') }}" class="btn btn-success">
-            <i class="fas fa-plus"></i> Nuevo Registro de Inventario
-        </a>
+        <h1><i class="fas fa-warehouse"></i> Inventario por Almacén</h1>
     </div>
 @endsection
 
@@ -21,13 +18,45 @@
     </div>
 @endif
 
+<!-- Selector de Almacén -->
+<div class="card shadow mb-4">
+    <div class="card-header bg-gradient-info">
+        <h3 class="card-title text-white"><i class="fas fa-filter"></i> Seleccionar Almacén</h3>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ route('inventarios.index') }}" class="form-inline">
+            <div class="form-group mr-3">
+                <label for="almacen_id" class="mr-2"><strong>Almacén:</strong></label>
+                <select name="almacen_id" id="almacen_id" class="form-control" onchange="this.form.submit()">
+                    <option value="">-- Seleccione un almacén --</option>
+                    @foreach($almacenes as $almacen)
+                        <option value="{{ $almacen->id }}" {{ $almacenSeleccionado == $almacen->id ? 'selected' : '' }}>
+                            {{ $almacen->nombre }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Ver Inventario
+            </button>
+        </form>
+    </div>
+</div>
+
+@if($almacenSeleccionado && $almacenActual)
+<!-- Información del Almacén -->
+<div class="alert alert-info">
+    <h5><i class="fas fa-warehouse"></i> Mostrando inventario de: <strong>{{ $almacenActual->nombre }}</strong></h5>
+    <p class="mb-0">📍 {{ $almacenActual->direccion_completa ?? 'Sin dirección' }}</p>
+</div>
+
 <!-- Tarjetas de Resumen -->
 <div class="row mb-4">
     <div class="col-lg-3 col-6">
         <div class="small-box bg-info">
             <div class="inner">
                 <h3>{{ $inventarios->count() }}</h3>
-                <p>Total Registros</p>
+                <p>Productos Diferentes</p>
             </div>
             <div class="icon">
                 <i class="fas fa-boxes"></i>
@@ -59,7 +88,7 @@
     <div class="col-lg-3 col-6">
         <div class="small-box bg-danger">
             <div class="inner">
-                <h3>${{ number_format($inventarios->sum(function($item) { return $item->cantidad * $item->precio_unitario; }), 2) }}</h3>
+                <h3>Bs. {{ number_format($inventarios->sum('total_precio'), 2) }}</h3>
                 <p>Valor Total</p>
             </div>
             <div class="icon">
@@ -69,91 +98,93 @@
     </div>
 </div>
 
-<div class="card shadow">
+<!-- Productos por Categoría -->
+@php
+    $productosPorCategoria = $inventarios->groupBy('categoria');
+@endphp
+
+@foreach($productosPorCategoria as $categoria => $productos)
+<div class="card shadow mb-3">
     <div class="card-header bg-gradient-primary">
-        <h3 class="card-title text-white"><i class="fas fa-list"></i> Registros de Inventario</h3>
+        <h3 class="card-title text-white">
+            <i class="fas fa-tag"></i> Categoría: {{ $categoria ?? 'Sin categoría' }}
+            <span class="badge badge-light ml-2">{{ $productos->count() }} productos</span>
+        </h3>
     </div>
     <div class="card-body">
-        <table id="inventariosTable" class="table table-striped table-bordered table-hover">
+        <table class="table table-striped table-bordered table-hover">
             <thead class="thead-dark">
                 <tr>
-                    <th>ID</th>
-                    <th>Almacén</th>
                     <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Peso (kg)</th>
-                    <th>Precio Unit.</th>
+                    <th>Cantidad Total</th>
+                    <th>Peso Total (kg)</th>
+                    <th>Precio Promedio</th>
                     <th>Valor Total</th>
-                    <th>Fecha Llegada</th>
-                    <th width="150px">Acciones</th>
+                    <th>Última Llegada</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($inventarios as $inventario)
+                @foreach($productos as $item)
                 <tr>
-                    <td>{{ $inventario->id }}</td>
+                    <td><strong>{{ $item->producto_nombre }}</strong></td>
                     <td>
-                        <span class="badge badge-primary">
-                            {{ $inventario->almacen ? $inventario->almacen->nombre : 'N/A' }}
+                        <span class="badge badge-success badge-pill" style="font-size: 1em;">
+                            {{ number_format($item->cantidad) }}
                         </span>
                     </td>
-                    <td><strong>{{ $inventario->producto_nombre }}</strong></td>
-                    <td>
-                        <span class="badge badge-success badge-pill">
-                            {{ $inventario->cantidad }}
-                        </span>
-                    </td>
-                    <td>{{ number_format($inventario->peso ?? 0, 2) }}</td>
-                    <td>${{ number_format($inventario->precio_unitario ?? 0, 2) }}</td>
+                    <td>{{ number_format($item->peso ?? 0, 2) }} kg</td>
+                    <td>Bs. {{ number_format($item->precio_unitario ?? 0, 2) }}</td>
                     <td>
                         <strong class="text-success">
-                            ${{ number_format($inventario->cantidad * ($inventario->precio_unitario ?? 0), 2) }}
+                            Bs. {{ number_format($item->total_precio ?? 0, 2) }}
                         </strong>
                     </td>
-                    <td>{{ $inventario->fecha_llegada ? \Carbon\Carbon::parse($inventario->fecha_llegada)->format('d/m/Y') : 'N/A' }}</td>
                     <td>
-                        <div class="btn-group" role="group">
-                            <a href="{{ route('inventarios.edit', $inventario) }}" class="btn btn-sm btn-warning" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <form action="{{ route('inventarios.destroy', $inventario) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Estás seguro de eliminar este registro?')">
-                                @csrf 
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </div>
+                        @if($item->fecha_llegada)
+                            {{ \Carbon\Carbon::parse($item->fecha_llegada)->format('d/m/Y H:i') }}
+                        @else
+                            N/A
+                        @endif
                     </td>
                 </tr>
                 @endforeach
             </tbody>
+            <tfoot>
+                <tr class="table-info">
+                    <td><strong>Subtotal Categoría</strong></td>
+                    <td><strong>{{ number_format($productos->sum('cantidad')) }}</strong></td>
+                    <td><strong>{{ number_format($productos->sum('peso'), 2) }} kg</strong></td>
+                    <td>-</td>
+                    <td><strong>Bs. {{ number_format($productos->sum('total_precio'), 2) }}</strong></td>
+                    <td>-</td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 </div>
-@endsection
+@endforeach
 
-@section('js')
-<script>
-    $(document).ready(function() {
-        $('#inventariosTable').DataTable({
-            responsive: true,
-            language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-            },
-            dom: 'Bfrtip',
-            buttons: [
-                'copy', 'csv', 'excel', 'pdf', 'print'
-            ],
-            order: [[7, 'desc']] // Ordenar por fecha
-        });
-    });
-</script>
+@if($inventarios->isEmpty())
+<div class="alert alert-warning text-center">
+    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+    <h5>No hay productos en el inventario de este almacén</h5>
+    <p>Este almacén no ha recibido envíos entregados todavía.</p>
+</div>
+@endif
+
+@else
+<!-- Mensaje cuando no hay almacén seleccionado -->
+<div class="card shadow">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-hand-point-up fa-4x text-info mb-3"></i>
+        <h4>Seleccione un almacén para ver su inventario</h4>
+        <p class="text-muted">El inventario muestra todos los productos de envíos entregados a cada almacén, agrupados por categoría.</p>
+    </div>
+</div>
+@endif
 @endsection
 
 @section('css')
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap4.min.css">
 <style>
     .card {
         border-radius: 10px;
@@ -162,11 +193,6 @@
     .small-box {
         border-radius: 10px;
     }
-    .btn-group .btn {
-        margin: 0 2px;
-    }
 </style>
 @endsection
-
-@section('plugins.Datatables', true)
 

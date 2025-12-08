@@ -29,7 +29,20 @@ class TipoEmpaqueController extends Controller
     }
 
     public function destroy(TipoEmpaque $tiposempaque) {
-        $tiposempaque->delete();
-        return redirect()->route('tiposempaque.index');
+        try {
+            // Verificar si tiene productos asociados
+            $tieneProductos = \DB::table('envio_productos')->where('tipo_empaque_id', $tiposempaque->id)->exists();
+            
+            if ($tieneProductos) {
+                return redirect()->route('tiposempaque.index')
+                    ->with('error', 'No se puede eliminar porque hay productos con este tipo de empaque.');
+            }
+            
+            $tiposempaque->delete();
+            return redirect()->route('tiposempaque.index')->with('success', 'Tipo de empaque eliminado');
+        } catch (\Exception $e) {
+            return redirect()->route('tiposempaque.index')
+                ->with('error', 'Error al eliminar: ' . $e->getMessage());
+        }
     }
 }

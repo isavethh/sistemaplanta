@@ -26,13 +26,19 @@ class AsignacionController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
 
+        // NUEVO: Envíos rechazados para que el admin los vea
+        $enviosRechazados = Envio::with(['almacenDestino', 'asignacion.transportista', 'asignacion.vehiculo'])
+            ->where('estado', 'rechazado')
+            ->orderBy('fecha_rechazo', 'desc')
+            ->get();
+
         $transportistas = User::transportistas()
             ->where('disponible', true)
             ->get();
 
         $vehiculos = Vehiculo::disponibles()->get();
 
-        return view('asignaciones.index', compact('enviosPendientes', 'enviosAsignados', 'transportistas', 'vehiculos'));
+        return view('asignaciones.index', compact('enviosPendientes', 'enviosAsignados', 'enviosRechazados', 'transportistas', 'vehiculos'));
     }
 
     /**

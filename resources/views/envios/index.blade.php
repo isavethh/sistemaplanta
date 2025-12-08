@@ -59,6 +59,8 @@
                     <td>
                         @if($envio->estado == 'pendiente')
                             <span class="badge badge-warning">Pendiente</span>
+                        @elseif($envio->estado == 'aprobado')
+                            <span class="badge badge-primary"><i class="fas fa-check"></i> Aprobado</span>
                         @elseif($envio->estado == 'en_transito')
                             <span class="badge badge-info">En Tránsito</span>
                         @elseif($envio->estado == 'entregado')
@@ -69,6 +71,17 @@
                     </td>
                     <td>
                         <div class="btn-group btn-group-sm" role="group">
+                            <a href="{{ route('envios.show', $envio) }}" class="btn btn-info" title="Ver Detalle">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            @if($envio->estado == 'pendiente')
+                                <form action="{{ route('envios.aprobar', $envio) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Aprobar este envío? Se generará automáticamente una nota de venta.')">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success" title="Aprobar y Generar Nota de Venta">
+                                        <i class="fas fa-check-circle"></i> Aprobar
+                                    </button>
+                                </form>
+                            @endif
                             <a href="{{ route('envios.edit', $envio) }}" class="btn btn-warning" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </a>
@@ -112,6 +125,13 @@
     .card {
         border-radius: 10px;
         overflow: hidden;
+        margin-bottom: 15px !important;
+    }
+    .content-wrapper {
+        padding-bottom: 15px !important;
+    }
+    .alert {
+        margin-bottom: 15px !important;
     }
 </style>
 @endsection
