@@ -42,20 +42,21 @@ class EnvioApiController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'almacen_destino_id' => 'required|exists:almacens,id',
+            'almacen_destino_id' => 'required|exists:almacenes,id',
             'categoria' => 'nullable|string',
             'fecha_estimada_entrega' => 'required|date',
             'hora_estimada' => 'nullable|string',
             'observaciones' => 'nullable|string',
             'productos' => 'required|array',
-            'productos.*.producto_id' => 'required|exists:productos,id',
+            'productos.*.producto_id' => 'nullable|exists:productos,id',
+            'productos.*.producto_nombre' => 'nullable|string',
             'productos.*.cantidad' => 'required|numeric|min:0',
             'productos.*.peso_kg' => 'required|numeric|min:0',
             'productos.*.precio' => 'required|numeric|min:0',
         ]);
 
         DB::beginTransaction();
-        
+
         try {
             // Crear envío
             $envio = Envio::create([
@@ -64,9 +65,9 @@ class EnvioApiController extends Controller
                 'categoria' => $validated['categoria'] ?? 'general',
                 'fecha_creacion' => now(),
                 'fecha_estimada_entrega' => $validated['fecha_estimada_entrega'],
-                'hora_estimada' => $validated['hora_estimada'],
+                'hora_estimada' => $validated['hora_estimada'] ?? null,
                 'estado' => 'pendiente',
-                'observaciones' => $validated['observaciones'],
+                'observaciones' => $validated['observaciones'] ?? null,
                 'total_cantidad' => 0,
                 'total_peso' => 0,
                 'total_precio' => 0,
@@ -79,14 +80,21 @@ class EnvioApiController extends Controller
 
             foreach ($validated['productos'] as $producto) {
                 $totalProducto = $producto['cantidad'] * $producto['precio'];
-                
+
+                // Usar producto_nombre si está disponible, si no buscar por producto_id
+                $productoNombre = $producto['producto_nombre'] ?? null;
+                if (!$productoNombre && isset($producto['producto_id'])) {
+                    $productoModel = \App\Models\Producto::find($producto['producto_id']);
+                    $productoNombre = $productoModel ? $productoModel->nombre : 'Producto';
+                }
+
                 EnvioProducto::create([
                     'envio_id' => $envio->id,
-                    'producto_id' => $producto['producto_id'],
+                    'producto_nombre' => $productoNombre,
                     'cantidad' => $producto['cantidad'],
-                    'peso_kg' => $producto['peso_kg'],
+                    'peso_unitario' => $producto['peso_kg'] ?? 0,
                     'precio_unitario' => $producto['precio'],
-                    'total_peso' => $producto['cantidad'] * $producto['peso_kg'],
+                    'total_peso' => $producto['cantidad'] * ($producto['peso_kg'] ?? 0),
                     'total_precio' => $totalProducto,
                 ]);
 
@@ -102,37 +110,49 @@ class EnvioApiController extends Controller
                 'total_precio' => $totalPrecio,
             ]);
 
-            // Generar QR
-            $qrData = [
-                'type' => 'ENVIO',
-                'codigo' => $envio->codigo,
-                'envio_id' => $envio->id,
-                'url' => url("/envios/{$envio->id}")
-            ];
+            // Generar QR (opcional - puede fallar si el paquete no está instalado)
+            $qrCode = null;
+            try {
+                $qrData = [
+                    'type' => 'ENVIO',
+                    'codigo' => $envio->codigo,
+                    'envio_id' => $envio->id,
+                    'url' => url("/envios/{$envio->id}")
+                ];
 
-            $qrCode = base64_encode(QrCode::format('png')
-                ->size(300)
-                ->generate(json_encode($qrData)));
+                if (class_exists('SimpleSoftwareIO\QrCode\Facades\QrCode')) {
+                    $qrCode = base64_encode(QrCode::format('png')
+                        ->size(300)
+                        ->generate(json_encode($qrData)));
 
-            // Guardar QR en la base de datos
-            CodigoQR::create([
-                'codigo' => $envio->codigo,
-                'tipo' => 'envio',
-                'referencia_id' => $envio->id,
-                'qr_image' => $qrCode,
-                'datos_json' => json_encode($qrData),
-            ]);
+                    // Guardar QR en la base de datos
+                    CodigoQR::create([
+                        'codigo' => $envio->codigo,
+                        'tipo' => 'envio',
+                        'referencia_id' => $envio->id,
+                        'qr_image' => $qrCode,
+                        'datos_json' => json_encode($qrData),
+                    ]);
+                }
+            } catch (\Exception $qrException) {
+                // QR generation failed, but we can still continue
+                \Log::warning('QR generation failed: ' . $qrException->getMessage());
+            }
 
-            // Sincronizar con Node.js backend
-            $this->sincronizarConNodeJS($envio);
+            // Sincronizar con Node.js backend (opcional)
+            try {
+                $this->sincronizarConNodeJS($envio);
+            } catch (\Exception $nodeException) {
+                \Log::warning('Node.js sync failed: ' . $nodeException->getMessage());
+            }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Envío creado exitosamente',
-                'data' => $envio->load(['almacenDestino', 'productos.producto']),
-                'qr_code' => 'data:image/png;base64,' . $qrCode
+                'data' => $envio->load(['almacenDestino', 'productos']),
+                'qr_code' => $qrCode ? 'data:image/png;base64,' . $qrCode : null
             ], 201);
 
         } catch (\Exception $e) {
@@ -331,7 +351,7 @@ class EnvioApiController extends Controller
     {
         try {
             $response = Http::timeout(5)->post("{$this->nodeApiUrl}/envios/{$envio->codigo}/simular-movimiento");
-            
+
             if ($response->successful()) {
                 \Log::info('Simulación iniciada en Node.js', ['envio_id' => $envio->id]);
             }

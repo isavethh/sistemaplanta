@@ -11,8 +11,10 @@ class EnvioProducto extends Model
 
     protected $fillable = [
         'envio_id',
+        'producto_id',
         'producto_nombre',
         'cantidad',
+        'peso_kg',
         'peso_unitario',
         'unidad_medida_id',
         'tipo_empaque_id',
