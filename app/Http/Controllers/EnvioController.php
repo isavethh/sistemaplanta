@@ -10,19 +10,61 @@ use App\Models\EnvioProducto;
 use App\Models\Vehiculo;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class EnvioController extends Controller
 {
     public function index()
     {
-        $envios = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $user = Auth::user();
+        
+        // Si el usuario es transportista, mostrar solo sus envíos asignados
+        if ($user->hasRole('transportista')) {
+            // Obtener envíos asignados directamente al transportista (cualquier vehículo puede ser usado)
+            $envios = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
+                ->whereHas('asignacion', function($query) use ($user) {
+                    $query->where('transportista_id', $user->id);
+                })
+                ->orderBy('created_at', 'desc')
+                ->get();
+        } else {
+            // Si es admin u otro rol, mostrar todos los envíos
+            $envios = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            // Corregir envíos inconsistentes: si están "asignado" pero no tienen asignación válida con transportista
+            foreach ($envios as $envio) {
+                if ($envio->estado == 'asignado') {
+                    $tieneAsignacionValida = $envio->asignacion 
+                        && $envio->asignacion->transportista_id;
+                    
+                    if (!$tieneAsignacionValida) {
+                        // Corregir el estado a pendiente
+                        $envio->update(['estado' => 'pendiente']);
+                        \Log::warning("⚠️ Envío {$envio->codigo} corregido: estado 'asignado' sin asignación válida, cambiado a 'pendiente'");
+                    }
+                }
+            }
+            
+            // Recargar los envíos después de las correcciones
+            $envios = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+        
         return view('envios.index', compact('envios'));
     }
 
     public function create()
     {
+        // Solo admin puede crear envíos
+        $user = Auth::user();
+        if (!$user->hasRole('admin')) {
+            abort(403, 'Solo los administradores pueden crear envíos.');
+        }
+        
         // La planta (origen fijo)
         $planta = Almacen::where('es_planta', true)->first();
         
@@ -100,6 +142,17 @@ class EnvioController extends Controller
 
     public function show(Envio $envio)
     {
+        $user = Auth::user();
+        
+        // Si el usuario es transportista, verificar que el envío le pertenece
+        if ($user->hasRole('transportista')) {
+            $tieneAcceso = $envio->asignacion && $envio->asignacion->transportista_id == $user->id;
+            
+            if (!$tieneAcceso) {
+                abort(403, 'No tienes permiso para ver este envío.');
+            }
+        }
+        
         $planta = Almacen::where('es_planta', true)->first();
         $envio->load(['productos', 'almacenDestino', 'asignacion.transportista', 'asignacion.vehiculo']);
         return view('envios.show', compact('envio', 'planta'));
@@ -107,6 +160,12 @@ class EnvioController extends Controller
 
     public function edit(Envio $envio)
     {
+        // Solo admin puede editar envíos
+        $user = Auth::user();
+        if (!$user->hasRole('admin')) {
+            abort(403, 'Solo los administradores pueden editar envíos.');
+        }
+        
         $planta = Almacen::where('es_planta', true)->first();
         $almacenes = Almacen::where('activo', true)->where('es_planta', false)->get();
         $tiposEmpaque = TipoEmpaque::all();
@@ -118,6 +177,12 @@ class EnvioController extends Controller
 
     public function update(Request $request, Envio $envio)
     {
+        // Solo admin puede actualizar envíos
+        $user = Auth::user();
+        if (!$user->hasRole('admin')) {
+            abort(403, 'Solo los administradores pueden actualizar envíos.');
+        }
+        
         $request->validate([
             'almacen_destino_id' => 'required|exists:almacenes,id',
         ]);
@@ -134,6 +199,12 @@ class EnvioController extends Controller
 
     public function destroy(Envio $envio)
     {
+        // Solo admin puede eliminar envíos
+        $user = Auth::user();
+        if (!$user->hasRole('admin')) {
+            abort(403, 'Solo los administradores pueden eliminar envíos.');
+        }
+        
         try {
             \DB::beginTransaction();
             
@@ -163,6 +234,17 @@ class EnvioController extends Controller
 
     public function tracking(Envio $envio)
     {
+        $user = Auth::user();
+        
+        // Si el usuario es transportista, verificar que el envío le pertenece
+        if ($user->hasRole('transportista')) {
+            $tieneAcceso = $envio->asignacion && $envio->asignacion->transportista_id == $user->id;
+            
+            if (!$tieneAcceso) {
+                abort(403, 'No tienes permiso para ver el tracking de este envío.');
+            }
+        }
+        
         $planta = Almacen::where('es_planta', true)->first();
         $envio->load(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo']);
         return view('envios.tracking', compact('envio', 'planta'));

@@ -73,7 +73,14 @@ Route::prefix('envios')->group(function () {
 });
 
 // Rutas de envíos (API) - Usando apiResource para rutas estándar REST (debe ir DESPUÉS de rutas personalizadas)
-Route::apiResource('envios', EnvioApiController::class)->only(['index', 'store', 'show']);
+// Nota: Usamos nombres diferentes para evitar conflicto con rutas web
+Route::apiResource('envios', EnvioApiController::class)
+    ->only(['index', 'store', 'show'])
+    ->names([
+        'index' => 'api.envios.index',
+        'store' => 'api.envios.store',
+        'show' => 'api.envios.show'
+    ]);
 
 // Ruta para recibir actualizaciones desde Node.js
 Route::post('/sync/envio-estado', function (Request $request) {

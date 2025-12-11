@@ -68,7 +68,16 @@
                             <span class="badge badge-info">{{ $primerProducto->categoria ?? 'N/A' }}</span>
                         @endif
                     </td>
-                    <td>{{ optional($envio->asignacion)->transportista->name ?? 'Sin asignar' }}</td>
+                    <td>
+                        @php
+                            $transportista = optional($envio->asignacion)->transportista ?? null;
+                        @endphp
+                        @if($transportista)
+                            <i class="fas fa-user-tie text-primary"></i> {{ $transportista->name }}
+                        @else
+                            <span class="text-muted"><i class="fas fa-user-slash"></i> Sin asignar</span>
+                        @endif
+                    </td>
                     <td>
                         @if($envio->estado == 'pendiente')
                             <span class="badge badge-warning"><i class="fas fa-clock"></i> Pendiente</span>

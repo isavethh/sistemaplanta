@@ -248,15 +248,6 @@
                 <h5 class="card-title text-white mb-0"><i class="fas fa-cogs"></i> Acciones</h5>
             </div>
             <div class="card-body">
-                @if($envio->estado == 'pendiente')
-                <form action="{{ route('envios.aprobar', $envio) }}" method="POST" class="mb-2">
-                    @csrf
-                    <button type="submit" class="btn btn-success btn-block" onclick="return confirm('¿Aprobar este envío?')">
-                        <i class="fas fa-check-circle"></i> Aprobar Envío
-                    </button>
-                </form>
-                @endif
-
                 <a href="{{ route('envios.edit', $envio) }}" class="btn btn-warning btn-block">
                     <i class="fas fa-edit"></i> Editar Envío
                 </a>

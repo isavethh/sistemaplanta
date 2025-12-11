@@ -14,15 +14,36 @@ class AlmacenApiController extends Controller
      */
     public function index()
     {
-        $almacenes = Almacen::where('activo', true)
-            ->select('id', 'nombre', 'direccion_completa as direccion', 'latitud', 'longitud', 'activo')
-            ->orderBy('nombre')
-            ->get();
-        
-        return response()->json([
-            'success' => true,
-            'data' => $almacenes
-        ]);
+        try {
+            $almacenes = Almacen::where('activo', true)
+                ->select(
+                    'id', 
+                    'nombre', 
+                    'direccion_completa as direccion', 
+                    'latitud', 
+                    'longitud', 
+                    'activo',
+                    'es_planta'
+                )
+                ->orderBy('es_planta', 'desc') // Plantas primero
+                ->orderBy('nombre')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $almacenes
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error en AlmacenApiController::index', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener almacenes: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

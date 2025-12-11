@@ -20,11 +20,10 @@
 
 @php
     $transportistaId = auth()->id();
-    // Obtener envíos a través de vehiculos (transportista_id ya no existe en envio_asignaciones)
-    $misEnviosIds = DB::table('envio_asignaciones as ea')
-        ->join('vehiculos as v', 'ea.vehiculo_id', '=', 'v.id')
-        ->where('v.transportista_id', $transportistaId)
-        ->pluck('ea.envio_id');
+    // Obtener envíos directamente por transportista_id en envio_asignaciones
+    $misEnviosIds = DB::table('envio_asignaciones')
+        ->where('transportista_id', $transportistaId)
+        ->pluck('envio_id');
     $totalEnvios = DB::table('envios')->whereIn('id', $misEnviosIds)->count();
     $porRecoger = DB::table('envios')->whereIn('id', $misEnviosIds)->whereIn('estado', ['pendiente', 'asignado'])->count();
     $enCamino = DB::table('envios')->whereIn('id', $misEnviosIds)->where('estado', 'en_transito')->count();
@@ -168,7 +167,7 @@
                     <table class="table table-hover table-striped">
                         <thead class="thead-dark">
                             <tr>
-                                <th>ID</th>
+                                <th>Código</th>
                                 <th>Fecha Asignación</th>
                                 <th>Destino</th>
                                 <th>Estado</th>
@@ -179,29 +178,30 @@
                             @php
                                 $enviosPendientes = DB::table('envios as e')
                                     ->join('envio_asignaciones as ea', 'e.id', '=', 'ea.envio_id')
-                                    ->join('vehiculos as v', 'ea.vehiculo_id', '=', 'v.id')
                                     ->leftJoin('almacenes as a', 'e.almacen_destino_id', '=', 'a.id')
-                                    ->where('v.transportista_id', auth()->id())
+                                    ->where('ea.transportista_id', auth()->id())
                                     ->where('e.estado', '!=', 'entregado')
-                                    ->select('e.*', 'a.nombre as almacen_nombre')
+                                    ->select('e.*', 'a.nombre as almacen_nombre', 'ea.fecha_asignacion')
                                     ->orderByDesc('e.created_at')
                                     ->limit(10)
                                     ->get();
                             @endphp
                             @forelse($enviosPendientes as $envio)
                             <tr>
-                                <td><strong>#{{ $envio->id }}</strong></td>
-                                <td>{{ \Carbon\Carbon::parse($envio->created_at)->format('d/m/Y H:i') }}</td>
+                                <td><strong>{{ $envio->codigo ?? '#' . $envio->id }}</strong></td>
+                                <td>{{ $envio->fecha_asignacion ? \Carbon\Carbon::parse($envio->fecha_asignacion)->format('d/m/Y H:i') : \Carbon\Carbon::parse($envio->created_at)->format('d/m/Y H:i') }}</td>
                                 <td>{{ $envio->almacen_nombre ?? 'N/A' }}</td>
                                 <td>
                                     @if($envio->estado == 'pendiente')
-                                        <span class="badge badge-warning">Por Recoger</span>
+                                        <span class="badge badge-warning"><i class="fas fa-clock"></i> Por Recoger</span>
+                                    @elseif($envio->estado == 'asignado')
+                                        <span class="badge badge-primary"><i class="fas fa-user-check"></i> Asignado</span>
                                     @elseif($envio->estado == 'en_transito')
-                                        <span class="badge badge-info">En Camino</span>
+                                        <span class="badge badge-info"><i class="fas fa-truck"></i> En Camino</span>
                                     @elseif($envio->estado == 'en_ruta')
-                                        <span class="badge badge-primary">En Ruta</span>
+                                        <span class="badge badge-primary"><i class="fas fa-route"></i> En Ruta</span>
                                     @else
-                                        <span class="badge badge-secondary">{{ $envio->estado }}</span>
+                                        <span class="badge badge-secondary">{{ ucfirst(str_replace('_', ' ', $envio->estado)) }}</span>
                                     @endif
                                 </td>
                                 <td>
@@ -252,6 +252,13 @@
                                         ->orderByDesc('created_at')
                                         ->limit(5)
                                         ->get();
+                                    
+                                    // Obtener número de envíos por ruta
+                                    foreach ($rutasActivas as $ruta) {
+                                        $ruta->num_envios = DB::table('ruta_paradas')
+                                            ->where('ruta_multi_entrega_id', $ruta->id)
+                                            ->count();
+                                    }
                                 } catch (\Exception $e) {
                                     $rutasActivas = collect();
                                 }
@@ -259,8 +266,8 @@
                             @forelse($rutasActivas as $ruta)
                             <tr>
                                 <td><strong>{{ $ruta->nombre ?? 'Ruta #' . $ruta->id }}</strong></td>
-                                <td><span class="badge badge-primary">-</span></td>
-                                <td>{{ \Carbon\Carbon::parse($ruta->created_at)->format('d/m/Y') }}</td>
+                                <td><span class="badge badge-primary">{{ $ruta->num_envios ?? 0 }} envío(s)</span></td>
+                                <td>{{ \Carbon\Carbon::parse($ruta->created_at)->format('d/m/Y H:i') }}</td>
                                 <td>
                                     <a href="{{ route('rutas-multi.show', $ruta->id) }}" class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i> Ver

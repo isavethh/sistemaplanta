@@ -88,21 +88,37 @@ class EnvioApiController extends Controller
             'productos.*.cantidad' => 'required|numeric|min:0',
             'productos.*.peso_kg' => 'required|numeric|min:0',
             'productos.*.precio' => 'required|numeric|min:0',
+            'origen' => 'nullable|string|in:trazabilidad,manual',
+            'pedido_trazabilidad_id' => 'nullable|integer',
+            'numero_pedido_trazabilidad' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
 
         try {
+            // Preparar observaciones con información de Trazabilidad si viene
+            $observaciones = $validated['observaciones'] ?? '';
+            if (($validated['origen'] ?? '') === 'trazabilidad' && !empty($validated['numero_pedido_trazabilidad'])) {
+                $observaciones = "ORIGEN: TRAZABILIDAD\n" .
+                                "Pedido: {$validated['numero_pedido_trazabilidad']}\n" .
+                                ($observaciones ? "\n{$observaciones}" : '');
+            }
+
+            // Generar código según origen
+            $codigo = ($validated['origen'] ?? '') === 'trazabilidad' 
+                ? $this->generarCodigoEnvio('TRAZ')
+                : $this->generarCodigoEnvio();
+
             // Crear envío
             $envio = Envio::create([
-                'codigo' => $this->generarCodigoEnvio(),
+                'codigo' => $codigo,
                 'almacen_destino_id' => $validated['almacen_destino_id'],
                 'categoria' => $validated['categoria'] ?? 'general',
                 'fecha_creacion' => now(),
                 'fecha_estimada_entrega' => $validated['fecha_estimada_entrega'],
                 'hora_estimada' => $validated['hora_estimada'] ?? null,
                 'estado' => 'pendiente',
-                'observaciones' => $validated['observaciones'] ?? null,
+                'observaciones' => $observaciones,
                 'total_cantidad' => 0,
                 'total_peso' => 0,
                 'total_precio' => 0,
@@ -401,11 +417,11 @@ class EnvioApiController extends Controller
     /**
      * Generar código único para envío
      */
-    private function generarCodigoEnvio()
+    private function generarCodigoEnvio(string $prefijo = 'ENV'): string
     {
         $fecha = now()->format('ymd');
         $random = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
-        return "ENV-{$fecha}-{$random}";
+        return "{$prefijo}-{$fecha}-{$random}";
     }
 }
 

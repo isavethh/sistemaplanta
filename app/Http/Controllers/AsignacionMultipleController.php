@@ -150,10 +150,14 @@ class AsignacionMultipleController extends Controller
                 );
             }
             
-            // Verificar que el vehículo no esté ocupado en envíos activos
+            // Verificar que el vehículo no esté ocupado en envíos activos (excluyendo los envíos que vamos a asignar)
+            $enviosIds = $envios->pluck('id')->toArray();
             $vehiculoOcupado = EnvioAsignacion::whereHas('envio', function($query) {
                 $query->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);
-            })->where('vehiculo_id', $request->vehiculo_id)->exists();
+            })
+            ->where('vehiculo_id', $request->vehiculo_id)
+            ->whereNotIn('envio_id', $enviosIds)
+            ->exists();
 
             if ($vehiculoOcupado) {
                 DB::rollBack();
@@ -164,13 +168,16 @@ class AsignacionMultipleController extends Controller
             $enviosAsignados = [];
             
             foreach ($envios as $envio) {
-                // Crear asignación
-                EnvioAsignacion::create([
-                    'envio_id' => $envio->id,
-                    'transportista_id' => $request->transportista_id,
-                    'vehiculo_id' => $request->vehiculo_id,
-                    'fecha_asignacion' => now(),
-                ]);
+                // Actualizar o crear asignación (cualquier vehículo puede ser usado por cualquier transportista)
+                // Si ya existe una asignación para este envío, la actualizamos
+                EnvioAsignacion::updateOrCreate(
+                    ['envio_id' => $envio->id],
+                    [
+                        'transportista_id' => $request->transportista_id,
+                        'vehiculo_id' => $request->vehiculo_id,
+                        'fecha_asignacion' => now(),
+                    ]
+                );
 
                 // Actualizar estado
                 $envio->update([

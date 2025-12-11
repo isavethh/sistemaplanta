@@ -315,7 +315,7 @@ return [
         ['header' => '🚛 GESTIÓN DE ENVÍOS', 'role' => 'admin'],
         [
             'text' => 'Envíos',
-            'url' => 'envios',
+            'route' => 'envios.index',
             'icon' => 'fas fa-boxes',
             'icon_color' => 'primary',
             'role' => 'admin'
@@ -388,7 +388,7 @@ return [
         // MENÚ PARA TRANSPORTISTA
         // =============================================
         ['header' => '🚚 MIS ENTREGAS', 'role' => 'transportista'],
-        ['text' => 'Envíos Asignados', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'primary', 'role' => 'transportista'],
+        ['text' => 'Envíos Asignados', 'route' => 'envios.index', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'primary', 'role' => 'transportista'],
         ['text' => 'Mis Rutas', 'url' => 'rutas-multi', 'icon' => 'fas fa-route', 'icon_color' => 'info', 'role' => 'transportista'],
         ['text' => 'Documentos de Entrega', 'url' => 'notas-entrega', 'icon' => 'fas fa-file-invoice', 'icon_color' => 'success', 'role' => 'transportista'],
         ['text' => 'Mi Inventario', 'url' => 'inventarios-transportista', 'icon' => 'fas fa-boxes', 'icon_color' => 'warning', 'role' => 'transportista'],

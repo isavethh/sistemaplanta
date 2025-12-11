@@ -17,6 +17,40 @@
 @endsection
 
 @section('content')
+@if($envio->estado !== 'entregado')
+<div class="alert alert-warning alert-dismissible fade show shadow-lg" role="alert" style="border-left: 5px solid #ffc107;">
+    <div class="d-flex align-items-center">
+        <div class="mr-3">
+            <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+        </div>
+        <div class="flex-grow-1">
+            <h4 class="alert-heading mb-2">
+                <i class="fas fa-info-circle"></i> <strong>¡ATENCIÓN! Este envío aún no está completado</strong>
+            </h4>
+            <p class="mb-2">
+                <strong>Estado actual:</strong> 
+                @if($envio->estado == 'pendiente')
+                    <span class="badge badge-secondary">PENDIENTE</span> - El envío está esperando ser asignado a un transportista.
+                @elseif($envio->estado == 'asignado')
+                    <span class="badge badge-info">ASIGNADO</span> - El envío ha sido asignado pero aún no ha iniciado el transporte.
+                @elseif($envio->estado == 'en_transito')
+                    <span class="badge badge-warning">EN TRÁNSITO</span> - El envío está en camino hacia su destino.
+                @else
+                    <span class="badge badge-secondary">{{ strtoupper(str_replace('_', ' ', $envio->estado)) }}</span>
+                @endif
+            </p>
+            <p class="mb-0">
+                <i class="fas fa-route"></i> <strong>Este reporte muestra el progreso actual del envío.</strong> 
+                Una vez que el envío sea marcado como <strong>"ENTREGADO"</strong>, se mostrará la información completa de la trazabilidad.
+            </p>
+        </div>
+    </div>
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+@endif
+
 <div class="card shadow-lg">
     <div class="card-header bg-gradient-primary text-white">
         <h3 class="card-title"><i class="fas fa-clipboard-list"></i> <strong>REPORTE DE TRAZABILIDAD COMPLETA</strong></h3>

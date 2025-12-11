@@ -5,6 +5,9 @@
 @endsection
 
 @section('content')
+@php
+    use Illuminate\Support\Facades\DB;
+@endphp
 <!-- Mensaje de Bienvenida -->
 <div class="row">
     <div class="col-12">
@@ -187,14 +190,14 @@
 </div>
 
 <!-- Últimos Envíos y Rutas -->
-<div class="row">
-    <div class="col-md-6">
-        <div class="card shadow">
+<div class="row equal-height-cards">
+    <div class="col-md-6 d-flex">
+        <div class="card shadow flex-fill d-flex flex-column">
             <div class="card-header bg-gradient-info">
                 <h3 class="card-title"><i class="fas fa-shipping-fast"></i> Últimos Envíos</h3>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
+            <div class="card-body d-flex flex-column flex-grow-1">
+                <div class="table-responsive flex-grow-1">
                     <table class="table table-sm table-hover">
                         <thead>
                             <tr>
@@ -210,6 +213,8 @@
                                 <td>
                                     @if($envio->estado == 'pendiente')
                                         <span class="badge badge-warning">Pendiente</span>
+                                    @elseif($envio->estado == 'asignado')
+                                        <span class="badge badge-primary">Asignado</span>
                                     @elseif($envio->estado == 'en_transito')
                                         <span class="badge badge-info">En Tránsito</span>
                                     @elseif($envio->estado == 'entregado')
@@ -218,7 +223,7 @@
                                         <span class="badge badge-secondary">{{ $envio->estado }}</span>
                                     @endif
                                 </td>
-                                <td>{{ $envio->asignacion->transportista->name ?? 'Sin asignar' }}</td>
+                                <td>{{ optional($envio->asignacion)->transportista->name ?? 'Sin asignar' }}</td>
                             </tr>
                             @empty
                             <tr>
@@ -232,13 +237,13 @@
         </div>
     </div>
     
-    <div class="col-md-6">
-        <div class="card shadow">
+    <div class="col-md-6 d-flex">
+        <div class="card shadow flex-fill d-flex flex-column">
             <div class="card-header bg-gradient-purple" style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);">
                 <h3 class="card-title"><i class="fas fa-route"></i> Rutas Activas</h3>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
+            <div class="card-body d-flex flex-column flex-grow-1">
+                <div class="table-responsive flex-grow-1">
                     <table class="table table-sm table-hover">
                         <thead>
                             <tr>
@@ -248,11 +253,30 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse(\App\Models\Ruta::with('transportista')->latest()->take(5)->get() as $ruta)
+                            @php
+                                try {
+                                    // Usar la tabla rutas que existe
+                                    $rutasActivas = DB::table('rutas')
+                                        ->orderByDesc('created_at')
+                                        ->take(5)
+                                        ->get();
+                                    
+                                    // Obtener número de envíos por ruta
+                                    foreach ($rutasActivas as $ruta) {
+                                        // Contar envíos que tienen esta ruta asignada
+                                        $ruta->num_envios = DB::table('envios')
+                                            ->where('ruta_entrega_id', $ruta->id)
+                                            ->count();
+                                    }
+                                } catch (\Exception $e) {
+                                    $rutasActivas = collect();
+                                }
+                            @endphp
+                            @forelse($rutasActivas as $ruta)
                             <tr>
                                 <td><strong>{{ $ruta->nombre ?? 'Ruta #'.$ruta->id }}</strong></td>
-                                <td>{{ $ruta->transportista->name ?? 'N/A' }}</td>
-                                <td><span class="badge badge-primary">{{ $ruta->envios_asignados ?? 0 }}</span></td>
+                                <td>N/A</td>
+                                <td><span class="badge badge-primary">{{ $ruta->num_envios ?? 0 }}</span></td>
                             </tr>
                             @empty
                             <tr>
@@ -277,6 +301,47 @@
     }
     .small-box, .info-box {
         border-radius: 10px;
+    }
+    
+    /* Cards de igual altura */
+    .equal-height-cards {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+    }
+    
+    .equal-height-cards > [class*='col-'] {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .equal-height-cards .card {
+        margin-bottom: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .equal-height-cards .card-header {
+        flex-shrink: 0;
+    }
+    
+    .equal-height-cards .card-body {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    
+    .equal-height-cards .table-responsive {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    
+    .equal-height-cards table {
+        margin-bottom: 0;
     }
 </style>
 @endsection
