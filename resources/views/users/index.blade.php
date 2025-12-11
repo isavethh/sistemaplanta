@@ -42,7 +42,15 @@
                     <td><strong>{{ $user->name }}</strong></td>
                     <td>{{ $user->email }}</td>
                     <td>
-                        <span class="badge badge-info">{{ $user->role ?? 'Usuario' }}</span>
+                        @if($user->roles->count() > 0)
+                            @foreach($user->roles as $role)
+                                <span class="badge badge-{{ $role->name == 'admin' ? 'danger' : ($role->name == 'transportista' ? 'primary' : 'info') }}">
+                                    {{ ucfirst($role->name) }}
+                                </span>
+                            @endforeach
+                        @else
+                            <span class="badge badge-secondary">Sin rol</span>
+                        @endif
                     </td>
                     <td>{{ $user->created_at ? $user->created_at->format('d/m/Y') : 'N/A' }}</td>
                     <td>

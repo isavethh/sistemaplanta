@@ -312,6 +312,15 @@ return [
         // =============================================
         // MENÚ PARA ADMIN
         // =============================================
+        ['header' => '👥 GESTIÓN DE USUARIOS', 'role' => 'admin'],
+        [
+            'text' => 'Usuarios',
+            'route' => 'users.index',
+            'icon' => 'fas fa-users',
+            'icon_color' => 'info',
+            'role' => 'admin'
+        ],
+        
         ['header' => '🚛 GESTIÓN DE ENVÍOS', 'role' => 'admin'],
         [
             'text' => 'Envíos',

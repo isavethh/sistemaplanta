@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\Auth;
 // ============================================================================
 // AUTENTICACIÓN
 // ============================================================================
-Auth::routes();
+// Deshabilitar registro público - solo admins pueden crear usuarios
+Auth::routes(['register' => false]);
 
 // ============================================================================
 // DASHBOARD PRINCIPAL
