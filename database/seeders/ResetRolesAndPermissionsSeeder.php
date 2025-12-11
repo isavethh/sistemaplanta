@@ -63,7 +63,6 @@ class ResetRolesAndPermissionsSeeder extends Seeder
 
         // Módulo: Documentos
         Permission::create(['name' => 'documentos.ver']);
-        Permission::create(['name' => 'documentos.nota-venta']);
         Permission::create(['name' => 'documentos.nota-entrega']);
 
         // Módulo: Incidentes
@@ -98,7 +97,7 @@ class ResetRolesAndPermissionsSeeder extends Seeder
             'envios.tracking',
             // Documentos (ver sus documentos)
             'documentos.ver',
-            'documentos.nota-venta',
+            'documentos.nota-entrega',
             'documentos.nota-entrega',
             // Monitoreo (ver sus envíos en tiempo real)
             'monitoreo.ver-propio',
@@ -125,7 +124,7 @@ class ResetRolesAndPermissionsSeeder extends Seeder
             'rutas-multi.monitorear',
             // Documentos
             'documentos.ver',
-            'documentos.nota-venta',
+            'documentos.nota-entrega',
             'documentos.nota-entrega',
             // Monitoreo (ver todos)
             'monitoreo.ver-todos',
@@ -153,7 +152,7 @@ class ResetRolesAndPermissionsSeeder extends Seeder
             'rutas-multi.ver',
             // Documentos (de sus envíos)
             'documentos.ver',
-            'documentos.nota-venta',
+            'documentos.nota-entrega',
             'documentos.nota-entrega',
             // Monitoreo (simular movimiento de sus envíos)
             'monitoreo.ver-propio',
@@ -173,7 +172,7 @@ class ResetRolesAndPermissionsSeeder extends Seeder
             'envios.firmar',
             // Documentos (nota de entrega/venta)
             'documentos.ver',
-            'documentos.nota-venta',
+            'documentos.nota-entrega',
             'documentos.nota-entrega',
             // Monitoreo (ver envíos que vienen hacia su almacén)
             'monitoreo.ver-propio',

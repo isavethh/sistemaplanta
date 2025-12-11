@@ -54,14 +54,32 @@ class User extends Authenticatable
     }
 
     // Relaciones
+    // Envíos donde este usuario es el cliente (quien solicita el envío)
     public function enviosComoCliente()
     {
         return $this->hasMany(Envio::class, 'cliente_id');
     }
 
+    // Envíos asignados a este usuario como transportista (a través de envio_asignaciones → vehiculos)
+    // transportista_id ya no existe en envio_asignaciones, se obtiene a través de vehiculo_id → vehiculos.transportista_id
+    public function enviosAsignados()
+    {
+        return $this->hasManyThrough(
+            Envio::class,
+            \App\Models\EnvioAsignacion::class,
+            'vehiculo_id', // FK en envio_asignaciones (ahora usa vehiculo_id)
+            'id', // FK en envios
+            'id', // Local key en users (a través de vehiculos.transportista_id)
+            'envio_id' // Local key en envio_asignaciones
+        )->whereHas('vehiculo', function($query) {
+            $query->where('transportista_id', $this->id);
+        });
+    }
+    
+    // Alias para compatibilidad (deprecated - usar enviosAsignados)
     public function enviosComoTransportista()
     {
-        return $this->hasMany(Envio::class, 'transportista_id');
+        return $this->enviosAsignados();
     }
 
     public function vehiculo()
@@ -71,7 +89,7 @@ class User extends Authenticatable
 
     public function almacenesAcargo()
     {
-        return $this->hasMany(Almacen::class, 'encargado_id');
+        return $this->hasMany(Almacen::class, 'usuario_almacen_id');
     }
 
     // Scopes

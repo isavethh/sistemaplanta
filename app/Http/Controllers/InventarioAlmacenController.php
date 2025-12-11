@@ -12,12 +12,40 @@ class InventarioAlmacenController extends Controller
 {
     public function index(Request $request)
     {
-        // Obtener todos los almacenes (excepto la planta) para el dropdown
-        $almacenes = Almacen::where('es_planta', false)->where('activo', true)->get();
+        $user = auth()->user();
+        $almacenSeleccionado = null;
+        $almacenes = collect([]);
+        $mostrarSelector = false;
         
-        // Almacén seleccionado (por defecto el primero)
-        $almacenSeleccionado = $request->get('almacen_id');
+        // Si el usuario es almacen, solo puede ver su propio almacén
+        if ($user->hasRole('almacen') || $user->esAlmacen()) {
+            // Buscar el almacén donde este usuario es el encargado
+            $almacenUsuario = Almacen::where('usuario_almacen_id', $user->id)
+                ->where('es_planta', false)
+                ->where('activo', true)
+                ->first();
+            
+            if ($almacenUsuario) {
+                $almacenSeleccionado = $almacenUsuario->id;
+                $mostrarSelector = false; // No mostrar selector para usuarios almacen
+            } else {
+                // Si no tiene almacén asignado, mostrar mensaje
+                return redirect()->route('inventarios.index')
+                    ->with('error', 'No tienes un almacén asignado. Contacta al administrador.');
+            }
+        } 
+        // Si el usuario es admin, puede ver todos los almacenes
+        elseif ($user->hasRole('admin')) {
+            $almacenes = Almacen::where('es_planta', false)->where('activo', true)->get();
+            $almacenSeleccionado = $request->get('almacen_id');
+            $mostrarSelector = true; // Mostrar selector para admin
+        } 
+        // Para otros roles, no permitir acceso
+        else {
+            abort(403, 'No tienes permiso para ver inventarios.');
+        }
         
+        // Obtener inventario del almacén seleccionado
         if ($almacenSeleccionado) {
             // Obtener productos de envíos entregados a este almacén
             $inventarios = DB::table('envio_productos as ep')
@@ -42,7 +70,7 @@ class InventarioAlmacenController extends Controller
             $almacenActual = null;
         }
         
-        return view('inventarios.index', compact('inventarios', 'almacenes', 'almacenSeleccionado', 'almacenActual'));
+        return view('inventarios.index', compact('inventarios', 'almacenes', 'almacenSeleccionado', 'almacenActual', 'mostrarSelector'));
     }
 
     public function create()
@@ -102,6 +130,19 @@ class InventarioAlmacenController extends Controller
 
     public function porAlmacen(Almacen $almacen)
     {
+        $user = auth()->user();
+        
+        // Si el usuario es almacen, verificar que solo pueda ver su propio almacén
+        if ($user->hasRole('almacen') || $user->esAlmacen()) {
+            $almacenUsuario = Almacen::where('usuario_almacen_id', $user->id)
+                ->where('id', $almacen->id)
+                ->first();
+            
+            if (!$almacenUsuario) {
+                abort(403, 'No tienes permiso para ver el inventario de este almacén.');
+            }
+        }
+        
         $inventarios = InventarioAlmacen::where('almacen_id', $almacen->id)
             ->with('envioProducto')
             ->get();

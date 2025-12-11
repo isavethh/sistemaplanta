@@ -138,8 +138,281 @@
 </div>
 @endsection
 
+@section('css')
+<style>
+/* Animación de entrada del visualizador */
+.empaque-visual-container {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Info del empaque */
+.empaque-info {
+    text-align: center;
+}
+
+.empaque-icono {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    animation: iconoPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconoPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.empaque-specs {
+    text-align: left;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.medida-detalle {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    padding: 5px;
+    background: white;
+    border-radius: 4px;
+}
+
+.medida-detalle i {
+    width: 20px;
+    text-align: center;
+}
+
+.medida-detalle span {
+    color: #28a745;
+    font-weight: bold;
+}
+
+/* Visualización 3D de Caja */
+.caja-3d-container {
+    perspective: 1000px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    width: 100%;
+}
+
+.caja-3d {
+    width: 100%;
+    max-width: 200px;
+    height: 220px;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: rotarCaja 10s ease-in-out infinite;
+}
+
+@keyframes rotarCaja {
+    0%, 100% {
+        transform: rotateY(-15deg) rotateX(10deg);
+    }
+    50% {
+        transform: rotateY(15deg) rotateX(10deg);
+    }
+}
+
+.caja-frontal {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+    border: 3px solid #654321;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 
+        inset 0 0 20px rgba(0,0,0,0.3),
+        5px 5px 15px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.caja-frontal::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    right: 10%;
+    bottom: 10%;
+    border: 2px dashed rgba(255,255,255,0.3);
+    border-radius: 4px;
+}
+
+.productos-dentro {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    width: 100%;
+    height: 100%;
+    padding: 8px;
+    overflow: auto; /* Permite scroll vertical y horizontal */
+    max-height: 180px; /* Altura máxima antes de scroll */
+}
+
+.productos-dentro::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.productos-dentro::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+    border-radius: 3px;
+}
+
+.productos-dentro::-webkit-scrollbar-thumb {
+    background: #28a745;
+    border-radius: 3px;
+}
+
+.productos-dentro::-webkit-scrollbar-thumb:hover {
+    background: #1e7e34;
+}
+
+.producto-item-mini {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    border-radius: 3px;
+    border: 1px solid #FF8C00;
+    animation: itemBounce 0.4s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    padding: 4px;
+    min-height: 25px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transition: all 0.2s;
+}
+
+.producto-item-mini:hover {
+    transform: scale(1.1);
+    z-index: 10;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+}
+
+@keyframes itemBounce {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(-180deg);
+    }
+    60% {
+        transform: scale(1.1) rotate(5deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+.caja-etiqueta {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #28a745;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Resultado del cálculo */
+.calculo-resultado {
+    text-align: center;
+}
+
+.resultado-numero {
+    margin-bottom: 5px;
+}
+
+/* Mini animación de cajas */
+.mini-animacion-cajas {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    min-height: 120px;
+    gap: 8px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.mini-caja {
+    font-size: 2rem;
+    animation: cajaBounce 0.5s ease;
+    transition: transform 0.2s;
+}
+
+.mini-caja:hover {
+    transform: scale(1.2) rotate(5deg);
+}
+
+@keyframes cajaBounce {
+    0% {
+        opacity: 0;
+        transform: scale(0) translateY(30px) rotate(-180deg);
+    }
+    50% {
+        transform: scale(1.15) translateY(-10px) rotate(5deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0) rotate(0deg);
+    }
+}
+
+.mini-caja-mas {
+    font-size: 1rem;
+    background: #28a745;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .empaque-icono {
+        font-size: 2.5rem;
+    }
+    
+    .mini-caja {
+        font-size: 1.5rem;
+    }
+    
+    .resultado-numero .display-4 {
+        font-size: 2.5rem;
+    }
+}
+</style>
+@endsection
+
 @section('js')
 <script>
+console.log('✅ Script de crear envío cargado correctamente');
+
 // Productos hardcodeados por categoría (solo nombres)
 const productosVerduras = [
     'Tomate',
@@ -169,18 +442,26 @@ const productosFrutas = [
 
 let contadorProductos = 0;
 
-// Ya no necesitamos esta función porque la categoría va por producto
-
 function agregarProducto() {
-    const container = document.getElementById('productos-container');
-    const index = contadorProductos++;
-    
-    // Limpiar mensaje si es el primer producto
-    if (index === 0) {
-        container.innerHTML = '';
-    }
-    
-    const html = `
+    try {
+        console.log('🔵 agregarProducto() llamada. Contador actual:', contadorProductos);
+        
+        const container = document.getElementById('productos-container');
+        if (!container) {
+            console.error('❌ No se encontró el contenedor productos-container');
+            alert('Error: No se encontró el contenedor de productos');
+            return;
+        }
+        
+        const index = contadorProductos++;
+        console.log('📦 Creando producto #' + (index + 1));
+        
+        // Limpiar mensaje si es el primer producto
+        if (index === 0) {
+            container.innerHTML = '';
+        }
+        
+        const html = `
         <div class="card mb-3 producto-item border-primary" id="producto-${index}">
             <div class="card-header bg-light">
                 <strong>Producto #${index + 1}</strong>
@@ -248,12 +529,130 @@ function agregarProducto() {
                     <div class="col-12 col-md-6 mb-3">
                         <div class="form-group">
                             <label>Tipo de Empaque</label>
-                            <select name="productos[${index}][tipo_empaque_id]" class="form-control">
+                            <select name="productos[${index}][tipo_empaque_id]" 
+                                    class="form-control tipo-empaque-select" 
+                                    data-index="${index}"
+                                    onchange="calcularEmpaqueProducto(${index})">
                                 <option value="">Seleccione...</option>
                                 @foreach($tiposEmpaque as $te)
-                                    <option value="{{ $te->id }}">{{ $te->nombre }}</option>
+                                    <option value="{{ $te->id }}"
+                                            data-largo="{{ $te->largo_cm ?? 0 }}"
+                                            data-ancho="{{ $te->ancho_cm ?? 0 }}"
+                                            data-alto="{{ $te->alto_cm ?? 0 }}"
+                                            data-peso="{{ $te->peso_maximo_kg ?? 0 }}"
+                                            data-icono="{{ $te->icono ?? '📦' }}">
+                                        {{ $te->icono ?? '📦' }} {{ $te->nombre }}
+                                    </option>
                                 @endforeach
                             </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- MEDIDAS OPCIONALES DEL PRODUCTO (para cálculo más preciso) -->
+                <div class="row">
+                    <div class="col-12 mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleMedidasProducto(${index})">
+                            <i class="fas fa-ruler-combined"></i> Medidas del Producto (Opcional)
+                        </button>
+                    </div>
+                </div>
+                <div class="row medidas-producto-opcional d-none" id="medidas-producto-${index}">
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group">
+                            <label><small>Alto del Producto (cm)</small></label>
+                            <input type="number" name="productos[${index}][alto_producto_cm]" 
+                                   class="form-control form-control-sm" step="0.1" min="0" placeholder="Ej: 5.5">
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group">
+                            <label><small>Ancho del Producto (cm)</small></label>
+                            <input type="number" name="productos[${index}][ancho_producto_cm]" 
+                                   class="form-control form-control-sm" step="0.1" min="0" placeholder="Ej: 7.2">
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-group">
+                            <label><small>Largo del Producto (cm)</small></label>
+                            <input type="number" name="productos[${index}][largo_producto_cm]" 
+                                   class="form-control form-control-sm" step="0.1" min="0" placeholder="Ej: 10.0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="col-12 mb-3">
+                    <div id="empaque-visual-${index}" class="empaque-visual-container d-none">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white py-2">
+                                <h6 class="mb-0"><i class="fas fa-calculator"></i> Cálculo de Empaque en Tiempo Real</h6>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="row">
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="empaque-info">
+                                            <div class="empaque-icono" id="empaque-icono-${index}">📦</div>
+                                            <div class="empaque-specs">
+                                                <div class="medida-detalle">
+                                                    <i class="fas fa-arrows-alt-h text-primary"></i>
+                                                    <strong>Largo:</strong> <span id="empaque-largo-${index}">0</span> cm
+                                                </div>
+                                                <div class="medida-detalle">
+                                                    <i class="fas fa-arrows-alt-v text-info"></i>
+                                                    <strong>Ancho:</strong> <span id="empaque-ancho-${index}">0</span> cm
+                                                </div>
+                                                <div class="medida-detalle">
+                                                    <i class="fas fa-arrow-up text-warning"></i>
+                                                    <strong>Alto:</strong> <span id="empaque-alto-${index}">0</span> cm
+                                                </div>
+                                                <hr class="my-2">
+                                                <div class="medida-detalle">
+                                                    <i class="fas fa-weight-hanging text-success"></i>
+                                                    <strong>Capacidad:</strong> <span id="empaque-capacidad-${index}">0</span> kg
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="text-center mb-2">
+                                            <small class="text-muted"><strong>Vista de Caja Llena:</strong></small>
+                                        </div>
+                                        <div class="caja-3d-container">
+                                            <div class="caja-3d" id="caja-3d-${index}">
+                                                <div class="caja-frontal">
+                                                    <div class="productos-dentro" id="productos-dentro-${index}">
+                                                    </div>
+                                                </div>
+                                                <div class="caja-etiqueta" id="caja-etiqueta-${index}">0 items</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="calculo-resultado">
+                                            <div class="resultado-numero">
+                                                <span class="display-4 text-success font-weight-bold" id="empaques-necesarios-${index}">0</span>
+                                            </div>
+                                            <small class="text-muted">Empaques Necesarios</small>
+                                            <hr class="my-2">
+                                            <small class="d-block"><strong>Distribución:</strong></small>
+                                            <small class="d-block" id="items-por-empaque-${index}">0 items</small>
+                                            <small class="d-block" id="peso-por-empaque-${index}">0 kg</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="text-center mb-2">
+                                            <small class="text-muted"><strong>Todos los Empaques:</strong></small>
+                                        </div>
+                                        <div class="mini-animacion-cajas" id="mini-animacion-${index}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -261,7 +660,12 @@ function agregarProducto() {
         </div>
     `;
     
-    container.insertAdjacentHTML('beforeend', html);
+        container.insertAdjacentHTML('beforeend', html);
+        console.log('✅ Producto #' + (index + 1) + ' agregado exitosamente');
+    } catch (error) {
+        console.error('❌ Error en agregarProducto():', error);
+        alert('Error al agregar producto: ' + error.message);
+    }
 }
 
 function cargarProductosCategoria(index) {
@@ -367,5 +771,220 @@ document.getElementById('formEnvio').addEventListener('submit', function(e) {
         return false;
     }
 });
+
+// ==========================================
+// CALCULADOR DE EMPAQUES CON ANIMACIÓN
+// ==========================================
+
+/**
+ * Calcular empaques necesarios para un producto en tiempo real
+ */
+function calcularEmpaqueProducto(index) {
+    const empaqueSelect = document.querySelector(`.tipo-empaque-select[data-index="${index}"]`);
+    const cantidadInput = document.querySelector(`#producto-${index} .cantidad-input`);
+    const pesoInput = document.querySelector(`#producto-${index} .peso-input`);
+    
+    const cantidad = parseFloat(cantidadInput?.value || 0);
+    const pesoUnitario = parseFloat(pesoInput?.value || 0);
+    
+    const visualContainer = document.getElementById(`empaque-visual-${index}`);
+    
+    // Validar que todos los datos estén presentes
+    if (!empaqueSelect || !empaqueSelect.value || cantidad <= 0 || pesoUnitario <= 0) {
+        if (visualContainer) {
+            visualContainer.classList.add('d-none');
+        }
+        return;
+    }
+    
+    const selectedOption = empaqueSelect.options[empaqueSelect.selectedIndex];
+    const largo = parseFloat(selectedOption.dataset.largo) || 0;
+    const ancho = parseFloat(selectedOption.dataset.ancho) || 0;
+    const alto = parseFloat(selectedOption.dataset.alto) || 0;
+    const pesoMax = parseFloat(selectedOption.dataset.peso) || 1;
+    const icono = selectedOption.dataset.icono || '📦';
+    
+    // Mostrar info del empaque con medidas detalladas
+    const iconoEl = document.getElementById(`empaque-icono-${index}`);
+    const largoEl = document.getElementById(`empaque-largo-${index}`);
+    const anchoEl = document.getElementById(`empaque-ancho-${index}`);
+    const altoEl = document.getElementById(`empaque-alto-${index}`);
+    const capacidadEl = document.getElementById(`empaque-capacidad-${index}`);
+    
+    if (iconoEl) iconoEl.textContent = icono;
+    if (largoEl) largoEl.textContent = largo;
+    if (anchoEl) anchoEl.textContent = ancho;
+    if (altoEl) altoEl.textContent = alto;
+    if (capacidadEl) capacidadEl.textContent = pesoMax;
+    
+    // Calcular empaques necesarios
+    const pesoTotal = cantidad * pesoUnitario;
+    const empaquesPorPeso = Math.ceil(pesoTotal / pesoMax);
+    
+    // Calcular por cantidad (asumiendo capacidad promedio de 10-20 items según tamaño)
+    const capacidadItems = Math.max(Math.floor(pesoMax * 2), 10); // Heurística simple
+    const empaquesPorCantidad = Math.ceil(cantidad / capacidadItems);
+    
+    // Tomar el mayor para garantizar que todo cabe
+    const empaquesNecesarios = Math.max(empaquesPorPeso, empaquesPorCantidad, 1);
+    
+    // Calcular distribución
+    const itemsPorEmpaque = Math.ceil(cantidad / empaquesNecesarios);
+    const pesoPorEmpaque = (pesoTotal / empaquesNecesarios).toFixed(2);
+    
+    // Mostrar resultados
+    const necesariosEl = document.getElementById(`empaques-necesarios-${index}`);
+    const itemsEl = document.getElementById(`items-por-empaque-${index}`);
+    const pesoEl = document.getElementById(`peso-por-empaque-${index}`);
+    const etiquetaEl = document.getElementById(`caja-etiqueta-${index}`);
+    
+    if (necesariosEl) necesariosEl.textContent = empaquesNecesarios;
+    if (itemsEl) itemsEl.textContent = `${itemsPorEmpaque} items por empaque`;
+    if (pesoEl) pesoEl.textContent = `${pesoPorEmpaque} kg por empaque`;
+    if (etiquetaEl) etiquetaEl.textContent = `${itemsPorEmpaque} items`;
+    
+    // Llenar caja 3D con productos
+    llenarCaja3D(index, itemsPorEmpaque);
+    
+    // Animar cajas
+    animarMiniCajas(index, empaquesNecesarios, icono);
+    
+    // Mostrar el contenedor con animación
+    if (visualContainer) {
+        visualContainer.classList.remove('d-none');
+    }
+}
+
+/**
+ * Llenar la caja 3D con productos visuales - TODOS los items
+ */
+function llenarCaja3D(index, itemsPorEmpaque) {
+    const contenedorProductos = document.getElementById(`productos-dentro-${index}`);
+    if (!contenedorProductos) return;
+    
+    contenedorProductos.innerHTML = '';
+    
+    // Determinar el grid óptimo según cantidad de items
+    let columns, fontSize, padding, minHeight;
+    
+    if (itemsPorEmpaque <= 9) {
+        columns = 3;
+        fontSize = '1rem';
+        padding = '5px';
+        minHeight = '28px';
+    } else if (itemsPorEmpaque <= 16) {
+        columns = 4;
+        fontSize = '0.85rem';
+        padding = '4px';
+        minHeight = '24px';
+    } else if (itemsPorEmpaque <= 25) {
+        columns = 5;
+        fontSize = '0.75rem';
+        padding = '3px';
+        minHeight = '22px';
+    } else if (itemsPorEmpaque <= 36) {
+        columns = 6;
+        fontSize = '0.7rem';
+        padding = '2px';
+        minHeight = '20px';
+    } else if (itemsPorEmpaque <= 49) {
+        columns = 7;
+        fontSize = '0.65rem';
+        padding = '2px';
+        minHeight = '18px';
+    } else {
+        columns = 8;
+        fontSize = '0.6rem';
+        padding = '2px';
+        minHeight = '16px';
+    }
+    
+    // Actualizar grid y estilos
+    contenedorProductos.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+    
+    const emojis = ['🥕', '🥔', '🍎', '🍊', '🥬', '🌽', '🍌', '🍇', '🍓', '🍒'];
+    
+    // Agregar TODOS los items con animación
+    for (let i = 0; i < itemsPorEmpaque; i++) {
+        setTimeout(() => {
+            const item = document.createElement('div');
+            item.className = 'producto-item-mini';
+            item.style.fontSize = fontSize;
+            item.style.padding = padding;
+            item.style.minHeight = minHeight;
+            
+            item.textContent = emojis[i % emojis.length];
+            item.title = `Item ${i + 1} de ${itemsPorEmpaque}`;
+            
+            contenedorProductos.appendChild(item);
+        }, i * 40); // 40ms entre cada item (más rápido)
+    }
+}
+
+/**
+ * Animar las mini cajas con efecto bounce
+ */
+function animarMiniCajas(index, cantidad, icono) {
+    const contenedor = document.getElementById(`mini-animacion-${index}`);
+    if (!contenedor) return;
+    
+    contenedor.innerHTML = '';
+    
+    const maxCajasVisible = 12; // Máximo 12 cajas visibles en la animación
+    const cantidadAMostrar = Math.min(cantidad, maxCajasVisible);
+    
+    // Animar cada caja con delay
+    for (let i = 0; i < cantidadAMostrar; i++) {
+        setTimeout(() => {
+            const caja = document.createElement('div');
+            caja.className = 'mini-caja';
+            caja.textContent = icono;
+            caja.title = `Empaque ${i + 1}`;
+            contenedor.appendChild(caja);
+        }, i * 100); // 100ms entre cada caja
+    }
+    
+    // Si hay más de 12, mostrar indicador "+X"
+    if (cantidad > maxCajasVisible) {
+        setTimeout(() => {
+            const mas = document.createElement('div');
+            mas.className = 'mini-caja mini-caja-mas';
+            mas.textContent = `+${cantidad - maxCajasVisible}`;
+            mas.title = `${cantidad - maxCajasVisible} empaques más`;
+            contenedor.appendChild(mas);
+        }, cantidadAMostrar * 100 + 200);
+    }
+}
+
+/**
+ * Recalcular empaques cuando cambia cantidad o peso
+ */
+document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('cantidad-input') || 
+        e.target.classList.contains('peso-input')) {
+        const productoCard = e.target.closest('.producto-item');
+        if (productoCard) {
+            const index = productoCard.id.replace('producto-', '');
+            const empaqueSelect = document.querySelector(`.tipo-empaque-select[data-index="${index}"]`);
+            
+            // Solo recalcular si ya hay un empaque seleccionado
+            if (empaqueSelect && empaqueSelect.value) {
+                calcularEmpaqueProducto(index);
+            }
+        }
+    }
+});
+
+/**
+ * Toggle medidas opcionales del producto
+ */
+function toggleMedidasProducto(index) {
+    const medidasDiv = document.getElementById(`medidas-producto-${index}`);
+    if (medidasDiv) {
+        medidasDiv.classList.toggle('d-none');
+    }
+}
+
+console.log('✅ Calculador de empaques con animación cargado correctamente');
 </script>
 @endsection

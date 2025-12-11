@@ -720,6 +720,43 @@ function verEnMapa(id, codigo, lat, lng) {
     envioSeleccionado = id;
     const destino = [lat, lng];
     
+    // LIMPIAR TODAS LAS RUTAS Y MARCADORES EXCEPTO EL SELECCIONADO
+    Object.keys(marcadores).forEach(envioId => {
+        if (envioId != id) {
+            // Eliminar del mapa todos los marcadores y rutas de otros envíos
+            if (marcadores[envioId].vehiculo) {
+                map.removeLayer(marcadores[envioId].vehiculo);
+            }
+            if (marcadores[envioId].destino) {
+                map.removeLayer(marcadores[envioId].destino);
+            }
+            if (marcadores[envioId].ruta) {
+                map.removeLayer(marcadores[envioId].ruta);
+            }
+            if (marcadores[envioId].rutaRecorrida) {
+                map.removeLayer(marcadores[envioId].rutaRecorrida);
+            }
+            // Ocultar del mapa (pero mantener en memoria para poder mostrarlo después si se selecciona)
+            // No eliminamos del objeto marcadores para mantener la referencia
+        }
+    });
+    
+    // Asegurar que el envío seleccionado esté visible en el mapa
+    if (marcadores[id]) {
+        if (marcadores[id].vehiculo && !map.hasLayer(marcadores[id].vehiculo)) {
+            marcadores[id].vehiculo.addTo(map);
+        }
+        if (marcadores[id].destino && !map.hasLayer(marcadores[id].destino)) {
+            marcadores[id].destino.addTo(map);
+        }
+        if (marcadores[id].ruta && !map.hasLayer(marcadores[id].ruta)) {
+            marcadores[id].ruta.addTo(map);
+        }
+        if (marcadores[id].rutaRecorrida && !map.hasLayer(marcadores[id].rutaRecorrida)) {
+            marcadores[id].rutaRecorrida.addTo(map);
+        }
+    }
+    
     // Centrar mapa en el camión si existe
     if (marcadores[id] && marcadores[id].vehiculo) {
         const pos = marcadores[id].vehiculo.getLatLng();

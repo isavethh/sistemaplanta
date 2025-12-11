@@ -166,7 +166,7 @@
                                     <a href="{{ route('rutas.index') }}" class="btn btn-sm btn-outline-success">
                                         <i class="fas fa-route"></i> Rutas
                                     </a>
-                                    <a href="{{ route('notas-venta.index') }}" class="btn btn-sm btn-outline-success">
+                                    <a href="{{ route('notas-entrega.index') }}" class="btn btn-sm btn-outline-success">
                                         <i class="fas fa-file-invoice-dollar"></i> Notas de Venta
                                     </a>
                                     <a href="{{ route('codigosqr.index') }}" class="btn btn-sm btn-outline-success">
@@ -229,11 +229,6 @@
                     <div class="col-md-2 col-sm-4 col-6 mb-2">
                         <a href="{{ route('almacenes.index') }}" class="btn btn-outline-secondary btn-block">
                             <i class="fas fa-warehouse"></i><br>Almacenes
-                        </a>
-                    </div>
-                    <div class="col-md-2 col-sm-4 col-6 mb-2">
-                        <a href="{{ route('direcciones.index') }}" class="btn btn-outline-secondary btn-block">
-                            <i class="fas fa-map-marker-alt"></i><br>Direcciones
                         </a>
                     </div>
                     <div class="col-md-2 col-sm-4 col-6 mb-2">

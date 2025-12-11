@@ -44,11 +44,18 @@ class CrearUsuariosPorRolSeeder extends Seeder
             $admin->syncRoles(['administrador']);
         }
         
-        // 3. Usuarios TRANSPORTISTA (3)
+        // 3. Usuarios TRANSPORTISTA (10)
         $transportistas = [
-            ['name' => 'Carlos Transportista', 'email' => 'carlos@sistema.com'],
-            ['name' => 'Luis Conductor', 'email' => 'luis@sistema.com'],
-            ['name' => 'Pedro Chofer', 'email' => 'pedro@sistema.com'],
+            ['name' => 'Carlos Mamani', 'email' => 'carlos@sistema.com', 'licencia' => 'A'],
+            ['name' => 'Luis Quispe', 'email' => 'luis@sistema.com', 'licencia' => 'B'],
+            ['name' => 'Pedro Condori', 'email' => 'pedro@sistema.com', 'licencia' => 'A'],
+            ['name' => 'Juan Apaza', 'email' => 'juan@sistema.com', 'licencia' => 'C'],
+            ['name' => 'Miguel Flores', 'email' => 'miguel@sistema.com', 'licencia' => 'B'],
+            ['name' => 'Roberto Castro', 'email' => 'roberto@sistema.com', 'licencia' => 'A'],
+            ['name' => 'Javier Rojas', 'email' => 'javier@sistema.com', 'licencia' => 'C'],
+            ['name' => 'Diego Mendez', 'email' => 'diego@sistema.com', 'licencia' => 'B'],
+            ['name' => 'Fernando Lima', 'email' => 'fernando@sistema.com', 'licencia' => 'A'],
+            ['name' => 'Oscar Vargas', 'email' => 'oscar@sistema.com', 'licencia' => 'C'],
         ];
         
         foreach ($transportistas as $transportistaData) {
@@ -59,6 +66,9 @@ class CrearUsuariosPorRolSeeder extends Seeder
                     'password' => Hash::make('trans123'),
                     'tipo' => 'transportista',
                     'role' => 'transportista',
+                    'licencia' => $transportistaData['licencia'] ?? 'B',
+                    'telefono' => '7' . rand(1000000, 9999999),
+                    'disponible' => true,
                 ]
             );
             $transportista->syncRoles(['transportista']);
@@ -86,7 +96,12 @@ class CrearUsuariosPorRolSeeder extends Seeder
         $this->command->info('✅ Usuarios creados exitosamente:');
         $this->command->info('   🌱 1 Planta: planta@sistema.com (pass: planta123)');
         $this->command->info('   👨‍💼 2 Administradores: mario@sistema.com, ana@sistema.com (pass: admin123)');
-        $this->command->info('   🚚 3 Transportistas: carlos@sistema.com, luis@sistema.com, pedro@sistema.com (pass: trans123)');
+        $this->command->info('   🚚 10 Transportistas: carlos@sistema.com, luis@sistema.com, pedro@sistema.com, etc. (pass: trans123)');
         $this->command->info('   📦 2 Almacenes: jorge@sistema.com, rosa@sistema.com (pass: almacen123)');
+        $this->command->info('');
+        $this->command->info('📋 Licencias de Transportistas:');
+        $this->command->info('   Lic A: Carlos, Pedro, Roberto, Fernando');
+        $this->command->info('   Lic B: Luis, Miguel, Diego');
+        $this->command->info('   Lic C: Juan, Javier, Oscar');
     }
 }

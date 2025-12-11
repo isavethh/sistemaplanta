@@ -10,6 +10,7 @@ use App\Models\CodigoQR;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class EnvioApiController extends Controller
@@ -26,14 +27,48 @@ class EnvioApiController extends Controller
      */
     public function index()
     {
-        $envios = Envio::with(['almacenDestino', 'productos.producto', 'asignacion'])
-            ->orderBy('fecha_creacion', 'desc')
-            ->get();
+        try {
+            $envios = Envio::with(['almacenDestino', 'productos', 'asignacion'])
+                ->orderBy('fecha_creacion', 'desc')
+                ->get()
+                ->map(function($envio) {
+                    // Agregar flag para identificar si es asignación múltiple
+                    // Un envío es parte de asignación múltiple si tiene la misma fecha_asignacion
+                    // y el mismo transportista/vehiculo que otros envíos
+                    $asignacion = $envio->asignacion;
+                    if ($asignacion) {
+                        $mismoDia = EnvioAsignacion::whereHas('vehiculo', function($q) use ($asignacion) {
+                                $vehiculoTransportistaId = $asignacion->vehiculo ? $asignacion->vehiculo->transportista_id : null;
+                                if ($vehiculoTransportistaId) {
+                                    $q->where('transportista_id', $vehiculoTransportistaId);
+                                }
+                            })
+                            ->where('vehiculo_id', $asignacion->vehiculo_id)
+                            ->whereDate('fecha_asignacion', $asignacion->fecha_asignacion)
+                            ->where('id', '!=', $asignacion->id)
+                            ->exists();
+                        
+                        $envio->es_asignacion_multiple = $mismoDia;
+                        $envio->tipo_asignacion = $mismoDia ? 'multiple' : 'normal';
+                    } else {
+                        $envio->es_asignacion_multiple = false;
+                        $envio->tipo_asignacion = 'normal';
+                    }
+                    
+                    return $envio;
+                });
 
-        return response()->json([
-            'success' => true,
-            'data' => $envios
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => $envios
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("❌ Error en EnvioApiController::index: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener envíos: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

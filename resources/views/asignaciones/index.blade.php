@@ -36,6 +36,9 @@
     <div class="card-header bg-gradient-warning">
         <h3 class="card-title text-white"><i class="fas fa-hourglass-half"></i> Envíos Pendientes de Asignación</h3>
         <div class="card-tools">
+            <button type="button" class="btn btn-success btn-sm mr-2" id="btnAsignarMultiple" disabled>
+                <i class="fas fa-users"></i> Asignar Seleccionados (<span id="countSeleccionados">0</span>)
+            </button>
             <button type="button" class="btn btn-tool text-white" data-card-widget="collapse">
                 <i class="fas fa-minus"></i>
             </button>
@@ -52,6 +55,9 @@
                 <table id="pendientesTable" class="table table-striped table-bordered table-hover">
                     <thead class="thead-dark">
                         <tr>
+                            <th width="30px">
+                                <input type="checkbox" id="selectAll" title="Seleccionar todos">
+                            </th>
                             <th>Código</th>
                             <th>Almacén Destino</th>
                             <th>Fecha Estimada</th>
@@ -63,6 +69,9 @@
                     <tbody>
                         @foreach($enviosPendientes as $envio)
                         <tr>
+                            <td class="text-center">
+                                <input type="checkbox" class="checkbox-envio" value="{{ $envio->id }}" data-codigo="{{ $envio->codigo }}">
+                            </td>
                             <td><strong class="text-primary">{{ $envio->codigo }}</strong></td>
                             <td>
                                 <i class="fas fa-warehouse text-success"></i> 
@@ -347,6 +356,158 @@
     </div>
 </div>
 
+<!-- MODAL DE ASIGNACIÓN MÚLTIPLE -->
+<div class="modal fade" id="modalAsignarMultiple" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-users"></i> 
+                    Asignar Múltiples Envíos (<span id="modal-multiple-count">0</span> seleccionados)
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form action="{{ route('asignaciones.asignar-multiple') }}" method="POST" id="formAsignarMultiple">
+                @csrf
+                <div id="envios-ids-container"></div>
+                
+                <div class="modal-body">
+                    <!-- Lista de envíos seleccionados -->
+                    <div class="alert alert-info">
+                        <strong>Envíos seleccionados:</strong>
+                        <div id="modal-multiple-list" class="mt-2"></div>
+                    </div>
+
+                    <!-- Selección de Transportista -->
+                    <div class="form-group">
+                        <label for="modal-multiple-transportista">
+                            <i class="fas fa-user"></i> Transportista <span class="text-danger">*</span>
+                        </label>
+                        <select name="transportista_id" id="modal-multiple-transportista" class="form-control" required>
+                            <option value="">Seleccione un transportista</option>
+                            @foreach($transportistas as $transportista)
+                                <option value="{{ $transportista->id }}">
+                                    {{ $transportista->name }}
+                                    @if($transportista->licencia)
+                                        - Lic: {{ $transportista->licencia }}
+                                    @endif
+                                    @if($transportista->telefono)
+                                        - Tel: {{ $transportista->telefono }}
+                                    @endif
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Selección de Vehículo -->
+                    <div class="form-group">
+                        <label for="modal-multiple-vehiculo">
+                            <i class="fas fa-truck"></i> Vehículo <span class="text-danger">*</span>
+                        </label>
+                        <select name="vehiculo_id" id="modal-multiple-vehiculo" class="form-control" required onchange="mostrarAnimacionCamion()">
+                            <option value="">Seleccione un vehículo</option>
+                            @foreach($vehiculos as $vehiculo)
+                                <option value="{{ $vehiculo->id }}" 
+                                        data-capacidad="{{ $vehiculo->capacidad_carga ?? 1000 }}"
+                                        data-tipo="{{ $vehiculo->tipoTransporte->nombre ?? 'Camión' }}"
+                                        data-placa="{{ $vehiculo->placa }}">
+                                    {{ $vehiculo->placa }} - {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
+                                    @if($vehiculo->tipoTransporte)
+                                        ({{ $vehiculo->tipoTransporte->nombre }})
+                                    @endif
+                                    - Capacidad: {{ number_format($vehiculo->capacidad_carga ?? 1000) }} kg
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- ANIMACIÓN DE CAMIÓN LLENÁNDOSE -->
+                    <div id="animacion-camion-container" class="mt-3 mb-3" style="display: none;">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white py-2">
+                                <h6 class="mb-0"><i class="fas fa-truck-loading"></i> Visualización de Carga del Vehículo</h6>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <!-- Camión animado -->
+                                        <div class="camion-wrapper">
+                                            <div class="camion-container">
+                                                <div class="camion-cabina">
+                                                    <i class="fas fa-truck fa-3x text-primary"></i>
+                                                </div>
+                                                <div class="camion-caja">
+                                                    <div class="camion-carga" id="camion-carga-progress">
+                                                        <div class="carga-items" id="carga-items-container"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <!-- Información de carga -->
+                                        <div class="info-carga">
+                                            <h5 class="text-center mb-3">
+                                                <i class="fas fa-info-circle"></i> Información de Carga
+                                            </h5>
+                                            <table class="table table-sm table-bordered">
+                                                <tr>
+                                                    <td><strong>Vehículo:</strong></td>
+                                                    <td id="info-vehiculo">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Capacidad:</strong></td>
+                                                    <td id="info-capacidad">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Peso Total:</strong></td>
+                                                    <td id="info-peso-total" class="text-primary font-weight-bold">0 kg</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Utilización:</strong></td>
+                                                    <td>
+                                                        <div class="progress" style="height: 25px;">
+                                                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                                 id="progress-bar-utilizacion" 
+                                                                 role="progressbar" 
+                                                                 style="width: 0%">
+                                                                <span id="progress-text">0%</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <div class="alert alert-info alert-sm mb-0">
+                                                <small><i class="fas fa-boxes"></i> <strong id="info-num-envios">0</strong> envío(s) seleccionado(s)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Nota:</strong> Todos los envíos seleccionados serán asignados al mismo transportista y vehículo.
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Asignar Todos
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('js')
@@ -406,7 +567,163 @@
         $('#modalAsignar').on('hidden.bs.modal', function () {
             $('#formAsignar')[0].reset();
         });
+
+        // ============================================
+        // ASIGNACIÓN MÚLTIPLE
+        // ============================================
+        
+        // Seleccionar/Deseleccionar todos
+        $('#selectAll').on('change', function() {
+            $('.checkbox-envio').prop('checked', $(this).is(':checked'));
+            actualizarContador();
+        });
+
+        // Actualizar contador cuando se selecciona individual
+        $(document).on('change', '.checkbox-envio', function() {
+            actualizarContador();
+            
+            // Si se deselecciona uno, desmarcar "Seleccionar todos"
+            if (!$(this).is(':checked')) {
+                $('#selectAll').prop('checked', false);
+            }
+            
+            // Si todos están seleccionados, marcar "Seleccionar todos"
+            if ($('.checkbox-envio:checked').length === $('.checkbox-envio').length) {
+                $('#selectAll').prop('checked', true);
+            }
+        });
+
+        function actualizarContador() {
+            var count = $('.checkbox-envio:checked').length;
+            $('#countSeleccionados').text(count);
+            
+            if (count > 0) {
+                $('#btnAsignarMultiple').prop('disabled', false);
+            } else {
+                $('#btnAsignarMultiple').prop('disabled', true);
+            }
+        }
+
+        // Abrir modal de asignación múltiple
+        $('#btnAsignarMultiple').on('click', function() {
+            var seleccionados = [];
+            var listHtml = '';
+            
+            $('.checkbox-envio:checked').each(function() {
+                var id = $(this).val();
+                var codigo = $(this).data('codigo');
+                seleccionados.push({id: id, codigo: codigo});
+                listHtml += '<span class="badge badge-primary mr-1 mb-1">' + codigo + '</span>';
+            });
+
+            if (seleccionados.length === 0) {
+                alert('Debe seleccionar al menos un envío');
+                return;
+            }
+
+            // Limpiar contenedor de IDs
+            $('#envios-ids-container').html('');
+            
+            // Agregar inputs hidden con los IDs
+            seleccionados.forEach(function(envio) {
+                $('#envios-ids-container').append(
+                    '<input type="hidden" name="envios_ids[]" value="' + envio.id + '">'
+                );
+            });
+
+            // Actualizar modal
+            $('#modal-multiple-count').text(seleccionados.length);
+            $('#modal-multiple-list').html(listHtml);
+            
+            // Resetear selects
+            $('#modal-multiple-transportista').val('');
+            $('#modal-multiple-vehiculo').val('');
+            
+            // Abrir modal
+            $('#modalAsignarMultiple').modal('show');
+        });
+
+        // Limpiar formulario de asignación múltiple al cerrar
+        $('#modalAsignarMultiple').on('hidden.bs.modal', function () {
+            $('#formAsignarMultiple')[0].reset();
+            $('#envios-ids-container').html('');
+            $('#animacion-camion-container').hide();
+        });
     });
+
+    // ============================================
+    // ANIMACIÓN DEL CAMIÓN LLENÁNDOSE
+    // ============================================
+    function mostrarAnimacionCamion() {
+        const selectVehiculo = document.getElementById('modal-multiple-vehiculo');
+        const option = selectVehiculo.options[selectVehiculo.selectedIndex];
+        
+        if (!option.value) {
+            $('#animacion-camion-container').hide();
+            return;
+        }
+        
+        const capacidad = parseFloat(option.dataset.capacidad) || 1000;
+        const tipo = option.dataset.tipo || 'Camión';
+        const placa = option.dataset.placa || '';
+        
+        // Calcular peso total de envíos seleccionados
+        let pesoTotal = 0;
+        let numEnvios = 0;
+        
+        $('.checkbox-envio:checked').each(function() {
+            const row = $(this).closest('tr');
+            const pesoText = row.find('td').eq(4).text(); // Columna de Total
+            const peso = parseFloat(pesoText.match(/[\d.]+/)) || 0;
+            pesoTotal += peso;
+            numEnvios++;
+        });
+        
+        // Calcular porcentaje de utilización
+        const porcentaje = Math.min((pesoTotal / capacidad) * 100, 100);
+        
+        // Actualizar información
+        $('#info-vehiculo').text(placa + ' (' + tipo + ')');
+        $('#info-capacidad').text(capacidad.toFixed(0) + ' kg');
+        $('#info-peso-total').text(pesoTotal.toFixed(2) + ' kg');
+        $('#info-num-envios').text(numEnvios);
+        
+        // Actualizar progress bar
+        const progressBar = $('#progress-bar-utilizacion');
+        progressBar.css('width', porcentaje + '%');
+        $('#progress-text').text(porcentaje.toFixed(1) + '%');
+        
+        // Cambiar color según porcentaje
+        progressBar.removeClass('bg-success bg-warning bg-danger');
+        if (porcentaje < 60) {
+            progressBar.addClass('bg-success');
+        } else if (porcentaje < 90) {
+            progressBar.addClass('bg-warning');
+        } else {
+            progressBar.addClass('bg-danger');
+        }
+        
+        // Animar el nivel de carga del camión
+        const cargaProgress = $('#camion-carga-progress');
+        cargaProgress.css('width', porcentaje + '%');
+        
+        // Agregar items visuales (cajas)
+        const itemsContainer = $('#carga-items-container');
+        itemsContainer.html('');
+        
+        const numItems = Math.min(numEnvios, 20); // Máximo 20 cajas visuales
+        for (let i = 0; i < numItems; i++) {
+            const delay = i * 0.1;
+            itemsContainer.append(`
+                <div class="carga-item" style="animation-delay: ${delay}s">
+                    <i class="fas fa-box"></i>
+                </div>
+            `);
+        }
+        
+        // Mostrar container con animación
+        $('#animacion-camion-container').slideDown(300);
+    }
 </script>
 @endsection
 
@@ -432,6 +749,117 @@
     
     .btn-block {
         white-space: nowrap;
+    }
+    
+    /* ============================================
+       ANIMACIÓN DEL CAMIÓN
+    ============================================ */
+    .camion-wrapper {
+        padding: 20px;
+        background: linear-gradient(to bottom, #e3f2fd 0%, #f5f5f5 100%);
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .camion-wrapper::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: repeating-linear-gradient(
+            90deg,
+            #333 0px,
+            #333 20px,
+            #fff 20px,
+            #fff 40px
+        );
+    }
+    
+    .camion-container {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        min-height: 120px;
+    }
+    
+    .camion-cabina {
+        position: relative;
+        margin-right: -5px;
+        z-index: 2;
+        animation: bounce 2s ease-in-out infinite;
+    }
+    
+    .camion-caja {
+        width: 200px;
+        height: 80px;
+        background: #f5f5f5;
+        border: 3px solid #333;
+        border-radius: 5px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .camion-carga {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 100%;
+        background: linear-gradient(to top, #4CAF50, #81C784);
+        width: 0%;
+        transition: width 1s ease-in-out;
+        border-right: 2px solid #388E3C;
+        overflow: hidden;
+    }
+    
+    .carga-items {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 5px;
+        gap: 3px;
+    }
+    
+    .carga-item {
+        font-size: 12px;
+        color: white;
+        animation: dropIn 0.5s ease-out forwards;
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    
+    @keyframes dropIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes bounce {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+    
+    .info-carga {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .progress {
+        border: 2px solid #dee2e6;
+    }
+    
+    .progress-bar {
+        font-weight: bold;
+        font-size: 14px;
     }
 </style>
 @endsection

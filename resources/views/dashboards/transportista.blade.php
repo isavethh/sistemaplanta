@@ -18,12 +18,25 @@
     </div>
 </div>
 
+@php
+    $transportistaId = auth()->id();
+    // Obtener envíos a través de vehiculos (transportista_id ya no existe en envio_asignaciones)
+    $misEnviosIds = DB::table('envio_asignaciones as ea')
+        ->join('vehiculos as v', 'ea.vehiculo_id', '=', 'v.id')
+        ->where('v.transportista_id', $transportistaId)
+        ->pluck('ea.envio_id');
+    $totalEnvios = DB::table('envios')->whereIn('id', $misEnviosIds)->count();
+    $porRecoger = DB::table('envios')->whereIn('id', $misEnviosIds)->whereIn('estado', ['pendiente', 'asignado'])->count();
+    $enCamino = DB::table('envios')->whereIn('id', $misEnviosIds)->where('estado', 'en_transito')->count();
+    $entregadosHoy = DB::table('envios')->whereIn('id', $misEnviosIds)->where('estado', 'entregado')->whereDate('fecha_entrega', today())->count();
+@endphp
+
 <!-- Estadísticas del Transportista -->
 <div class="row">
     <div class="col-lg-3 col-6">
         <div class="small-box bg-gradient-primary">
             <div class="inner">
-                <h3>{{ \App\Models\Envio::where('transportista_id', auth()->id())->count() }}</h3>
+                <h3>{{ $totalEnvios }}</h3>
                 <p>Envíos Asignados</p>
             </div>
             <div class="icon">
@@ -38,7 +51,7 @@
     <div class="col-lg-3 col-6">
         <div class="small-box bg-gradient-warning">
             <div class="inner">
-                <h3>{{ \App\Models\Envio::where('transportista_id', auth()->id())->where('estado', 'pendiente')->count() }}</h3>
+                <h3>{{ $porRecoger }}</h3>
                 <p>Por Recoger</p>
             </div>
             <div class="icon">
@@ -53,7 +66,7 @@
     <div class="col-lg-3 col-6">
         <div class="small-box bg-gradient-info">
             <div class="inner">
-                <h3>{{ \App\Models\Envio::where('transportista_id', auth()->id())->where('estado', 'en_transito')->count() }}</h3>
+                <h3>{{ $enCamino }}</h3>
                 <p>En Camino</p>
             </div>
             <div class="icon">
@@ -68,7 +81,7 @@
     <div class="col-lg-3 col-6">
         <div class="small-box bg-gradient-success">
             <div class="inner">
-                <h3>{{ \App\Models\Envio::where('transportista_id', auth()->id())->where('estado', 'entregado')->whereDate('updated_at', today())->count() }}</h3>
+                <h3>{{ $entregadosHoy }}</h3>
                 <p>Entregados Hoy</p>
             </div>
             <div class="icon">
@@ -119,7 +132,7 @@
                             <div class="card-body text-center">
                                 <i class="fas fa-file-invoice fa-3x text-white mb-3"></i>
                                 <h5 class="text-white">Documentos</h5>
-                                <a href="{{ route('notas-venta.index') }}" class="btn btn-light btn-block">
+                                <a href="{{ route('notas-entrega.index') }}" class="btn btn-light btn-block">
                                     <i class="fas fa-receipt"></i> Ver Documentos
                                 </a>
                             </div>
@@ -163,11 +176,23 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse(\App\Models\Envio::where('transportista_id', auth()->id())->where('estado', '!=', 'entregado')->latest()->take(10)->get() as $envio)
+                            @php
+                                $enviosPendientes = DB::table('envios as e')
+                                    ->join('envio_asignaciones as ea', 'e.id', '=', 'ea.envio_id')
+                                    ->join('vehiculos as v', 'ea.vehiculo_id', '=', 'v.id')
+                                    ->leftJoin('almacenes as a', 'e.almacen_destino_id', '=', 'a.id')
+                                    ->where('v.transportista_id', auth()->id())
+                                    ->where('e.estado', '!=', 'entregado')
+                                    ->select('e.*', 'a.nombre as almacen_nombre')
+                                    ->orderByDesc('e.created_at')
+                                    ->limit(10)
+                                    ->get();
+                            @endphp
+                            @forelse($enviosPendientes as $envio)
                             <tr>
                                 <td><strong>#{{ $envio->id }}</strong></td>
-                                <td>{{ $envio->created_at->format('d/m/Y H:i') }}</td>
-                                <td>{{ $envio->direccion_destino ?? 'N/A' }}</td>
+                                <td>{{ \Carbon\Carbon::parse($envio->created_at)->format('d/m/Y H:i') }}</td>
+                                <td>{{ $envio->almacen_nombre ?? 'N/A' }}</td>
                                 <td>
                                     @if($envio->estado == 'pendiente')
                                         <span class="badge badge-warning">Por Recoger</span>
@@ -220,11 +245,22 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse(\App\Models\RutaMultiEntrega::where('transportista_id', auth()->id())->latest()->take(5)->get() as $ruta)
+                            @php
+                                try {
+                                    $rutasActivas = DB::table('rutas_multi_entrega')
+                                        ->where('transportista_id', auth()->id())
+                                        ->orderByDesc('created_at')
+                                        ->limit(5)
+                                        ->get();
+                                } catch (\Exception $e) {
+                                    $rutasActivas = collect();
+                                }
+                            @endphp
+                            @forelse($rutasActivas as $ruta)
                             <tr>
-                                <td><strong>{{ $ruta->nombre }}</strong></td>
-                                <td><span class="badge badge-primary">{{ $ruta->envios->count() }}</span></td>
-                                <td>{{ $ruta->created_at->format('d/m/Y') }}</td>
+                                <td><strong>{{ $ruta->nombre ?? 'Ruta #' . $ruta->id }}</strong></td>
+                                <td><span class="badge badge-primary">-</span></td>
+                                <td>{{ \Carbon\Carbon::parse($ruta->created_at)->format('d/m/Y') }}</td>
                                 <td>
                                     <a href="{{ route('rutas-multi.show', $ruta->id) }}" class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i> Ver

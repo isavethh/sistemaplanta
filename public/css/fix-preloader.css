@@ -1,0 +1,42 @@
+/* Fix para eliminar completamente el preloader de AdminLTE */
+.preloader {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    z-index: -9999 !important;
+}
+
+.preloader * {
+    display: none !important;
+}
+
+body.sidebar-collapse .preloader,
+body.sidebar-mini .preloader,
+.wrapper .preloader {
+    display: none !important;
+}
+
+/* Asegurar que el contenido sea siempre visible */
+.content-wrapper,
+.content,
+.main-content {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+body {
+    overflow: visible !important;
+}
+
+/* Eliminar cualquier clase de loading */
+.wrapper.loading,
+body.loading {
+    overflow: visible !important;
+}
+
+.wrapper.loading .content-wrapper {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+

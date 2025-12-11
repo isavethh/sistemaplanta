@@ -19,8 +19,10 @@ class IncidenteController extends Controller
             ->select(
                 'i.*',
                 'e.codigo as envio_codigo',
-                'a.nombre as almacen_nombre'
+                'a.nombre as almacen_nombre',
+                DB::raw('COALESCE(i.solicitar_ayuda, false) as solicitar_ayuda')
             )
+            ->orderBy('i.solicitar_ayuda', 'desc') // Priorizar solicitudes de ayuda
             ->orderBy('i.fecha_reporte', 'desc');
 
         // Filtro por estado
@@ -45,12 +47,20 @@ class IncidenteController extends Controller
 
         $incidentes = $query->paginate(15);
 
+        // Filtro por solicitud de ayuda
+        if ($request->filled('solicitar_ayuda')) {
+            $query->where('i.solicitar_ayuda', true);
+        }
+        
+        $incidentes = $query->paginate(15);
+        
         // Estadísticas
         $estadisticas = [
             'total' => DB::table('incidentes')->count(),
             'pendientes' => DB::table('incidentes')->where('estado', 'pendiente')->count(),
             'en_proceso' => DB::table('incidentes')->where('estado', 'en_proceso')->count(),
             'resueltos' => DB::table('incidentes')->where('estado', 'resuelto')->count(),
+            'solicitan_ayuda' => DB::table('incidentes')->where('solicitar_ayuda', true)->where('estado', '!=', 'resuelto')->count(),
         ];
 
         return view('incidentes.index', compact('incidentes', 'estadisticas'));
@@ -78,7 +88,8 @@ class IncidenteController extends Controller
                 'i.updated_at',
                 'e.codigo as envio_codigo',
                 'a.nombre as almacen_nombre',
-                'a.direccion_completa as almacen_direccion'
+                'a.direccion_completa as almacen_direccion',
+                DB::raw('COALESCE(i.solicitar_ayuda, false) as solicitar_ayuda')
             )
             ->where('i.id', $id)
             ->first();

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150">
+  <defs>
+    <style>
+      .sello-border { fill: none; stroke: #28a745; stroke-width: 4; }
+      .sello-text { fill: #28a745; font-family: Arial, sans-serif; font-weight: bold; text-anchor: middle; }
+      .sello-small { fill: #28a745; font-family: Arial, sans-serif; font-size: 8px; text-anchor: middle; }
+    </style>
+  </defs>
+  
+  <!-- Círculo exterior -->
+  <circle cx="75" cy="75" r="70" class="sello-border" />
+  <circle cx="75" cy="75" r="65" class="sello-border" stroke-width="1" />
+  
+  <!-- Texto circular superior -->
+  <path id="circuloSuperior" d="M 20,75 A 55,55 0 0,1 130,75" fill="none"/>
+  <text class="sello-small">
+    <textPath href="#circuloSuperior" startOffset="50%">
+      SISTEMA DE GESTIÓN LOGÍSTICA
+    </textPath>
+  </text>
+  
+  <!-- Texto circular inferior -->
+  <path id="circuloInferior" d="M 130,75 A 55,55 0 0,1 20,75" fill="none"/>
+  <text class="sello-small">
+    <textPath href="#circuloInferior" startOffset="50%">
+      BOLIVIA · SANTA CRUZ
+    </textPath>
+  </text>
+  
+  <!-- Texto central -->
+  <text x="75" y="60" class="sello-text" font-size="14">PLANTA</text>
+  <text x="75" y="78" class="sello-text" font-size="12">PRINCIPAL</text>
+  <text x="75" y="92" class="sello-small" font-size="7">Autorizado</text>
+  
+  <!-- Estrella decorativa -->
+  <polygon points="75,25 77,32 84,32 78,37 80,44 75,39 70,44 72,37 66,32 73,32" fill="#28a745" opacity="0.5" />
+  
+  <!-- Fecha (simbólica) -->
+  <text x="75" y="105" class="sello-small" font-size="6">2025</text>
+</svg>
+

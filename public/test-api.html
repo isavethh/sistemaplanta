@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - Transportistas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+        }
+        button:active {
+            background: #45a049;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #2196F3;
+        }
+        .success {
+            background: #c8e6c9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #4CAF50;
+        }
+        .error {
+            background: #ffcdd2;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #f44336;
+        }
+        .result {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+        }
+        .transportista {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚚 Test API Transportistas</h1>
+        
+        <div class="info">
+            <strong>📍 URL del API:</strong><br>
+            <code id="api-url">http://192.168.0.129:8000/api</code>
+        </div>
+
+        <div class="status" id="status">
+            ⏳ Esperando prueba...
+        </div>
+
+        <button onclick="testPing()">1️⃣ Probar Conexión (PING)</button>
+        <button onclick="testTransportistas()">2️⃣ Obtener Transportistas</button>
+        <button onclick="testLogin()">3️⃣ Test Login (ID: 5)</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://192.168.0.129:8000/api';
+        
+        function mostrarEstado(mensaje, tipo) {
+            const status = document.getElementById('status');
+            status.textContent = mensaje;
+            status.className = 'status ' + tipo;
+        }
+
+        function mostrarResultado(titulo, data) {
+            const result = document.getElementById('result');
+            
+            if (typeof data === 'object') {
+                if (data.success && Array.isArray(data.data)) {
+                    // Es la lista de transportistas
+                    let html = `<div class="success">
+                        <strong>✅ ${titulo}</strong><br>
+                        Total de transportistas: ${data.total || data.data.length}
+                    </div>`;
+                    
+                    data.data.forEach((t, index) => {
+                        html += `<div class="transportista">
+                            <strong>${index + 1}. ${t.nombre}</strong><br>
+                            📧 ${t.email}<br>
+                            📞 ${t.telefono || 'Sin teléfono'}<br>
+                            🎫 Licencia: ${t.licencia || 'N/A'}<br>
+                            🆔 ID: ${t.id}
+                        </div>`;
+                    });
+                    
+                    result.innerHTML = html;
+                } else {
+                    // Otra respuesta exitosa
+                    result.innerHTML = `<div class="success">
+                        <strong>✅ ${titulo}</strong><br>
+                        <pre class="result">${JSON.stringify(data, null, 2)}</pre>
+                    </div>`;
+                }
+            } else {
+                result.innerHTML = `<div class="result">${data}</div>`;
+            }
+        }
+
+        function mostrarError(titulo, error) {
+            const result = document.getElementById('result');
+            result.innerHTML = `<div class="error">
+                <strong>❌ ${titulo}</strong><br>
+                <pre class="result">${error}</pre>
+            </div>`;
+        }
+
+        async function testPing() {
+            mostrarEstado('⏳ Probando conexión...', 'info');
+            
+            try {
+                console.log('📡 Conectando a:', API_URL + '/ping');
+                
+                const response = await fetch(API_URL + '/ping', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('✅ Respuesta:', data);
+                
+                mostrarEstado('✅ Conexión exitosa!', 'success');
+                mostrarResultado('PING Exitoso', data);
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                mostrarEstado('❌ Error de conexión', 'error');
+                mostrarError('Error al hacer PING', 
+                    `Mensaje: ${error.message}\n\n` +
+                    `URL intentada: ${API_URL}/ping\n\n` +
+                    `Verifica:\n` +
+                    `1. Que ambos dispositivos estén en la misma WiFi\n` +
+                    `2. Que el servidor Laravel esté corriendo\n` +
+                    `3. Que el firewall permita conexiones al puerto 8000`
+                );
+            }
+        }
+
+        async function testTransportistas() {
+            mostrarEstado('⏳ Obteniendo transportistas...', 'info');
+            
+            try {
+                console.log('📡 Conectando a:', API_URL + '/public/transportistas-login');
+                
+                const response = await fetch(API_URL + '/public/transportistas-login', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('✅ Transportistas:', data);
+                
+                mostrarEstado(`✅ ${data.total} transportistas encontrados!`, 'success');
+                mostrarResultado('Lista de Transportistas', data);
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                mostrarEstado('❌ Error al obtener transportistas', 'error');
+                mostrarError('Error al obtener transportistas', 
+                    `Mensaje: ${error.message}\n\n` +
+                    `URL: ${API_URL}/public/transportistas-login\n\n` +
+                    `Este es el MISMO error que ve tu app.\n` +
+                    `Solución: Verifica la conexión de red.`
+                );
+            }
+        }
+
+        async function testLogin() {
+            mostrarEstado('⏳ Probando login...', 'info');
+            
+            try {
+                console.log('📡 Haciendo login con ID: 5');
+                
+                const response = await fetch(API_URL + '/public/login-transportista', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        transportista_id: 5
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('✅ Login:', data);
+                
+                mostrarEstado('✅ Login exitoso!', 'success');
+                mostrarResultado('Login Exitoso', data);
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                mostrarEstado('❌ Error en login', 'error');
+                mostrarError('Error en login', error.message);
+            }
+        }
+
+        // Auto-test al cargar
+        window.onload = function() {
+            console.log('🚀 Página cargada');
+            console.log('📍 API URL:', API_URL);
+        };
+    </script>
+</body>
+</html>
+

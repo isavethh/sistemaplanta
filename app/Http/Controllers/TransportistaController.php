@@ -49,6 +49,7 @@ class TransportistaController extends Controller
             \Log::info('Datos a crear:', $userData);
 
             $user = User::create($userData);
+            $user->syncRoles(['transportista']);
 
             \Log::info('Usuario creado con ID: ' . $user->id);
 

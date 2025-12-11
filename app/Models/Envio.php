@@ -12,7 +12,7 @@ class Envio extends Model
 
     protected $fillable = [
         'codigo',
-        'cliente_id',
+        'cliente_id', // Usuario que solicita el envío (única relación directa con users)
         'almacen_destino_id',
         'categoria',
         'fecha_creacion',
@@ -26,6 +26,7 @@ class Envio extends Model
         'fecha_asignacion',
         'fecha_inicio_transito',
         'fecha_entrega',
+        'ruta_entrega_id',
     ];
 
     protected $casts = [
@@ -58,6 +59,11 @@ class Envio extends Model
     public function asignacion()
     {
         return $this->hasOne(EnvioAsignacion::class);
+    }
+
+    public function historial()
+    {
+        return $this->hasMany(HistorialEnvio::class)->orderBy('fecha_hora');
     }
     
     // Helper para obtener la planta (origen)

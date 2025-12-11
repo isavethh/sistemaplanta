@@ -107,7 +107,7 @@
                             <div class="card-body text-center">
                                 <i class="fas fa-receipt fa-3x text-white mb-3"></i>
                                 <h5 class="text-white">Notas de Entrega</h5>
-                                <a href="{{ route('notas-venta.index') }}" class="btn btn-light btn-block">
+                                <a href="{{ route('notas-entrega.index') }}" class="btn btn-light btn-block">
                                     <i class="fas fa-file-alt"></i> Ver Documentos
                                 </a>
                             </div>
@@ -166,12 +166,23 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse(\App\Models\Envio::with('transportista')->whereIn('estado', ['entregado', 'en_almacen'])->latest('updated_at')->take(10)->get() as $envio)
+                            @php
+                                $ultimasRecepciones = DB::table('envios as e')
+                                    ->leftJoin('envio_asignaciones as ea', 'e.id', '=', 'ea.envio_id')
+                                    ->leftJoin('vehiculos as v', 'ea.vehiculo_id', '=', 'v.id')
+                                    ->leftJoin('users as t', 'v.transportista_id', '=', 't.id')
+                                    ->whereIn('e.estado', ['entregado', 'en_almacen'])
+                                    ->select('e.*', 't.name as transportista_nombre')
+                                    ->orderByDesc('e.updated_at')
+                                    ->limit(10)
+                                    ->get();
+                            @endphp
+                            @forelse($ultimasRecepciones as $envio)
                             <tr>
                                 <td><strong>#{{ $envio->id }}</strong></td>
-                                <td>{{ $envio->updated_at->format('d/m/Y H:i') }}</td>
-                                <td>{{ $envio->direccion_origen ?? 'N/A' }}</td>
-                                <td>{{ $envio->transportista->name ?? 'N/A' }}</td>
+                                <td>{{ \Carbon\Carbon::parse($envio->updated_at)->format('d/m/Y H:i') }}</td>
+                                <td>{{ $envio->direccion_origen ?? 'Planta' }}</td>
+                                <td>{{ $envio->transportista_nombre ?? 'N/A' }}</td>
                                 <td>
                                     @if($envio->estado == 'entregado')
                                         <span class="badge badge-success">Entregado</span>

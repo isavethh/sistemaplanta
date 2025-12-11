@@ -30,20 +30,33 @@
             <thead class="thead-dark">
                 <tr>
                     <th>Código</th>
+                    <th>Fecha/Hora Creación</th>
                     <th>Almacén</th>
-                    <th>Dirección</th>
                     <th>Categoría</th>
                     <th>Transportista</th>
                     <th>Estado</th>
-                    <th width="200px">Acciones</th>
+                    <th width="150px">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($envios as $envio)
-                <tr>
-                    <td><strong>{{ $envio->codigo }}</strong></td>
-                    <td>📦 {{ $envio->almacenDestino->nombre ?? 'N/A' }}</td>
-                    <td>{{ Str::limit($envio->almacenDestino->direccion_completa ?? 'N/A', 30) }}</td>
+                @php
+                    $esNuevo = $envio->created_at->diffInHours(now()) < 24;
+                @endphp
+                <tr class="{{ $esNuevo ? 'table-success' : '' }}" style="{{ $esNuevo ? 'animation: highlight 2s ease-in-out;' : '' }}">
+                    <td>
+                        <strong>{{ $envio->codigo }}</strong>
+                        @if($esNuevo)
+                            <span class="badge badge-success badge-pill ml-1">NUEVO</span>
+                        @endif
+                    </td>
+                    <td>
+                        <i class="fas fa-calendar-alt text-primary"></i> {{ $envio->created_at->format('d/m/Y') }}<br>
+                        <small><i class="fas fa-clock text-info"></i> {{ $envio->created_at->format('H:i:s') }}</small>
+                    </td>
+                    <td>
+                        <i class="fas fa-warehouse text-success"></i> {{ $envio->almacenDestino->nombre ?? 'N/A' }}
+                    </td>
                     <td>
                         @php
                             $primerProducto = $envio->productos->first();
@@ -58,15 +71,15 @@
                     <td>{{ optional($envio->asignacion)->transportista->name ?? 'Sin asignar' }}</td>
                     <td>
                         @if($envio->estado == 'pendiente')
-                            <span class="badge badge-warning">Pendiente</span>
-                        @elseif($envio->estado == 'aprobado')
-                            <span class="badge badge-primary"><i class="fas fa-check"></i> Aprobado</span>
+                            <span class="badge badge-warning"><i class="fas fa-clock"></i> Pendiente</span>
+                        @elseif($envio->estado == 'asignado')
+                            <span class="badge badge-primary"><i class="fas fa-user-check"></i> Asignado</span>
                         @elseif($envio->estado == 'en_transito')
-                            <span class="badge badge-info">En Tránsito</span>
+                            <span class="badge badge-info"><i class="fas fa-truck"></i> En Tránsito</span>
                         @elseif($envio->estado == 'entregado')
-                            <span class="badge badge-success">Entregado</span>
+                            <span class="badge badge-success"><i class="fas fa-check-circle"></i> Entregado</span>
                         @else
-                            <span class="badge badge-secondary">{{ $envio->estado }}</span>
+                            <span class="badge badge-secondary">{{ ucfirst($envio->estado) }}</span>
                         @endif
                     </td>
                     <td>
@@ -75,22 +88,16 @@
                                 <i class="fas fa-eye"></i>
                             </a>
                             @if($envio->estado == 'pendiente')
-                                <form action="{{ route('envios.aprobar', $envio) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Aprobar este envío? Se generará automáticamente una nota de venta.')">
-                                    @csrf
-                                    <button type="submit" class="btn btn-success" title="Aprobar y Generar Nota de Venta">
-                                        <i class="fas fa-check-circle"></i> Aprobar
+                                <a href="{{ route('envios.edit', $envio) }}" class="btn btn-warning" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{{ route('envios.destroy', $envio) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Estás seguro de eliminar este envío?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-danger" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
                             @endif
-                            <a href="{{ route('envios.edit', $envio) }}" class="btn btn-warning" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <form action="{{ route('envios.destroy', $envio) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Estás seguro de eliminar este envío?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-danger" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
                         </div>
                     </td>
                 </tr>
@@ -106,6 +113,7 @@
     $(document).ready(function() {
         $('#enviosTable').DataTable({
             responsive: true,
+            order: [[0, 'desc']], // Ordenar por código (más reciente primero)
             language: {
                 url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
             },
@@ -132,6 +140,31 @@
     }
     .alert {
         margin-bottom: 15px !important;
+    }
+    
+    /* Animación para envíos nuevos */
+    @keyframes highlight {
+        0% {
+            background-color: #d4edda;
+            transform: scale(1);
+        }
+        50% {
+            background-color: #c3e6cb;
+            transform: scale(1.02);
+        }
+        100% {
+            background-color: #d4edda;
+            transform: scale(1);
+        }
+    }
+    
+    .table-success {
+        background-color: #d4edda !important;
+        font-weight: 500;
+    }
+    
+    .table-success td {
+        border-color: #c3e6cb !important;
     }
 </style>
 @endsection

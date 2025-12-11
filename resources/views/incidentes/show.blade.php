@@ -27,6 +27,19 @@
                 <h3 class="card-title text-white"><i class="fas fa-info-circle"></i> Detalles del Incidente</h3>
             </div>
             <div class="card-body">
+                <!-- Alerta de Solicitud de Ayuda -->
+                @if($incidente->solicitar_ayuda ?? false)
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <h5><i class="fas fa-exclamation-triangle"></i> <strong>Solicitud de Ayuda Urgente</strong></h5>
+                    <p class="mb-0">
+                        El transportista ha solicitado ayuda urgente del administrador para resolver este incidente.
+                    </p>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                @endif
+                
                 <!-- Estado -->
                 <div class="mb-4 text-center">
                     @if($incidente->estado == 'pendiente')

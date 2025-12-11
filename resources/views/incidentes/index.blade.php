@@ -83,7 +83,39 @@
             </a>
         </div>
     </div>
+    @if(isset($estadisticas['solicitan_ayuda']) && $estadisticas['solicitan_ayuda'] > 0)
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3>{{ $estadisticas['solicitan_ayuda'] }}</h3>
+                <p>Solicitan Ayuda</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-bell"></i>
+            </div>
+            <a href="{{ route('incidentes.index', ['solicitar_ayuda' => '1']) }}" class="small-box-footer">
+                Ver solicitudes <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+    @endif
 </div>
+
+<!-- Alerta de Solicitudes de Ayuda -->
+@if(isset($estadisticas['solicitan_ayuda']) && $estadisticas['solicitan_ayuda'] > 0)
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <h5><i class="fas fa-exclamation-triangle"></i> <strong>Solicitudes de Ayuda Pendientes</strong></h5>
+    <p class="mb-0">
+        Hay <strong>{{ $estadisticas['solicitan_ayuda'] }}</strong> incidente(s) que solicitan ayuda urgente del administrador.
+        <a href="{{ route('incidentes.index', ['solicitar_ayuda' => '1']) }}" class="btn btn-warning btn-sm ml-2">
+            <i class="fas fa-bell"></i> Ver Solicitudes de Ayuda
+        </a>
+    </p>
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+@endif
 
 <!-- Filtros -->
 <div class="card shadow mb-4">
@@ -112,6 +144,15 @@
             </div>
             <div class="form-group mr-3">
                 <input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar..." value="{{ request('buscar') }}">
+            </div>
+            <div class="form-group mr-3">
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" name="solicitar_ayuda" id="solicitar_ayuda" value="1" 
+                           class="custom-control-input" {{ request('solicitar_ayuda') ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="solicitar_ayuda">
+                        <strong class="text-warning">Solo solicitudes de ayuda</strong>
+                    </label>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary btn-sm mr-2">
                 <i class="fas fa-search"></i> Filtrar
@@ -146,7 +187,7 @@
             </thead>
             <tbody>
                 @foreach($incidentes as $incidente)
-                <tr class="{{ $incidente->estado == 'pendiente' ? 'table-danger' : ($incidente->estado == 'en_proceso' ? 'table-warning' : '') }}">
+                <tr class="{{ ($incidente->solicitar_ayuda ?? false) ? 'table-warning' : ($incidente->estado == 'pendiente' ? 'table-danger' : ($incidente->estado == 'en_proceso' ? 'table-warning' : '')) }}">
                     <td><strong>#{{ $incidente->id }}</strong></td>
                     <td>
                         <a href="{{ route('envios.show', $incidente->envio_id) }}">
@@ -162,15 +203,35 @@
                                 'producto_faltante' => ['icon' => 'minus-circle', 'color' => 'danger', 'label' => 'Producto Faltante'],
                                 'producto_equivocado' => ['icon' => 'exchange-alt', 'color' => 'info', 'label' => 'Producto Equivocado'],
                                 'empaque_malo' => ['icon' => 'box', 'color' => 'secondary', 'label' => 'Empaque Malo'],
+                                'accidente_vehiculo' => ['icon' => 'car-crash', 'color' => 'danger', 'label' => 'Accidente de Vehículo'],
+                                'averia_vehiculo' => ['icon' => 'tools', 'color' => 'warning', 'label' => 'Avería de Vehículo'],
+                                'robo' => ['icon' => 'shield-alt', 'color' => 'danger', 'label' => 'Robo'],
+                                'perdida_mercancia' => ['icon' => 'box-open', 'color' => 'danger', 'label' => 'Pérdida de Mercancía'],
+                                'daño_mercancia' => ['icon' => 'exclamation-triangle', 'color' => 'warning', 'label' => 'Daño de Mercancía'],
+                                'retraso' => ['icon' => 'clock', 'color' => 'info', 'label' => 'Retraso en Entrega'],
+                                'problema_ruta' => ['icon' => 'route', 'color' => 'warning', 'label' => 'Problema en Ruta'],
+                                'problema_cliente' => ['icon' => 'user-times', 'color' => 'info', 'label' => 'Problema con Cliente'],
                                 'otro' => ['icon' => 'question-circle', 'color' => 'dark', 'label' => 'Otro'],
                             ];
-                            $tipo = $tiposIconos[$incidente->tipo_incidente] ?? ['icon' => 'question', 'color' => 'secondary', 'label' => $incidente->tipo_incidente];
+                            $tipo = $tiposIconos[$incidente->tipo_incidente] ?? ['icon' => 'question', 'color' => 'secondary', 'label' => ucfirst(str_replace('_', ' ', $incidente->tipo_incidente))];
                         @endphp
                         <span class="badge badge-{{ $tipo['color'] }}">
                             <i class="fas fa-{{ $tipo['icon'] }}"></i> {{ $tipo['label'] }}
                         </span>
+                        @if($incidente->solicitar_ayuda ?? false)
+                            <br><small class="badge badge-warning mt-1">
+                                <i class="fas fa-exclamation-triangle"></i> Solicita Ayuda
+                            </small>
+                        @endif
                     </td>
-                    <td>{{ Str::limit($incidente->descripcion, 50) }}</td>
+                    <td>
+                        {{ Str::limit($incidente->descripcion, 50) }}
+                        @if($incidente->solicitar_ayuda ?? false)
+                            <br><small class="text-warning">
+                                <i class="fas fa-bell"></i> <strong>Ayuda solicitada</strong>
+                            </small>
+                        @endif
+                    </td>
                     <td class="text-center">
                         @if($incidente->foto_url)
                             <a href="http://10.26.14.34:3001{{ $incidente->foto_url }}" target="_blank" class="btn btn-sm btn-info">

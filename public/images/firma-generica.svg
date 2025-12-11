@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="80" viewBox="0 0 200 80">
+  <defs>
+    <style>
+      .firma-path {
+        fill: none;
+        stroke: #2c3e50;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+  
+  <!-- Firma manuscrita simulada -->
+  <path class="firma-path" d="M 20 50 Q 30 30, 50 40 T 80 35 Q 90 38, 95 45" />
+  <path class="firma-path" d="M 95 45 Q 100 50, 105 45 T 120 40" />
+  <path class="firma-path" d="M 35 45 Q 40 55, 50 52 L 60 50" />
+  <path class="firma-path" d="M 100 40 Q 105 30, 115 35 L 125 42" />
+  <path class="firma-path" d="M 130 35 Q 140 30, 150 38 T 170 42" />
+  <path class="firma-path" d="M 145 38 L 148 50 Q 150 55, 155 52" />
+  
+  <!-- Subrayado -->
+  <path class="firma-path" d="M 15 62 L 180 62" stroke-width="1.5" opacity="0.6" />
+</svg>
+

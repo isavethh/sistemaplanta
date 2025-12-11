@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Almacen;
-use App\Models\Direccion;
 use Illuminate\Http\Request;
 
 class AlmacenController extends Controller
@@ -85,7 +84,46 @@ class AlmacenController extends Controller
 
     public function inventario(Almacen $almacen)
     {
+        $user = auth()->user();
+        
+        // Si el usuario es almacen, verificar que solo pueda ver su propio almacén
+        if ($user->hasRole('almacen') || $user->esAlmacen()) {
+            $almacenUsuario = Almacen::where('usuario_almacen_id', $user->id)
+                ->where('id', $almacen->id)
+                ->first();
+            
+            if (!$almacenUsuario) {
+                abort(403, 'No tienes permiso para ver el inventario de este almacén.');
+            }
+        }
+        
         $inventario = $almacen->inventario()->get();
         return view('almacenes.inventario', compact('almacen', 'inventario'));
+    }
+
+    public function monitoreo()
+    {
+        $user = auth()->user();
+        $almacenUsuario = null;
+        
+        // Si el usuario es almacen, obtener su almacén asignado
+        if ($user->hasRole('almacen')) {
+            $almacenUsuario = Almacen::where('usuario_almacen_id', $user->id)
+                ->where('es_planta', false)
+                ->where('activo', true)
+                ->first();
+            
+            if (!$almacenUsuario) {
+                return redirect()->route('home')
+                    ->with('error', 'No tienes un almacén asignado. Contacta al administrador.');
+            }
+        } elseif (!$user->hasRole('admin')) {
+            abort(403, 'No tienes permiso para acceder a esta página.');
+        }
+        
+        return view('almacenes.monitoreo', [
+            'almacenUsuario' => $almacenUsuario,
+            'almacenId' => $almacenUsuario ? $almacenUsuario->id : null
+        ]);
     }
 }

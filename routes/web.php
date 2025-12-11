@@ -3,107 +3,327 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
-use App\Http\Controllers\AdministradorController;
-use App\Http\Controllers\ClienteController;
-use App\Http\Controllers\TransportistaController;
-use App\Http\Controllers\VehiculoController;
-use App\Http\Controllers\DireccionController;
-use App\Http\Controllers\RutaTiempoRealController;
-use App\Http\Controllers\CodigoQRController;
-use App\Http\Controllers\TipoVehiculoController;
-use App\Http\Controllers\EstadoVehiculoController;
-use App\Http\Controllers\TipoEmpaqueController;
-use App\Http\Controllers\UnidadMedidaController;
-use App\Http\Controllers\AlmacenController;
-use App\Http\Controllers\EnvioController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\TipoTransporteController;
-use App\Http\Controllers\AsignacionController;
-use App\Http\Controllers\IncidenteController;
-use App\Http\Controllers\RutaMultiEntregaController;
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Sistema de Gestión de Almacén y Logística
+| Generado con estructura Ibex CRUDs
+| Todas las rutas siguen el formato estándar Ibex CRUD
+|
+*/
 
-// Dashboard - Personalizado por rol
-Route::get('/', function () {
-    $user = auth()->user();
+// ============================================================================
+// AUTENTICACIÓN
+// ============================================================================
+Auth::routes();
 
-    if ($user->hasRole('planta')) {
-        return view('dashboards.planta');
-    } elseif ($user->hasRole('administrador')) {
-        return view('dashboards.administrador');
-    } elseif ($user->hasRole('transportista')) {
-        return view('dashboards.transportista');
-    } elseif ($user->hasRole('almacen')) {
-        return view('dashboards.almacen');
-    }
-
-    // Si no tiene rol específico, mostrar dashboard general
-    return view('dashboard');
-})->middleware('auth');
-
-// Gestión de Usuarios - Solo requiere autenticación
+// ============================================================================
+// DASHBOARD PRINCIPAL
+// ============================================================================
 Route::middleware(['auth'])->group(function () {
-    Route::resource('administradores', AdministradorController::class);
-    Route::resource('clientes', ClienteController::class);
-    Route::resource('transportistas', TransportistaController::class);
-    Route::resource('vehiculos', VehiculoController::class);
-    Route::resource('direcciones', DireccionController::class);
-    Route::resource('rutas', RutaTiempoRealController::class);
-    Route::resource('codigosqr', CodigoQRController::class);
-    Route::resource('tiposvehiculo', TipoVehiculoController::class);
-    Route::resource('estadosvehiculo', EstadoVehiculoController::class);
-    Route::resource('tiposempaque', TipoEmpaqueController::class);
-    Route::resource('unidadesmedida', UnidadMedidaController::class);
-    Route::resource('tipos-transporte', TipoTransporteController::class);
+    Route::get('/', function () {
+        $user = auth()->user();
+
+        if ($user->hasRole('admin')) {
+            return view('dashboards.administrador');
+        } elseif ($user->hasRole('transportista')) {
+            return view('dashboards.transportista');
+        } elseif ($user->hasRole('almacen')) {
+            return view('dashboards.almacen');
+        }
+
+        return view('dashboard');
+    })->name('home');
+
+    Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('dashboard');
+});
+
+// ============================================================================
+// MÓDULO: GESTIÓN DE USUARIOS (Ibex CRUD)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    // Usuarios del Sistema - CRUD Completo
+    Route::resource('users', App\Http\Controllers\UserController::class);
+    
+    // Administradores - CRUD Completo
+    Route::resource('administradores', App\Http\Controllers\AdministradorController::class);
+    
+    // Clientes - CRUD Completo
+    Route::resource('clientes', App\Http\Controllers\ClienteController::class);
+    
+    // Transportistas - CRUD Completo
+    Route::resource('transportistas', App\Http\Controllers\TransportistaController::class);
+});
+
+// ============================================================================
+// MÓDULO: GESTIÓN DE VEHÍCULOS Y TRANSPORTE (Ibex CRUD)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    // Vehículos - CRUD Completo
+    Route::resource('vehiculos', App\Http\Controllers\VehiculoController::class);
+    
+    // Tipos de Vehículo - CRUD Completo
+    Route::resource('tiposvehiculo', App\Http\Controllers\TipoVehiculoController::class);
+    
+    // Estados de Vehículo - CRUD Completo
+    Route::resource('estadosvehiculo', App\Http\Controllers\EstadoVehiculoController::class);
+    
+    // Tipos de Transporte - CRUD Completo
+    Route::resource('tipos-transporte', App\Http\Controllers\TipoTransporteController::class);
+    
+    // Tamaños de Transporte - CRUD Completo
     Route::resource('tamanos-transporte', App\Http\Controllers\TamanoTransporteController::class);
 });
 
-// Todas las rutas solo requieren autenticación (sin restricciones de permisos/roles)
+// ============================================================================
+// MÓDULO: GESTIÓN DE ALMACENES (Ibex CRUD)
+// ============================================================================
 Route::middleware(['auth'])->group(function () {
-    Route::resource('users', UserController::class);
-    Route::resource('almacenes', AlmacenController::class);
-    Route::get('almacenes/{almacen}/inventario', [AlmacenController::class, 'inventario'])->name('almacenes.inventario');
-
-    Route::resource('envios', EnvioController::class);
-    Route::post('envios/asignacion-multiple', [EnvioController::class, 'asignacionMultiple'])->name('envios.asignacionMultiple');
-    Route::get('envios/{envio}/tracking', [EnvioController::class, 'tracking'])->name('envios.tracking');
-    Route::post('envios/{envio}/actualizar-estado', [EnvioController::class, 'actualizarEstado'])->name('envios.actualizarEstado');
-    Route::post('envios/{envio}/aprobar', [EnvioController::class, 'aprobar'])->name('envios.aprobar');
-
-    Route::get('notas-venta', [App\Http\Controllers\NotaVentaController::class, 'index'])->name('notas-venta.index');
-    Route::get('notas-venta/{id}', [App\Http\Controllers\NotaVentaController::class, 'show'])->name('notas-venta.show');
-    Route::get('notas-venta/{id}/html', [App\Http\Controllers\NotaVentaController::class, 'verHTML'])->name('notas-venta.html');
-
-    Route::get('asignaciones', [AsignacionController::class, 'index'])->name('asignaciones.index');
-    Route::post('asignaciones/asignar', [AsignacionController::class, 'asignar'])->name('asignaciones.asignar');
-    Route::delete('asignaciones/{envio}/remover', [AsignacionController::class, 'remover'])->name('asignaciones.remover');
-
-    Route::resource('productos', App\Http\Controllers\ProductoController::class);
-    Route::resource('categorias', App\Http\Controllers\CategoriaController::class);
+    // Almacenes - CRUD Completo
+    Route::resource('almacenes', App\Http\Controllers\AlmacenController::class);
+    
+    // Rutas adicionales de Almacenes
+    Route::get('almacenes/{almacen}/inventario', [App\Http\Controllers\AlmacenController::class, 'inventario'])->name('almacenes.inventario');
+    Route::get('almacenes/monitoreo', [App\Http\Controllers\AlmacenController::class, 'monitoreo'])->name('almacenes.monitoreo');
+    
+    // Inventarios - CRUD Completo
     Route::resource('inventarios', App\Http\Controllers\InventarioAlmacenController::class);
+    
+    // Rutas adicionales de Inventarios
     Route::get('inventarios/almacen/{almacen}', [App\Http\Controllers\InventarioAlmacenController::class, 'porAlmacen'])->name('inventarios.porAlmacen');
+    
+    // Inventario del Transportista
+    Route::get('inventarios-transportista', [App\Http\Controllers\InventarioTransportistaController::class, 'index'])->name('inventarios-transportista.index');
 });
 
-// Rutas de Incidentes - Solo autenticación
+// ============================================================================
+// MÓDULO: GESTIÓN DE PRODUCTOS (Ibex CRUD)
+// ============================================================================
 Route::middleware(['auth'])->group(function () {
-    Route::get('incidentes', [IncidenteController::class, 'index'])->name('incidentes.index');
-    Route::get('incidentes/{id}', [IncidenteController::class, 'show'])->name('incidentes.show');
-    Route::put('incidentes/{id}/estado', [IncidenteController::class, 'cambiarEstado'])->name('incidentes.cambiarEstado');
-    Route::post('incidentes/{id}/nota', [IncidenteController::class, 'agregarNota'])->name('incidentes.agregarNota');
+    // Productos - CRUD Completo
+    Route::resource('productos', App\Http\Controllers\ProductoController::class);
+    
+    // Categorías - CRUD Completo
+    Route::resource('categorias', App\Http\Controllers\CategoriaController::class);
+    
+    // Unidades de Medida - CRUD Completo
+    Route::resource('unidadesmedida', App\Http\Controllers\UnidadMedidaController::class);
 });
 
-// Rutas Multi-Entrega - Solo autenticación
+// ============================================================================
+// MÓDULO: GESTIÓN DE EMPAQUES (Ibex CRUD)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    // Tipos de Empaque - CRUD Completo
+    Route::resource('tiposempaque', App\Http\Controllers\TipoEmpaqueController::class);
+    
+    // Rutas adicionales de Tipos de Empaque
+    Route::get('tiposempaque-calculador', [App\Http\Controllers\TipoEmpaqueController::class, 'calculador'])->name('tiposempaque.calculador');
+    Route::post('tiposempaque-calcular', [App\Http\Controllers\TipoEmpaqueController::class, 'calcularEmpaques'])->name('tiposempaque.calcular');
+});
+
+// ============================================================================
+// MÓDULO: GESTIÓN DE ENVÍOS (Ibex CRUD)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    // Envíos - CRUD Completo
+    Route::resource('envios', App\Http\Controllers\EnvioController::class);
+    
+    // Rutas adicionales de Envíos
+    Route::post('envios/asignacion-multiple', [App\Http\Controllers\EnvioController::class, 'asignacionMultiple'])->name('envios.asignacionMultiple');
+    Route::get('envios/{envio}/tracking', [App\Http\Controllers\EnvioController::class, 'tracking'])->name('envios.tracking');
+    Route::post('envios/{envio}/actualizar-estado', [App\Http\Controllers\EnvioController::class, 'actualizarEstado'])->name('envios.actualizarEstado');
+});
+
+// ============================================================================
+// MÓDULO: ASIGNACIÓN DE TRANSPORTISTAS (Ibex CRUD)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    // Asignaciones - CRUD Completo
+    Route::get('asignaciones', [App\Http\Controllers\AsignacionController::class, 'index'])->name('asignaciones.index');
+    Route::post('asignaciones/asignar', [App\Http\Controllers\AsignacionController::class, 'asignar'])->name('asignaciones.asignar');
+    Route::post('asignaciones/asignar-multiple', [App\Http\Controllers\AsignacionController::class, 'asignarMultiple'])->name('asignaciones.asignar-multiple');
+    Route::delete('asignaciones/{envio}/remover', [App\Http\Controllers\AsignacionController::class, 'remover'])->name('asignaciones.remover');
+    
+    // Asignación Múltiple por Fecha - CRUD Completo
+    Route::get('asignacion-multiple', [App\Http\Controllers\AsignacionMultipleController::class, 'index'])->name('asignacion-multiple.index');
+    Route::post('asignacion-multiple/asignar', [App\Http\Controllers\AsignacionMultipleController::class, 'asignar'])->name('asignacion-multiple.asignar');
+});
+
+// ============================================================================
+// MÓDULO: GESTIÓN DE INCIDENTES (Ibex CRUD)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    // Incidentes - CRUD Completo
+    Route::resource('incidentes', App\Http\Controllers\IncidenteController::class);
+    
+    // Rutas adicionales de Incidentes
+    Route::put('incidentes/{incidente}/estado', [App\Http\Controllers\IncidenteController::class, 'cambiarEstado'])->name('incidentes.cambiarEstado');
+    Route::post('incidentes/{incidente}/nota', [App\Http\Controllers\IncidenteController::class, 'agregarNota'])->name('incidentes.agregarNota');
+});
+
+// ============================================================================
+// MÓDULO: RUTAS Y NAVEGACIÓN (Ibex CRUD)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    // Rutas en Tiempo Real - CRUD Completo
+    Route::resource('rutas', App\Http\Controllers\RutaTiempoRealController::class);
+    
+    // Códigos QR - CRUD Completo
+    Route::resource('codigosqr', App\Http\Controllers\CodigoQRController::class);
+    
+    // Direcciones - ELIMINADO (tabla redundante con doble conexión a almacenes)
+    // Route::resource('direcciones', App\Http\Controllers\DireccionController::class);
+    
+    // Tamaños de Vehículo - CRUD Completo
+    Route::resource('tamanos-vehiculo', App\Http\Controllers\TamanoVehiculoController::class);
+    
+    // Estados de Vehículo - CRUD Completo (ya existe en vehículos, pero agregamos aquí también)
+    // Route::resource('estados-vehiculo', App\Http\Controllers\EstadoVehiculoController::class);
+});
+
+// ============================================================================
+// MÓDULO: RUTAS MULTI-ENTREGA (Ibex CRUD)
+// ============================================================================
 Route::prefix('rutas-multi')->name('rutas-multi.')->middleware(['auth'])->group(function () {
-    Route::get('/', [RutaMultiEntregaController::class, 'index'])->name('index');
-    Route::get('/crear', [RutaMultiEntregaController::class, 'create'])->name('create');
-    Route::post('/', [RutaMultiEntregaController::class, 'store'])->name('store');
-    Route::get('/monitoreo', [RutaMultiEntregaController::class, 'monitoreo'])->name('monitoreo');
-    Route::get('/{id}', [RutaMultiEntregaController::class, 'show'])->name('show');
-    Route::get('/{id}/resumen', [RutaMultiEntregaController::class, 'resumen'])->name('resumen');
-    Route::get('/{id}/documentos', [RutaMultiEntregaController::class, 'documentos'])->name('documentos');
-    Route::put('/{id}/reordenar', [RutaMultiEntregaController::class, 'reordenarParadas'])->name('reordenar');
-    Route::get('/api/envios-pendientes', [RutaMultiEntregaController::class, 'enviosPendientesParaMapa'])->name('api.envios-pendientes');
+    // Rutas Multi-Entrega - CRUD Completo
+    Route::get('/', [App\Http\Controllers\RutaMultiEntregaController::class, 'index'])->name('index');
+    Route::get('/crear', [App\Http\Controllers\RutaMultiEntregaController::class, 'create'])->name('create');
+    Route::post('/', [App\Http\Controllers\RutaMultiEntregaController::class, 'store'])->name('store');
+    Route::get('/{id}', [App\Http\Controllers\RutaMultiEntregaController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [App\Http\Controllers\RutaMultiEntregaController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [App\Http\Controllers\RutaMultiEntregaController::class, 'update'])->name('update');
+    Route::delete('/{id}', [App\Http\Controllers\RutaMultiEntregaController::class, 'destroy'])->name('destroy');
+    
+    // Rutas adicionales de Rutas Multi-Entrega
+    Route::get('/monitoreo', [App\Http\Controllers\RutaMultiEntregaController::class, 'monitoreo'])->name('monitoreo');
+    Route::get('/{id}/resumen', [App\Http\Controllers\RutaMultiEntregaController::class, 'resumen'])->name('resumen');
+    Route::get('/{id}/documentos', [App\Http\Controllers\RutaMultiEntregaController::class, 'documentos'])->name('documentos');
+    Route::put('/{id}/reordenar', [App\Http\Controllers\RutaMultiEntregaController::class, 'reordenarParadas'])->name('reordenar');
+    Route::get('/api/envios-pendientes', [App\Http\Controllers\RutaMultiEntregaController::class, 'enviosPendientesParaMapa'])->name('api.envios-pendientes');
 });
 
-Auth::routes();
+// ============================================================================
+// MÓDULO: NOTAS DE ENTREGA (Ibex CRUD)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    // Notas de Entrega - CRUD Completo
+    Route::get('notas-entrega', [App\Http\Controllers\NotaEntregaController::class, 'index'])->name('notas-entrega.index');
+    Route::get('notas-entrega/create', [App\Http\Controllers\NotaEntregaController::class, 'create'])->name('notas-entrega.create');
+    Route::post('notas-entrega', [App\Http\Controllers\NotaEntregaController::class, 'store'])->name('notas-entrega.store');
+    Route::get('notas-entrega/{id}', [App\Http\Controllers\NotaEntregaController::class, 'show'])->name('notas-entrega.show');
+    Route::get('notas-entrega/{id}/edit', [App\Http\Controllers\NotaEntregaController::class, 'edit'])->name('notas-entrega.edit');
+    Route::put('notas-entrega/{id}', [App\Http\Controllers\NotaEntregaController::class, 'update'])->name('notas-entrega.update');
+    Route::delete('notas-entrega/{id}', [App\Http\Controllers\NotaEntregaController::class, 'destroy'])->name('notas-entrega.destroy');
+    
+    // Rutas adicionales de Notas de Entrega
+    Route::get('notas-entrega/{id}/html', [App\Http\Controllers\NotaEntregaController::class, 'verHTML'])->name('notas-entrega.html');
+});
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+// ============================================================================
+// MÓDULO: REPORTES Y ANÁLISIS (Ibex CRUD)
+// ============================================================================
+Route::prefix('reportes')->name('reportes.')->middleware(['auth'])->group(function () {
+    // Centro de Reportes - CRUD Completo
+    Route::get('/', [App\Http\Controllers\ReporteController::class, 'index'])->name('index');
+    
+    // ────────────────────────────────────────────────────────────────────────
+    // REPORTE: Operaciones
+    // ────────────────────────────────────────────────────────────────────────
+    Route::get('/operaciones', [App\Http\Controllers\ReporteController::class, 'operaciones'])->name('operaciones');
+    
+    // Rutas de descarga directa (DEBEN ir ANTES de las rutas con {id} para evitar conflictos)
+    Route::get('/operaciones/pdf', [App\Http\Controllers\ReporteController::class, 'operacionesPdf'])->name('operaciones.pdf');
+    Route::get('/operaciones/csv', [App\Http\Controllers\ReporteController::class, 'operacionesCsv'])->name('operaciones.csv');
+    
+    // ────────────────────────────────────────────────────────────────────────
+    // REPORTE: Notas de Entrega - CRUD Completo
+    // ────────────────────────────────────────────────────────────────────────
+    Route::get('/nota-entrega', [App\Http\Controllers\ReporteController::class, 'notaEntrega'])->name('nota-entrega');
+    Route::get('/nota-entrega/create', [App\Http\Controllers\ReporteController::class, 'notaEntregaCreate'])->name('nota-entrega.create');
+    Route::post('/nota-entrega', [App\Http\Controllers\ReporteController::class, 'notaEntregaStore'])->name('nota-entrega.store');
+    Route::get('/nota-entrega/{id}', [App\Http\Controllers\ReporteController::class, 'notaEntregaShow'])->name('nota-entrega.show');
+    Route::get('/nota-entrega/{id}/edit', [App\Http\Controllers\ReporteController::class, 'notaEntregaEdit'])->name('nota-entrega.edit');
+    Route::put('/nota-entrega/{id}', [App\Http\Controllers\ReporteController::class, 'notaEntregaUpdate'])->name('nota-entrega.update');
+    Route::delete('/nota-entrega/{id}', [App\Http\Controllers\ReporteController::class, 'notaEntregaDestroy'])->name('nota-entrega.destroy');
+    
+    // Rutas adicionales de Notas de Entrega
+    Route::get('/nota-entrega/{id}/pdf', [App\Http\Controllers\ReporteController::class, 'notaEntregaPdf'])->name('nota-entrega.pdf');
+    Route::get('/nota-entrega/{id}/html', [App\Http\Controllers\ReporteController::class, 'notaEntregaHtml'])->name('nota-entrega.html');
+    
+    // ────────────────────────────────────────────────────────────────────────
+    // REPORTE: Incidentes
+    // ────────────────────────────────────────────────────────────────────────
+    Route::get('/incidentes', [App\Http\Controllers\ReporteController::class, 'incidentes'])->name('incidentes');
+    
+    // Rutas de descarga directa (DEBEN ir ANTES de las rutas con {id} para evitar conflictos)
+    Route::get('/incidentes/pdf', [App\Http\Controllers\ReporteController::class, 'incidentesPdf'])->name('incidentes.pdf');
+    Route::get('/incidentes/csv', [App\Http\Controllers\ReporteController::class, 'incidentesCsv'])->name('incidentes.csv');
+    
+    // ────────────────────────────────────────────────────────────────────────
+    // REPORTE: Productividad
+    // ────────────────────────────────────────────────────────────────────────
+    Route::get('/productividad', [App\Http\Controllers\ReporteController::class, 'productividad'])->name('productividad');
+    
+    // Rutas de descarga directa (DEBEN ir ANTES de las rutas con {id} para evitar conflictos)
+    Route::get('/productividad/pdf', [App\Http\Controllers\ReporteController::class, 'productividadPdf'])->name('productividad.pdf');
+    Route::get('/productividad/csv', [App\Http\Controllers\ReporteController::class, 'productividadCsv'])->name('productividad.csv');
+    
+    // ────────────────────────────────────────────────────────────────────────
+    // REPORTE: Mis Incidentes (Transportista)
+    // ────────────────────────────────────────────────────────────────────────
+    Route::get('/mis-incidentes', [App\Http\Controllers\ReporteController::class, 'misIncidentes'])->name('mis-incidentes');
+    Route::get('/mis-incidentes/create', [App\Http\Controllers\ReporteController::class, 'misIncidentesCreate'])->name('mis-incidentes.create');
+    Route::post('/mis-incidentes', [App\Http\Controllers\ReporteController::class, 'misIncidentesStore'])->name('mis-incidentes.store');
+    
+    // Rutas de descarga directa (DEBEN ir ANTES de las rutas con {id} para evitar conflictos)
+    Route::get('/mis-incidentes/pdf', [App\Http\Controllers\ReporteController::class, 'misIncidentesPdf'])->name('mis-incidentes.pdf');
+    Route::get('/mis-incidentes/csv', [App\Http\Controllers\ReporteController::class, 'misIncidentesCsv'])->name('mis-incidentes.csv');
+    
+    // ────────────────────────────────────────────────────────────────────────
+    // REPORTE: Mi Productividad (Transportista) - CRUD Completo
+    // ────────────────────────────────────────────────────────────────────────
+    // REPORTE: Mi Productividad (Transportista)
+    // ────────────────────────────────────────────────────────────────────────
+    Route::get('/mi-productividad', [App\Http\Controllers\ReporteController::class, 'miProductividad'])->name('mi-productividad');
+    
+    // Rutas de descarga directa (DEBEN ir ANTES de las rutas con {id} para evitar conflictos)
+    Route::get('/mi-productividad/pdf', [App\Http\Controllers\ReporteController::class, 'miProductividadPdf'])->name('mi-productividad.pdf');
+    Route::get('/mi-productividad/csv', [App\Http\Controllers\ReporteController::class, 'miProductividadCsv'])->name('mi-productividad.csv');
+    
+    // ────────────────────────────────────────────────────────────────────────
+    // REPORTE: Resolución de Incidentes - CRUD Completo
+    // ────────────────────────────────────────────────────────────────────────
+    Route::get('/resolucion-incidente/{id}', [App\Http\Controllers\ReporteController::class, 'resolucionIncidente'])->name('resolucion-incidente');
+    Route::get('/resolucion-incidente/{id}/edit', [App\Http\Controllers\ReporteController::class, 'resolucionIncidenteEdit'])->name('resolucion-incidente.edit');
+    Route::put('/resolucion-incidente/{id}', [App\Http\Controllers\ReporteController::class, 'resolucionIncidenteUpdate'])->name('resolucion-incidente.update');
+    
+    // Rutas adicionales de Resolución de Incidentes
+    Route::get('/resolucion-incidente/{id}/pdf', [App\Http\Controllers\ReporteController::class, 'resolucionIncidentePdf'])->name('resolucion-incidente.pdf');
+    
+    // ────────────────────────────────────────────────────────────────────────
+    // REPORTE: Trazabilidad Completa - CRUD Completo
+    // ────────────────────────────────────────────────────────────────────────
+    Route::get('/trazabilidad/{id}', [App\Http\Controllers\ReporteController::class, 'trazabilidad'])->name('trazabilidad');
+    Route::get('/trazabilidad/{id}/edit', [App\Http\Controllers\ReporteController::class, 'trazabilidadEdit'])->name('trazabilidad.edit');
+    Route::put('/trazabilidad/{id}', [App\Http\Controllers\ReporteController::class, 'trazabilidadUpdate'])->name('trazabilidad.update');
+    
+    // Rutas adicionales de Trazabilidad
+    Route::get('/trazabilidad/{id}/pdf', [App\Http\Controllers\ReporteController::class, 'trazabilidadPdf'])->name('trazabilidad.pdf');
+});
+
+// ============================================================================
+// MÓDULO: DASHBOARD ESTADÍSTICO (Ibex CRUD)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    // Dashboard Estadístico - CRUD Completo
+    Route::get('/dashboard-estadistico', [App\Http\Controllers\DashboardController::class, 'estadistico'])->name('dashboard.estadistico');
+    Route::get('/dashboard-estadistico/create', [App\Http\Controllers\DashboardController::class, 'estadisticoCreate'])->name('dashboard.estadistico.create');
+    Route::post('/dashboard-estadistico', [App\Http\Controllers\DashboardController::class, 'estadisticoStore'])->name('dashboard.estadistico.store');
+    Route::get('/dashboard-estadistico/{id}', [App\Http\Controllers\DashboardController::class, 'estadisticoShow'])->name('dashboard.estadistico.show');
+    Route::get('/dashboard-estadistico/{id}/edit', [App\Http\Controllers\DashboardController::class, 'estadisticoEdit'])->name('dashboard.estadistico.edit');
+    Route::put('/dashboard-estadistico/{id}', [App\Http\Controllers\DashboardController::class, 'estadisticoUpdate'])->name('dashboard.estadistico.update');
+    Route::delete('/dashboard-estadistico/{id}', [App\Http\Controllers\DashboardController::class, 'estadisticoDestroy'])->name('dashboard.estadistico.destroy');
+});

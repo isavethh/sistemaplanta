@@ -110,7 +110,7 @@ return [
     */
 
     'preloader' => [
-        'enabled' => true,
+        'enabled' => false,
         'mode' => 'fullscreen',
         'img' => [
             'path' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
@@ -310,65 +310,64 @@ return [
         ['text' => 'Dashboard', 'url' => '/', 'icon' => 'fas fa-tachometer-alt', 'icon_color' => 'primary'],
 
         // =============================================
-        // MENÚ PARA PLANTA (Cliente)
+        // MENÚ PARA ADMIN
         // =============================================
-        ['header' => '📦 MIS ENVÍOS', 'role' => 'planta'],
-        ['text' => 'Crear Envío', 'url' => 'envios/create', 'icon' => 'fas fa-plus-circle', 'icon_color' => 'success', 'role' => 'planta'],
-        ['text' => 'Mis Envíos', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'primary', 'role' => 'planta'],
-        ['text' => 'Documentos', 'url' => 'codigosqr', 'icon' => 'fas fa-file-alt', 'icon_color' => 'warning', 'role' => 'planta'],
-        ['text' => 'Monitoreo en Tiempo Real', 'url' => 'rutas', 'icon' => 'fas fa-map-marked-alt', 'icon_color' => 'danger', 'role' => 'planta'],
-        ['text' => 'Notas de Venta', 'url' => 'notas-venta', 'icon' => 'fas fa-file-invoice-dollar', 'icon_color' => 'info', 'role' => 'planta'],
-
-        // =============================================
-        // =============================================
-        // MENÚ PARA ADMINISTRADOR
-        // =============================================
-        ['header' => '📋 GESTIÓN', 'role' => 'administrador'],
-
-        // Asignación de Envíos
+        ['header' => '🚛 GESTIÓN DE ENVÍOS', 'role' => 'admin'],
         [
-            'text' => 'Asignación de Envíos',
-            'url' => 'asignaciones',
-            'icon' => 'fas fa-clipboard-check',
-            'icon_color' => 'info',
-            'role' => 'administrador'
-        ],
-
-        // Rutas Multi-Entrega
-        [
-            'text' => 'Rutas Multi-Entrega',
-            'icon' => 'fas fa-route',
-            'icon_color' => 'purple',
-            'role' => 'administrador',
-            'submenu' => [
-                ['text' => 'Crear Ruta', 'url' => 'rutas-multi/crear', 'icon' => 'fas fa-plus-circle'],
-                ['text' => 'Lista de Rutas', 'url' => 'rutas-multi', 'icon' => 'fas fa-list'],
-                ['text' => 'Monitoreo en Vivo', 'url' => 'rutas-multi/monitoreo', 'icon' => 'fas fa-satellite-dish text-success'],
-            ],
-        ],
-
-        // Envíos
-        ['text' => 'Todos los Envíos', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'success', 'role' => 'administrador'],
-
-        // Usuarios y Transportistas
-        [
-            'text' => 'Gestión de Usuarios',
-            'icon' => 'fas fa-users',
+            'text' => 'Envíos',
+            'url' => 'envios',
+            'icon' => 'fas fa-boxes',
             'icon_color' => 'primary',
-            'role' => 'administrador',
-            'submenu' => [
-                ['text' => 'Transportistas', 'url' => 'transportistas', 'icon' => 'fas fa-id-card'],
-                ['text' => 'Vehículos', 'url' => 'vehiculos', 'icon' => 'fas fa-truck'],
-            ],
+            'role' => 'admin'
+        ],
+        [
+            'text' => 'Asignar Transportistas',
+            'url' => 'asignaciones',
+            'icon' => 'fas fa-user-tag',
+            'icon_color' => 'success',
+            'role' => 'admin'
+        ],
+        [
+            'text' => 'Asignación Múltiple',
+            'url' => 'asignacion-multiple',
+            'icon' => 'fas fa-truck-loading',
+            'icon_color' => 'warning',
+            'role' => 'admin'
+        ],
+        
+        ['header' => '📊 REPORTES Y ANÁLISIS', 'role' => 'admin'],
+        
+        // Dashboard Estadístico
+        [
+            'text' => 'Dashboard Estadístico',
+            'url' => 'dashboard-estadistico',
+            'icon' => 'fas fa-chart-line',
+            'icon_color' => 'purple',
+            'role' => 'admin'
+        ],
+        
+        // Monitorización en Tiempo Real
+        [
+            'text' => 'Monitorización en Tiempo Real',
+            'url' => 'rutas',
+            'icon' => 'fas fa-route',
+            'icon_color' => 'info',
+            'role' => 'admin'
         ],
 
-        // Incidentes
+        // Centro de Reportes
         [
-            'text' => 'Incidentes',
-            'url' => 'incidentes',
-            'icon' => 'fas fa-exclamation-triangle',
-            'icon_color' => 'danger',
-            'role' => 'administrador'
+            'text' => 'Reportes',
+            'icon' => 'fas fa-file-alt',
+            'icon_color' => 'info',
+            'role' => 'admin',
+            'submenu' => [
+                ['text' => 'Centro de Reportes', 'url' => 'reportes', 'icon' => 'fas fa-folder-open'],
+                ['text' => 'Operaciones', 'url' => 'reportes/operaciones', 'icon' => 'fas fa-truck-loading'],
+                ['text' => 'Notas de Entrega', 'url' => 'reportes/nota-entrega', 'icon' => 'fas fa-file-signature'],
+                ['text' => 'Incidentes', 'url' => 'reportes/incidentes', 'icon' => 'fas fa-exclamation-circle text-danger'],
+                ['text' => 'Productividad', 'url' => 'reportes/productividad', 'icon' => 'fas fa-users-cog'],
+            ],
         ],
 
         // Configuración
@@ -376,11 +375,12 @@ return [
             'text' => 'Configuración',
             'icon' => 'fas fa-cogs',
             'icon_color' => 'secondary',
-            'role' => 'administrador',
+            'role' => 'admin',
             'submenu' => [
                 ['text' => 'Almacenes', 'url' => 'almacenes', 'icon' => 'fas fa-warehouse'],
                 ['text' => 'Tipos de Transporte', 'url' => 'tipos-transporte', 'icon' => 'fas fa-truck-loading'],
                 ['text' => 'Tamaños de Transporte', 'url' => 'tamanos-transporte', 'icon' => 'fas fa-ruler-combined'],
+                ['text' => 'Calculador de Empaques', 'url' => 'tiposempaque-calculador', 'icon' => 'fas fa-calculator text-success'],
             ],
         ],
 
@@ -390,17 +390,19 @@ return [
         ['header' => '🚚 MIS ENTREGAS', 'role' => 'transportista'],
         ['text' => 'Envíos Asignados', 'url' => 'envios', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'primary', 'role' => 'transportista'],
         ['text' => 'Mis Rutas', 'url' => 'rutas-multi', 'icon' => 'fas fa-route', 'icon_color' => 'info', 'role' => 'transportista'],
-        ['text' => 'Documentos de Entrega', 'url' => 'notas-venta', 'icon' => 'fas fa-file-invoice', 'icon_color' => 'success', 'role' => 'transportista'],
-        ['text' => 'Reportar Incidente', 'url' => 'incidentes', 'icon' => 'fas fa-exclamation-triangle', 'icon_color' => 'warning', 'role' => 'transportista'],
+        ['text' => 'Documentos de Entrega', 'url' => 'notas-entrega', 'icon' => 'fas fa-file-invoice', 'icon_color' => 'success', 'role' => 'transportista'],
+        ['text' => 'Mi Inventario', 'url' => 'inventarios-transportista', 'icon' => 'fas fa-boxes', 'icon_color' => 'warning', 'role' => 'transportista'],
+        
+        ['header' => '📊 MIS REPORTES', 'role' => 'transportista'],
+        ['text' => 'Mis Incidentes', 'url' => 'reportes/mis-incidentes', 'icon' => 'fas fa-file-alt', 'icon_color' => 'danger', 'role' => 'transportista'],
+        ['text' => 'Mi Productividad', 'url' => 'reportes/mi-productividad', 'icon' => 'fas fa-chart-bar', 'icon_color' => 'info', 'role' => 'transportista'],
 
         // =============================================
         // MENÚ PARA ALMACÉN
         // =============================================
         ['header' => '📦 MIS RECEPCIONES', 'role' => 'almacen'],
-        ['text' => 'Envíos Recibidos', 'url' => 'envios', 'icon' => 'fas fa-box-open', 'icon_color' => 'success', 'role' => 'almacen'],
-        ['text' => 'Notas de Entrega', 'url' => 'notas-venta', 'icon' => 'fas fa-receipt', 'icon_color' => 'primary', 'role' => 'almacen'],
         ['text' => 'Inventario', 'url' => 'inventarios', 'icon' => 'fas fa-boxes', 'icon_color' => 'info', 'role' => 'almacen'],
-        ['text' => 'Reportar Incidente', 'url' => 'incidentes', 'icon' => 'fas fa-exclamation-circle', 'icon_color' => 'danger', 'role' => 'almacen'],
+        ['text' => 'Monitorización en Tiempo Real', 'url' => 'almacenes/monitoreo', 'icon' => 'fas fa-route', 'icon_color' => 'primary', 'role' => 'almacen'],
     ],
 
     /*
@@ -545,7 +547,7 @@ return [
             ],
         ],
         'Pace' => [
-            'active' => true,
+            'active' => false,
             'files' => [
                 [
                     'type' => 'css',

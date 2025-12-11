@@ -11,7 +11,15 @@ class TipoEmpaque extends Model
 
     protected $table = 'tipos_empaque';
 
-    protected $fillable = ['nombre'];
+    protected $fillable = [
+        'nombre',
+        'largo_cm',
+        'ancho_cm',
+        'alto_cm',
+        'peso_maximo_kg',
+        'volumen_cm3',
+        'icono',
+    ];
 
     public function envios()
     {

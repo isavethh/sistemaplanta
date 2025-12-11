@@ -119,7 +119,7 @@
                             <div class="card-body text-center">
                                 <i class="fas fa-file-invoice-dollar fa-3x text-white mb-3"></i>
                                 <h5 class="text-white">Notas de Venta</h5>
-                                <a href="{{ route('notas-venta.index') }}" class="btn btn-light btn-block">
+                                <a href="{{ route('notas-entrega.index') }}" class="btn btn-light btn-block">
                                     <i class="fas fa-receipt"></i> Ver Notas
                                 </a>
                             </div>

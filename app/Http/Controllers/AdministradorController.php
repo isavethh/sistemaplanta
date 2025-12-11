@@ -9,7 +9,7 @@ class AdministradorController extends Controller
 {
     public function index()
     {
-        $admins = User::where('role', 'administrador')->get();
+        $admins = User::role('admin')->get();
         return view('administradores.index', compact('admins'));
     }
 
@@ -30,7 +30,8 @@ class AdministradorController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'administrador',
+            'role' => 'admin',
+            'tipo' => 'administrador',
         ]);
 
         return redirect()->route('administradores.index')->with('success', 'Administrador creado');
@@ -53,6 +54,7 @@ class AdministradorController extends Controller
         if ($request->password) { $data['password'] = Hash::make($request->password); }
 
         $administrador->update($data);
+        $administrador->syncRoles(['admin']);
 
         return redirect()->route('administradores.index')->with('success', 'Administrador actualizado');
     }

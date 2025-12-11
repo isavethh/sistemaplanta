@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Envio;
 use App\Models\Almacen;
-use App\Models\Direccion;
 use App\Models\TipoEmpaque;
 use App\Models\UnidadMedida;
 use App\Models\EnvioProducto;
@@ -48,10 +47,15 @@ class EnvioController extends Controller
             'productos.*.cantidad' => 'required|integer|min:1',
             'productos.*.peso_unitario' => 'required|numeric|min:0',
             'productos.*.precio_unitario' => 'required|numeric|min:0',
+            'productos.*.alto_producto_cm' => 'nullable|numeric|min:0',
+            'productos.*.ancho_producto_cm' => 'nullable|numeric|min:0',
+            'productos.*.largo_producto_cm' => 'nullable|numeric|min:0',
         ]);
 
         // Generar código único para el envío
         $codigo = 'ENV-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+
+        \Log::info("📝 Creando nuevo envío: {$codigo}");
 
         // La categoría será "Mixto" si hay productos de diferentes categorías
         $envio = Envio::create([
@@ -65,6 +69,8 @@ class EnvioController extends Controller
             'observaciones' => $request->observaciones,
         ]);
 
+        \Log::info("✅ Envío creado con ID: {$envio->id}, Estado: {$envio->estado}");
+
         // Crear productos del envío
         foreach ($request->productos as $prod) {
             EnvioProducto::create([
@@ -77,13 +83,19 @@ class EnvioController extends Controller
                 'precio_unitario' => $prod['precio_unitario'],
                 'total_peso' => $prod['cantidad'] * $prod['peso_unitario'],
                 'total_precio' => $prod['cantidad'] * $prod['precio_unitario'],
+                // Campos opcionales de medidas del producto
+                'alto_producto_cm' => $prod['alto_producto_cm'] ?? null,
+                'ancho_producto_cm' => $prod['ancho_producto_cm'] ?? null,
+                'largo_producto_cm' => $prod['largo_producto_cm'] ?? null,
             ]);
         }
 
         // Actualizar totales del envío
         $envio->calcularTotales();
 
-        return redirect()->route('envios.index')->with('success', 'Envío creado exitosamente desde la Planta');
+        \Log::info("📦 Productos agregados al envío {$codigo}. Total productos: " . $envio->productos()->count());
+
+        return redirect()->route('envios.index')->with('success', "✅ Envío {$codigo} creado exitosamente y listo para asignación");
     }
 
     public function show(Envio $envio)
@@ -162,47 +174,4 @@ class EnvioController extends Controller
         return response()->json(['success' => true, 'message' => 'Estado actualizado']);
     }
 
-    public function aprobar(Envio $envio)
-    {
-        try {
-            // Solo se puede aprobar un envío pendiente
-            if ($envio->estado !== 'pendiente') {
-                return redirect()->back()->with('error', 'Solo se pueden aprobar envíos pendientes');
-            }
-
-            // Cambiar estado a 'aprobado'
-            $envio->estado = 'aprobado';
-            $envio->save();
-
-            // Generar nota de venta automáticamente llamando al backend Node.js
-            $nodeBackendUrl = env('NODE_BACKEND_URL', 'http://localhost:3001');
-            
-            try {
-                $client = new \GuzzleHttp\Client();
-                $response = $client->post("{$nodeBackendUrl}/api/notas-venta/generar", [
-                    'json' => [
-                        'envio_id' => $envio->id
-                    ],
-                    'timeout' => 10
-                ]);
-
-                $result = json_decode($response->getBody(), true);
-                
-                if ($result['success']) {
-                    return redirect()->route('envios.show', $envio)
-                        ->with('success', 'Envío aprobado exitosamente. Nota de venta generada: ' . $result['numero_nota']);
-                }
-            } catch (\Exception $e) {
-                \Log::error('Error al generar nota de venta: ' . $e->getMessage());
-                return redirect()->route('envios.show', $envio)
-                    ->with('warning', 'Envío aprobado, pero no se pudo generar la nota de venta automáticamente.');
-            }
-
-            return redirect()->route('envios.show', $envio)
-                ->with('success', 'Envío aprobado exitosamente');
-
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error al aprobar envío: ' . $e->getMessage());
-        }
-    }
 }

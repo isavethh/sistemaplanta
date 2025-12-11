@@ -14,7 +14,6 @@ class Almacen extends Model
     protected $fillable = [
         'nombre',
         'usuario_almacen_id',
-        'direccion_id',
         'latitud',
         'longitud',
         'direccion_completa',
@@ -35,24 +34,9 @@ class Almacen extends Model
         return $this->belongsTo(User::class, 'usuario_almacen_id');
     }
 
-    public function direccion()
-    {
-        return $this->belongsTo(Direccion::class, 'direccion_id');
-    }
-
     public function inventario()
     {
         return $this->hasMany(InventarioAlmacen::class);
-    }
-
-    public function direccionesComoOrigen()
-    {
-        return $this->hasMany(Direccion::class, 'almacen_origen_id');
-    }
-
-    public function direccionesComoDestino()
-    {
-        return $this->hasMany(Direccion::class, 'almacen_destino_id');
     }
 
     // Scopes

@@ -18,7 +18,17 @@
     </div>
 @endif
 
-<!-- Selector de Almacén -->
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+@endif
+
+<!-- Selector de Almacén (solo para admin) -->
+@if(isset($mostrarSelector) && $mostrarSelector)
 <div class="card shadow mb-4">
     <div class="card-header bg-gradient-info">
         <h3 class="card-title text-white"><i class="fas fa-filter"></i> Seleccionar Almacén</h3>
@@ -42,12 +52,16 @@
         </form>
     </div>
 </div>
+@endif
 
 @if($almacenSeleccionado && $almacenActual)
 <!-- Información del Almacén -->
 <div class="alert alert-info">
     <h5><i class="fas fa-warehouse"></i> Mostrando inventario de: <strong>{{ $almacenActual->nombre }}</strong></h5>
     <p class="mb-0">📍 {{ $almacenActual->direccion_completa ?? 'Sin dirección' }}</p>
+    @if(!isset($mostrarSelector) || !$mostrarSelector)
+    <p class="mb-0 mt-2"><small><i class="fas fa-info-circle"></i> Estás viendo el inventario de tu almacén asignado.</small></p>
+    @endif
 </div>
 
 <!-- Tarjetas de Resumen -->

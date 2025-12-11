@@ -21,6 +21,9 @@ class EnvioProducto extends Model
         'precio_unitario',
         'total_peso',
         'total_precio',
+        'alto_producto_cm',
+        'ancho_producto_cm',
+        'largo_producto_cm',
     ];
 
     protected $casts = [

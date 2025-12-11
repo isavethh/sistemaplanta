@@ -3,9 +3,14 @@
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
         <h1><i class="fas fa-box text-primary"></i> Envío {{ $envio->codigo }}</h1>
-        <a href="{{ route('envios.index') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Volver
-        </a>
+        <div>
+            <a href="{{ route('reportes.trazabilidad', $envio->id) }}" class="btn btn-info">
+                <i class="fas fa-route"></i> Trazabilidad Completa
+            </a>
+            <a href="{{ route('envios.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
     </div>
 @endsection
 
@@ -272,19 +277,19 @@
             </div>
         </div>
 
-        <!-- Notas de Venta -->
+        <!-- Notas de Entrega -->
         @php
-            $notaVenta = DB::table('notas_venta')->where('envio_id', $envio->id)->first();
+            $notaEntrega = DB::table('notas_venta')->where('envio_id', $envio->id)->first();
         @endphp
-        @if($notaVenta)
+        @if($notaEntrega)
         <div class="card shadow">
             <div class="card-header bg-secondary">
-                <h5 class="card-title text-white mb-0"><i class="fas fa-file-invoice"></i> Nota de Venta</h5>
+                <h5 class="card-title text-white mb-0"><i class="fas fa-file-invoice"></i> Nota de Entrega</h5>
             </div>
             <div class="card-body">
-                <p><strong>Número:</strong> {{ $notaVenta->numero_nota }}</p>
-                <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($notaVenta->fecha_emision)->format('d/m/Y') }}</p>
-                <p><strong>Total:</strong> Bs. {{ number_format($notaVenta->total_precio, 2) }}</p>
+                <p><strong>Número:</strong> {{ $notaEntrega->numero_nota }}</p>
+                <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($notaEntrega->fecha_emision)->format('d/m/Y') }}</p>
+                <p><strong>Total:</strong> Bs. {{ number_format($notaEntrega->total_precio, 2) }}</p>
             </div>
         </div>
         @endif
