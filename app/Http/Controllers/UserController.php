@@ -29,7 +29,8 @@ class UserController extends Controller
      */
     public function create()
     {
-        $roles = Role::all();
+        // Solo los 3 roles permitidos: admin, almacen, transportista
+        $roles = Role::whereIn('name', ['admin', 'almacen', 'transportista'])->get();
         return view('users.create', compact('roles'));
     }
 
@@ -80,7 +81,8 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        $roles = Role::all();
+        // Solo los 3 roles permitidos: admin, almacen, transportista
+        $roles = Role::whereIn('name', ['admin', 'almacen', 'transportista'])->get();
         $user->load('roles');
         return view('users.edit', compact('user', 'roles'));
     }

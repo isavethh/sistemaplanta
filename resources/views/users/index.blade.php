@@ -44,7 +44,17 @@
                     <td>
                         @if($user->roles->count() > 0)
                             @foreach($user->roles as $role)
-                                <span class="badge badge-{{ $role->name == 'admin' ? 'danger' : ($role->name == 'transportista' ? 'primary' : 'info') }}">
+                                @php
+                                    $badgeClass = 'secondary';
+                                    if ($role->name == 'admin') {
+                                        $badgeClass = 'danger';
+                                    } elseif ($role->name == 'transportista') {
+                                        $badgeClass = 'primary';
+                                    } elseif ($role->name == 'almacen') {
+                                        $badgeClass = 'info';
+                                    }
+                                @endphp
+                                <span class="badge badge-{{ $badgeClass }}">
                                     {{ ucfirst($role->name) }}
                                 </span>
                             @endforeach

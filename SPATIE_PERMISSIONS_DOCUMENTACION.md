@@ -306,8 +306,10 @@ php artisan tinker
 - La app móvil seguirá funcionando sin modificaciones
 
 ### 3. Usuarios sin rol
-- Si un usuario no tiene rol asignado, se le asigna `cliente` por defecto
-- Puedes cambiar esto en el seeder `AssignRolesToExistingUsersSeeder.php`
+- Los roles se asignan únicamente a través de los seeders principales:
+  - `RolesAndPermissionsSeeder.php` - Crea roles y permisos
+  - `ResetRolesAndPermissionsSeeder.php` - Reinicia roles y permisos
+- Los usuarios se crean desde el dashboard del admin con roles asignados directamente
 
 ### 4. Performance
 - Spatie cachea roles y permisos automáticamente

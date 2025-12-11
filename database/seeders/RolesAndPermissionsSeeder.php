@@ -119,48 +119,19 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // ==========================================
         // CREAR ROLES Y ASIGNAR PERMISOS
+        // Solo 3 roles: admin, almacen, transportista
         // ==========================================
 
-        // 1. SUPER ADMIN - Control total
-        $superAdmin = Role::create(['name' => 'super-admin']);
-        $superAdmin->givePermissionTo(Permission::all());
-
-        // 2. ADMIN - Gestión completa excepto usuarios/roles
+        // 1. ADMIN - Control total del sistema
         $admin = Role::create(['name' => 'admin']);
-        $admin->givePermissionTo([
-            'dashboard.ver',
-            // Envíos
-            'envios.ver', 'envios.crear', 'envios.editar', 'envios.eliminar',
-            'envios.asignar', 'envios.aprobar', 'envios.tracking', 'envios.actualizar-estado',
-            // Asignaciones
-            'asignaciones.ver', 'asignaciones.asignar', 'asignaciones.remover', 'asignaciones.multiple',
-            // Rutas Multi-Entrega
-            'rutas-multi.ver', 'rutas-multi.crear', 'rutas-multi.editar', 'rutas-multi.monitorear',
-            'rutas-multi.reordenar', 'rutas-multi.documentos',
-            // Usuarios (solo ver)
-            'usuarios.ver', 'transportistas.ver', 'clientes.ver',
-            // Vehículos
-            'vehiculos.ver', 'vehiculos.crear', 'vehiculos.editar',
-            // Almacenes
-            'almacenes.ver', 'almacenes.crear', 'almacenes.editar', 'almacenes.inventario',
-            // Productos
-            'productos.ver', 'productos.crear', 'productos.editar',
-            // Categorías
-            'categorias.ver', 'categorias.crear', 'categorias.editar',
-            // Inventario
-            'inventario.ver', 'inventario.crear', 'inventario.editar',
-            // Incidentes
-            'incidentes.ver', 'incidentes.actualizar', 'incidentes.resolver',
-            // Reportes
-            'reportes.ver', 'reportes.exportar',
-        ]);
+        $admin->givePermissionTo(Permission::all());
 
-        // 3. GESTOR DE ALMACÉN - Gestión de inventario y creación de envíos
-        $gestorAlmacen = Role::create(['name' => 'gestor-almacen']);
-        $gestorAlmacen->givePermissionTo([
+        // 2. ALMACEN - Gestión de inventario y recepción de envíos
+        $almacen = Role::create(['name' => 'almacen']);
+        $almacen->givePermissionTo([
             'dashboard.ver',
-            // Envíos (crear y ver)
-            'envios.ver', 'envios.crear', 'envios.tracking',
+            // Envíos (ver y firmar)
+            'envios.ver', 'envios.tracking', 'envios.firmar',
             // Almacenes
             'almacenes.ver', 'almacenes.inventario',
             // Productos
@@ -169,11 +140,15 @@ class RolesAndPermissionsSeeder extends Seeder
             'categorias.ver',
             // Inventario (completo)
             'inventario.ver', 'inventario.crear', 'inventario.editar',
+            // Documentos
+            'documentos.ver', 'documentos.nota-entrega',
+            // Incidentes (reportar)
+            'incidentes.ver', 'incidentes.crear', 'incidentes.reportar',
             // Reportes (solo de su almacén)
             'reportes.ver',
         ]);
 
-        // 4. TRANSPORTISTA - Ver y actualizar sus envíos asignados
+        // 3. TRANSPORTISTA - Ver y actualizar sus envíos asignados
         $transportista = Role::create(['name' => 'transportista']);
         $transportista->givePermissionTo([
             'dashboard.ver',
@@ -182,47 +157,20 @@ class RolesAndPermissionsSeeder extends Seeder
             'envios.aceptar', 'envios.rechazar', 'envios.iniciar', 'envios.entregar',
             // Rutas (solo asignadas)
             'rutas-multi.ver', 'rutas-multi.documentos',
+            // Documentos
+            'documentos.ver', 'documentos.nota-entrega',
             // Incidentes (crear y ver)
             'incidentes.ver', 'incidentes.crear',
-        ]);
-
-        // 5. CLIENTE - Ver sus propios envíos
-        $cliente = Role::create(['name' => 'cliente']);
-        $cliente->givePermissionTo([
-            'dashboard.ver',
-            // Envíos (solo propios)
-            'envios.ver', 'envios.tracking',
-        ]);
-
-        // 6. DESPACHADOR - Asignación de transportistas y monitoreo
-        $despachador = Role::create(['name' => 'despachador']);
-        $despachador->givePermissionTo([
-            'dashboard.ver',
-            // Envíos
-            'envios.ver', 'envios.crear', 'envios.asignar', 'envios.tracking',
-            'envios.actualizar-estado',
-            // Asignaciones (completo)
-            'asignaciones.ver', 'asignaciones.asignar', 'asignaciones.remover', 'asignaciones.multiple',
-            // Rutas Multi-Entrega (completo)
-            'rutas-multi.ver', 'rutas-multi.crear', 'rutas-multi.editar',
-            'rutas-multi.monitorear', 'rutas-multi.reordenar', 'rutas-multi.documentos',
-            // Ver transportistas y vehículos
-            'transportistas.ver', 'vehiculos.ver',
-            // Incidentes
-            'incidentes.ver', 'incidentes.actualizar',
-            // Reportes
-            'reportes.ver',
+            // Monitoreo
+            'monitoreo.ver-propio', 'monitoreo.simular',
         ]);
 
         $this->command->info('✅ Roles y permisos creados exitosamente!');
         $this->command->info('');
-        $this->command->info('📋 Roles creados:');
-        $this->command->info('  1. Super Admin (acceso total)');
-        $this->command->info('  2. Admin (gestión completa)');
-        $this->command->info('  3. Gestor de Almacén (inventario y envíos)');
-        $this->command->info('  4. Transportista (envíos asignados)');
-        $this->command->info('  5. Cliente (ver propios envíos)');
-        $this->command->info('  6. Despachador (asignaciones y rutas)');
+        $this->command->info('📋 Roles creados (3 roles):');
+        $this->command->info('  1. Admin (control total)');
+        $this->command->info('  2. Almacen (inventario y recepción)');
+        $this->command->info('  3. Transportista (envíos asignados)');
         $this->command->info('');
         $this->command->info('📝 Total de permisos: ' . Permission::count());
     }

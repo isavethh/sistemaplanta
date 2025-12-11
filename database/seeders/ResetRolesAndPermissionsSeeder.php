@@ -84,60 +84,33 @@ class ResetRolesAndPermissionsSeeder extends Seeder
         Permission::create(['name' => 'transportistas.gestionar']);
 
         // ==========================================
-        // CREAR ROLES SEGÚN EL FLUJO REAL
+        // CREAR ROLES - Solo 3 roles
         // ==========================================
 
-        // 1. PLANTA (Cliente que crea pedidos)
-        $planta = Role::create(['name' => 'planta']);
-        $planta->givePermissionTo([
+        // 1. ADMIN - Control total del sistema
+        $admin = Role::create(['name' => 'admin']);
+        $admin->givePermissionTo(Permission::all());
+
+        // 2. ALMACEN - Recepción de envíos, inventario y firma
+        $almacen = Role::create(['name' => 'almacen']);
+        $almacen->givePermissionTo([
             'dashboard.ver',
-            // Envíos (crear y ver sus propios envíos)
+            // Envíos (solo los que le llegan)
             'envios.ver',
-            'envios.crear',
             'envios.tracking',
-            // Documentos (ver sus documentos)
+            'envios.firmar',
+            // Documentos (nota de entrega/venta)
             'documentos.ver',
             'documentos.nota-entrega',
-            'documentos.nota-entrega',
-            // Monitoreo (ver sus envíos en tiempo real)
+            // Monitoreo (ver envíos que vienen hacia su almacén)
             'monitoreo.ver-propio',
-        ]);
-
-        // 2. ADMINISTRADOR (Asigna envíos a transportistas)
-        $administrador = Role::create(['name' => 'administrador']);
-        $administrador->givePermissionTo([
-            'dashboard.ver',
-            // Envíos (ver, editar, eliminar)
-            'envios.ver',
-            'envios.editar',
-            'envios.eliminar',
-            'envios.tracking',
-            // Asignaciones (completas - individual y múltiple)
-            'asignaciones.ver',
-            'asignaciones.asignar',
-            'asignaciones.remover',
-            'asignaciones.multiple',
-            // Rutas Multi-Entrega
-            'rutas-multi.ver',
-            'rutas-multi.crear',
-            'rutas-multi.editar',
-            'rutas-multi.monitorear',
-            // Documentos
-            'documentos.ver',
-            'documentos.nota-entrega',
-            'documentos.nota-entrega',
-            // Monitoreo (ver todos)
-            'monitoreo.ver-todos',
-            // Vehículos y transportistas
-            'vehiculos.ver',
-            'vehiculos.gestionar',
-            'transportistas.ver',
-            'transportistas.gestionar',
-            // Incidentes
+            // Incidentes (reportar problemas con pedidos)
             'incidentes.ver',
+            'incidentes.crear',
+            'incidentes.reportar',
         ]);
 
-        // 3. TRANSPORTISTA (Acepta/rechaza, monitorea sus envíos)
+        // 3. TRANSPORTISTA - Acepta/rechaza, monitorea sus envíos
         $transportista = Role::create(['name' => 'transportista']);
         $transportista->givePermissionTo([
             'dashboard.ver',
@@ -153,7 +126,6 @@ class ResetRolesAndPermissionsSeeder extends Seeder
             // Documentos (de sus envíos)
             'documentos.ver',
             'documentos.nota-entrega',
-            'documentos.nota-entrega',
             // Monitoreo (simular movimiento de sus envíos)
             'monitoreo.ver-propio',
             'monitoreo.simular',
@@ -162,33 +134,12 @@ class ResetRolesAndPermissionsSeeder extends Seeder
             'incidentes.crear',
         ]);
 
-        // 4. ALMACEN (Recibe envíos, firma, reporta incidentes)
-        $almacen = Role::create(['name' => 'almacen']);
-        $almacen->givePermissionTo([
-            'dashboard.ver',
-            // Envíos (solo los que le llegan)
-            'envios.ver',
-            'envios.tracking',
-            'envios.firmar',
-            // Documentos (nota de entrega/venta)
-            'documentos.ver',
-            'documentos.nota-entrega',
-            'documentos.nota-entrega',
-            // Monitoreo (ver envíos que vienen hacia su almacén)
-            'monitoreo.ver-propio',
-            // Incidentes (reportar problemas con pedidos)
-            'incidentes.ver',
-            'incidentes.crear',
-            'incidentes.reportar',
-        ]);
-
         $this->command->info('✅ Roles creados exitosamente!');
         $this->command->info('');
-        $this->command->info('📋 Roles creados según el flujo real:');
-        $this->command->info('  1. Planta (crea envíos desde planta)');
-        $this->command->info('  2. Administrador (asigna envíos a transportistas)');
+        $this->command->info('📋 Roles creados (3 roles):');
+        $this->command->info('  1. Admin (control total)');
+        $this->command->info('  2. Almacen (recepción y firma)');
         $this->command->info('  3. Transportista (acepta/rechaza, monitoreo, entrega)');
-        $this->command->info('  4. Almacén (recibe envíos, firma, reporta incidentes)');
         $this->command->info('');
         $this->command->info('📝 Total de permisos: ' . Permission::count());
     }

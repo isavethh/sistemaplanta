@@ -108,50 +108,26 @@ class User extends Authenticatable
         return $query->where('disponible', true);
     }
 
-    // Helpers - Según el flujo real del sistema
-    public function esPlanta()
+    // Helpers - Solo 3 roles: admin, almacen, transportista
+    public function esAdmin()
     {
-        // Planta = Cliente que crea envíos desde planta
-        return $this->hasRole('planta') ||
-            $this->tipo === 'cliente' ||
-            $this->role === 'cliente' ||
-            $this->tipo === 'planta' ||
-            $this->role === 'planta';
-    }
-
-    public function esAdministrador()
-    {
-        // Administrador = Asigna envíos a transportistas
-        return $this->hasRole('administrador') ||
-            $this->tipo === 'admin' ||
-            $this->role === 'admin';
-    }
-
-    public function esTransportista()
-    {
-        // Transportista = Acepta/rechaza, monitorea, entrega
-        return $this->hasRole('transportista') ||
-            $this->tipo === 'transportista' ||
-            $this->role === 'transportista';
+        return $this->hasRole('admin');
     }
 
     public function esAlmacen()
     {
-        // Almacén = Recibe envíos, firma, reporta incidentes
-        return $this->hasRole('almacen') ||
-            $this->tipo === 'almacen' ||
-            $this->role === 'almacen';
+        return $this->hasRole('almacen');
+    }
+
+    public function esTransportista()
+    {
+        return $this->hasRole('transportista');
     }
 
     // Alias para compatibilidad
-    public function esCliente()
+    public function esAdministrador()
     {
-        return $this->esPlanta();
-    }
-
-    public function esAdmin()
-    {
-        return $this->esAdministrador();
+        return $this->esAdmin();
     }
 
     public function puedeConducir($licenciaRequerida)
