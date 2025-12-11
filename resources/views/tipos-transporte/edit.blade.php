@@ -18,8 +18,15 @@
             
             <div class="form-group">
                 <label><i class="fas fa-tag"></i> Nombre *</label>
-                <input type="text" name="nombre" class="form-control @error('nombre') is-invalid @enderror" 
-                       value="{{ old('nombre', $tiposTransporte->nombre) }}" required>
+                <select name="nombre" class="form-control @error('nombre') is-invalid @enderror" required>
+                    <option value="">Seleccione el tipo</option>
+                    <option value="Aislado" {{ old('nombre', $tiposTransporte->nombre) == 'Aislado' ? 'selected' : '' }}>Aislado</option>
+                    <option value="Ventilado" {{ old('nombre', $tiposTransporte->nombre) == 'Ventilado' ? 'selected' : '' }}>Ventilado</option>
+                    <option value="Hermético" {{ old('nombre', $tiposTransporte->nombre) == 'Hermético' ? 'selected' : '' }}>Hermético</option>
+                    <option value="Refrigerado" {{ old('nombre', $tiposTransporte->nombre) == 'Refrigerado' ? 'selected' : '' }}>Refrigerado</option>
+                    <option value="Congelado" {{ old('nombre', $tiposTransporte->nombre) == 'Congelado' ? 'selected' : '' }}>Congelado</option>
+                    <option value="Estándar" {{ old('nombre', $tiposTransporte->nombre) == 'Estándar' ? 'selected' : '' }}>Estándar</option>
+                </select>
                 @error('nombre')
                     <span class="invalid-feedback">{{ $message }}</span>
                 @enderror

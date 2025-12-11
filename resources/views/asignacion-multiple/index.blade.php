@@ -158,7 +158,7 @@
     
     <!-- COLUMNA DERECHA: ASIGNACIÓN Y ANIMACIÓN -->
     <div class="col-lg-5 d-flex flex-column">
-        <form action="{{ route('asignacion-multiple.asignar') }}" method="POST" id="formAsignacionMultiple" class="d-flex flex-column h-100">
+        <form action="{{ route('asignacion-multiple.asignar') }}" method="POST" id="formAsignacionMultiple" class="d-flex flex-column">
             @csrf
             <div id="envios-ids-container"></div>
             
@@ -193,10 +193,13 @@
                                 <option value="{{ $v->id }}"
                                         data-capacidad="{{ $v->capacidad_carga ?? 1000 }}"
                                         data-tipo="{{ $v->tipoTransporte->nombre ?? 'Camión' }}"
+                                        data-tamano="{{ $v->tamanoVehiculo->nombre ?? 'N/A' }}"
                                         data-placa="{{ $v->placa }}"
                                         data-marca="{{ $v->marca }} {{ $v->modelo }}">
                                     🚛 {{ $v->placa }} - {{ $v->marca }} {{ $v->modelo }}
-                                    (Cap: {{ number_format($v->capacidad_carga ?? 1000) }} kg)
+                                    | Tipo: {{ $v->tipoTransporte->nombre ?? 'N/A' }}
+                                    | Tamaño: {{ $v->tamanoVehiculo->nombre ?? 'N/A' }}
+                                    | Cap: {{ number_format($v->capacidad_carga ?? 1000) }} kg
                                 </option>
                             @endforeach
                         </select>
@@ -310,21 +313,35 @@
 ============================================ */
 #panel-principal {
     display: flex;
-    align-items: stretch;
+    align-items: flex-start;
+    overflow: visible;
+}
+
+#panel-principal .row {
+    width: 100%;
+    margin: 0;
 }
 
 #panel-principal .col-lg-7,
 #panel-principal .col-lg-5 {
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    overflow: visible;
 }
 
-#card-envios,
-#card-asignar {
+#card-envios {
     display: flex;
     flex-direction: column;
     flex: 1;
-    min-height: 100%;
+    min-height: auto;
+}
+
+#card-asignar {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    min-height: auto;
 }
 
 #card-envios .card-body,
@@ -342,7 +359,7 @@
 #formAsignacionMultiple {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    min-height: 0;
 }
 
 #formAsignacionMultiple > .card {
@@ -350,18 +367,20 @@
 }
 
 #formAsignacionMultiple #card-animacion {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    flex-shrink: 0;
+    max-height: none;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 1rem;
 }
 
 #formAsignacionMultiple #card-animacion .card-body {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    overflow-y: auto;
+    overflow: visible;
+    max-height: none;
 }
 
 /* ============================================
@@ -470,6 +489,8 @@
     align-items: flex-end;
     justify-content: center;
     margin-bottom: 25px;
+    min-height: 150px;
+    position: relative;
 }
 
 .camion-cabina {
@@ -490,27 +511,30 @@
     position: relative;
     overflow: hidden;
     box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: flex-end;
 }
 
 .camion-carga-fill {
     position: absolute;
     bottom: 0;
     left: 0;
-    height: 100%;
-    width: 0%;
+    height: 0%;
+    width: 100%;
     background: linear-gradient(to top, #4CAF50, #81C784);
-    transition: width 0.8s ease-in-out, background 0.5s;
-    border-right: 3px solid #2E7D32;
+    transition: height 0.8s ease-in-out, background 0.5s;
+    border-top: 3px solid #2E7D32;
+    z-index: 0;
 }
 
 .camion-carga-fill.warning {
     background: linear-gradient(to top, #FFC107, #FFD54F);
-    border-right-color: #F57C00;
+    border-top-color: #F57C00;
 }
 
 .camion-carga-fill.danger {
     background: linear-gradient(to top, #F44336, #E57373);
-    border-right-color: #C62828;
+    border-top-color: #C62828;
     animation: shake 0.5s ease-in-out;
 }
 
@@ -521,9 +545,11 @@
     display: flex;
     flex-wrap: wrap;
     align-content: flex-end;
+    align-items: flex-end;
     padding: 5px;
     gap: 4px;
-    z-index: 1;
+    z-index: 2;
+    pointer-events: none;
 }
 
 .item-caja {
@@ -732,9 +758,8 @@ function actualizarSeleccion() {
     // Actualizar animación
     actualizarAnimacionCamion();
     
-    // Igualar alturas después de actualizar
+    // Solo igualar alturas de los cards de envíos individuales
     setTimeout(function() {
-        igualarAlturasCardsPrincipales();
         igualarAlturasCards();
     }, 100);
 };
@@ -751,7 +776,15 @@ function actualizarAnimacionCamion() {
     }
     
     // Mostrar card de animación
-    $('#card-animacion').slideDown(300);
+    $('#card-animacion').css('display', 'block').hide().slideDown(300);
+    
+    // Asegurar que el card sea visible y esté en el viewport
+    setTimeout(function() {
+        const cardAnimacion = document.getElementById('card-animacion');
+        if (cardAnimacion) {
+            cardAnimacion.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, 350);
     
     // Obtener datos del vehículo
     capacidadVehiculo = parseFloat(option.dataset.capacidad) || 1000;
@@ -777,7 +810,8 @@ function actualizarAnimacionCamion() {
     const cargaFill = $('#carga-fill');
     
     progressBar.css('width', porcentajeLimpio + '%');
-    cargaFill.css('width', porcentajeLimpio + '%');
+    // Cambiar de width a height para que la carga suba desde abajo
+    cargaFill.css('height', porcentajeLimpio + '%');
     $('#progress-text').text(porcentaje.toFixed(1) + '%');
     
     // Cambiar colores según capacidad
@@ -838,29 +872,8 @@ function renderizarCajas() {
     }
 }
 
-// Igualar alturas de los cards principales
-function igualarAlturasCardsPrincipales() {
-    const cardEnvios = document.getElementById('card-envios');
-    const cardAsignar = document.getElementById('card-asignar');
-    
-    if (!cardEnvios || !cardAsignar) return;
-    
-    // Resetear alturas
-    cardEnvios.style.height = 'auto';
-    cardAsignar.style.height = 'auto';
-    
-    // Obtener alturas
-    const alturaEnvios = cardEnvios.offsetHeight;
-    const alturaAsignar = cardAsignar.offsetHeight;
-    
-    // Establecer la altura máxima
-    const alturaMaxima = Math.max(alturaEnvios, alturaAsignar);
-    
-    if (alturaMaxima > 0) {
-        cardEnvios.style.height = alturaMaxima + 'px';
-        cardAsignar.style.height = alturaMaxima + 'px';
-    }
-}
+// Función eliminada: No igualamos alturas de cards principales
+// porque el card de simulación aparece después y rompe el layout
 
 // Igualar alturas de cards en cada fila
 function igualarAlturasCards() {
@@ -919,13 +932,12 @@ function igualarAlturasCards() {
 $(document).ready(function() {
     console.log('📦 Módulo cargado. Envíos disponibles:', {{ $enviosPendientes->count() }});
     
-    // Igualar alturas de cards principales
+    // Solo igualar alturas de los cards de envíos individuales (no los principales)
     function actualizarAlturas() {
-        igualarAlturasCardsPrincipales();
         igualarAlturasCards();
     }
     
-    // Igualar alturas inicial
+    // Igualar alturas inicial de cards de envíos
     setTimeout(actualizarAlturas, 100);
     
     // Igualar alturas cuando cambia el tamaño de la ventana
@@ -933,23 +945,10 @@ $(document).ready(function() {
         setTimeout(actualizarAlturas, 100);
     });
     
-    // Igualar alturas cuando se muestra/oculta la animación
-    const observer = new MutationObserver(function(mutations) {
-        setTimeout(actualizarAlturas, 150);
-    });
-    
-    const cardAnimacion = document.getElementById('card-animacion');
-    if (cardAnimacion) {
-        observer.observe(cardAnimacion, {
-            attributes: true,
-            attributeFilter: ['style']
-        });
-    }
-    
     // Trigger inicial
     actualizarSeleccion();
     
-    // Actualizar alturas después de actualizar selección
+    // Actualizar alturas de cards de envíos después de actualizar selección
     const originalActualizarSeleccion = window.actualizarSeleccion;
     window.actualizarSeleccion = function() {
         if (originalActualizarSeleccion) {

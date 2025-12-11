@@ -40,7 +40,7 @@ class AsignacionMultipleController extends Controller
             ->get();
         
         // Obtener SOLO vehículos NO UTILIZADOS (disponibles)
-        $vehiculos = Vehiculo::with('tipoTransporte')
+        $vehiculos = Vehiculo::with(['tipoTransporte', 'tamanoVehiculo'])
             ->whereDoesntHave('asignaciones', function($query) {
                 $query->whereHas('envio', function($q) {
                     $q->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);

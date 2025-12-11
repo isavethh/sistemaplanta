@@ -46,7 +46,8 @@ class AsignacionController extends Controller
         \Log::info("👤 Transportistas encontrados: " . $transportistas->count());
 
         // Obtener SOLO vehículos NO UTILIZADOS (disponibles)
-        $vehiculos = Vehiculo::whereDoesntHave('asignaciones', function($query) {
+        $vehiculos = Vehiculo::with(['tipoTransporte', 'tamanoVehiculo'])
+            ->whereDoesntHave('asignaciones', function($query) {
                 $query->whereHas('envio', function($q) {
                     $q->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);
                 });

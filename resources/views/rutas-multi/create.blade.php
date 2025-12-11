@@ -59,12 +59,14 @@
                                 <option value="{{ $v->id }}" 
                                         data-capacidad-peso="{{ $v->capacidad_carga ?? 1000 }}"
                                         data-capacidad-volumen="{{ $v->capacidad_volumen ?? 10 }}"
-                                        data-tipo="{{ $v->tipo_vehiculo ?? 'Estándar' }}"
+                                        data-tipo="{{ $v->tipoTransporte->nombre ?? $v->tipo_vehiculo ?? 'Estándar' }}"
+                                        data-tamano="{{ $v->tamanoVehiculo->nombre ?? 'N/A' }}"
                                         data-marca="{{ $v->marca ?? '' }}"
                                         data-modelo="{{ $v->modelo ?? '' }}">
-                                    {{ $v->placa }} - {{ $v->marca ?? '' }} {{ $v->modelo ?? '' }} 
-                                    | {{ $v->tipo_vehiculo ?? 'Estándar' }}
-                                    ({{ number_format($v->capacidad_carga ?? 0, 0) }} kg / {{ $v->capacidad_volumen ?? 0 }} m³)
+                                    🚛 {{ $v->placa }} - {{ $v->marca ?? '' }} {{ $v->modelo ?? '' }} 
+                                    | Tipo: {{ $v->tipoTransporte->nombre ?? $v->tipo_vehiculo ?? 'N/A' }}
+                                    | Tamaño: {{ $v->tamanoVehiculo->nombre ?? 'N/A' }}
+                                    | Cap: {{ number_format($v->capacidad_carga ?? 0, 0) }} kg / {{ $v->capacidad_volumen ?? 0 }} m³
                                 </option>
                             @endforeach
                         </select>

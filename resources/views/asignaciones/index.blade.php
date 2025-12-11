@@ -173,9 +173,11 @@
                             <option value="">Seleccione un vehículo</option>
                             @foreach($vehiculos as $vehiculo)
                                 <option value="{{ $vehiculo->id }}">
-                                    {{ $vehiculo->placa }} - 
-                                    {{ $vehiculo->tipoTransporte->nombre ?? $vehiculo->tipo_vehiculo ?? 'Sin tipo' }}
-                                    (Lic: {{ $vehiculo->licencia_requerida ?? 'N/A' }})
+                                    🚛 {{ $vehiculo->placa }} - {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
+                                    | Tipo: {{ $vehiculo->tipoTransporte->nombre ?? 'N/A' }}
+                                    | Tamaño: {{ $vehiculo->tamanoVehiculo->nombre ?? 'N/A' }}
+                                    | Cap: {{ number_format($vehiculo->capacidad_carga ?? 1000) }} kg
+                                    | Lic: {{ $vehiculo->licencia_requerida ?? 'N/A' }}
                                 </option>
                             @endforeach
                         </select>
@@ -412,12 +414,12 @@
                                 <option value="{{ $vehiculo->id }}" 
                                         data-capacidad="{{ $vehiculo->capacidad_carga ?? 1000 }}"
                                         data-tipo="{{ $vehiculo->tipoTransporte->nombre ?? 'Camión' }}"
+                                        data-tamano="{{ $vehiculo->tamanoVehiculo->nombre ?? 'N/A' }}"
                                         data-placa="{{ $vehiculo->placa }}">
-                                    {{ $vehiculo->placa }} - {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
-                                    @if($vehiculo->tipoTransporte)
-                                        ({{ $vehiculo->tipoTransporte->nombre }})
-                                    @endif
-                                    - Capacidad: {{ number_format($vehiculo->capacidad_carga ?? 1000) }} kg
+                                    🚛 {{ $vehiculo->placa }} - {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
+                                    | Tipo: {{ $vehiculo->tipoTransporte->nombre ?? 'N/A' }}
+                                    | Tamaño: {{ $vehiculo->tamanoVehiculo->nombre ?? 'N/A' }}
+                                    | Cap: {{ number_format($vehiculo->capacidad_carga ?? 1000) }} kg
                                 </option>
                             @endforeach
                         </select>

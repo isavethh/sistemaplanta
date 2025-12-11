@@ -170,8 +170,8 @@
                 <h5 class="card-title text-white mb-0"><i class="fas fa-camera"></i> Foto de Evidencia</h5>
             </div>
             <div class="card-body text-center">
-                <a href="http://10.26.14.34:3001{{ $incidente->foto_url }}" target="_blank">
-                    <img src="http://10.26.14.34:3001{{ $incidente->foto_url }}" 
+                <a href="http://10.26.13.220:3001{{ $incidente->foto_url }}" target="_blank">
+                    <img src="http://10.26.13.220:3001{{ $incidente->foto_url }}" 
                          class="img-fluid img-thumbnail" 
                          style="max-height: 300px;"
                          alt="Evidencia del incidente">

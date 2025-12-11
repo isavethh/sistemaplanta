@@ -112,7 +112,7 @@
 // Configuración
 const PLANTA_COORDS = [-17.783333, -63.182778];
 const INTERVALO_ACTUALIZACION = 10000; // 10 segundos como backup (WebSocket es principal)
-const SOCKET_URL = 'http://192.168.0.129:3001/tracking'; // WebSocket server
+const SOCKET_URL = 'http://10.26.13.220:3001/tracking'; // WebSocket server
 const ALMACEN_ID = {{ $almacenId ?? 'null' }}; // ID del almacén del usuario
 
 // Variables globales

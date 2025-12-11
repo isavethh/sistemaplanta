@@ -40,7 +40,7 @@ class RutaMultiEntregaController extends Controller
             ->get();
 
         // Vehículos disponibles
-        $vehiculos = Vehiculo::with('tamanoVehiculo')
+        $vehiculos = Vehiculo::with(['tamanoVehiculo', 'tipoTransporte'])
             ->where('disponible', true)
             ->get();
 

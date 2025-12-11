@@ -21,6 +21,7 @@
                     <option value="">Seleccione el tipo</option>
                     <option value="Aislado">Aislado</option>
                     <option value="Ventilado">Ventilado</option>
+                    <option value="Hermético">Hermético</option>
                     <option value="Refrigerado">Refrigerado</option>
                     <option value="Congelado">Congelado</option>
                     <option value="Estándar">Estándar</option>

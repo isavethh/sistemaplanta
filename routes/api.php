@@ -25,15 +25,25 @@ Route::get('/ping', function () {
     ]);
 });
 
-// Rutas públicas para Node.js - Usando apiResource solo para mostrar (index)
+// Rutas públicas para Node.js - API Resources completas
 // Nota: Usamos nombres diferentes para evitar conflictos con rutas web
 Route::apiResource('almacenes', AlmacenApiController::class)
-    ->only(['index'])
-    ->names(['index' => 'api.almacenes.index']);
+    ->names([
+        'index' => 'api.almacenes.index',
+        'show' => 'api.almacenes.show',
+        'store' => 'api.almacenes.store',
+        'update' => 'api.almacenes.update',
+        'destroy' => 'api.almacenes.destroy'
+    ]);
     
 Route::apiResource('usuarios', UsuarioApiController::class)
-    ->only(['index'])
-    ->names(['index' => 'api.usuarios.index']);
+    ->names([
+        'index' => 'api.usuarios.index',
+        'show' => 'api.usuarios.show',
+        'store' => 'api.usuarios.store',
+        'update' => 'api.usuarios.update',
+        'destroy' => 'api.usuarios.destroy'
+    ]);
 
 // Rutas públicas (sin autenticación para la app móvil)
 Route::prefix('public')->group(function () {

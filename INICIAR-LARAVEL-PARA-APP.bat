@@ -22,7 +22,7 @@ if not exist "artisan" (
 echo.
 echo Iniciando servidor Laravel...
 echo URL local: http://localhost:8000
-echo URL red local: http://192.168.0.129:8000
+echo URL red local: http://10.26.13.220:8000
 echo.
 echo Presiona Ctrl+C para detener el servidor
 echo.
