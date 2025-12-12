@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('incidentes', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('envio_id')->nullable()->constrained('envios')->onDelete('set null');
-            $table->string('tipo_incidente')->comment('Tipo de incidente reportado');
-            $table->text('descripcion')->comment('Descripción detallada del incidente');
-            $table->string('foto_url')->nullable()->comment('URL de la foto del incidente');
-            $table->enum('estado', ['pendiente', 'en_proceso', 'resuelto'])->default('pendiente')->comment('Estado del incidente');
-            $table->timestamp('fecha_reporte')->useCurrent()->comment('Fecha en que se reportó el incidente');
-            $table->timestamp('fecha_resolucion')->nullable()->comment('Fecha en que se resolvió el incidente');
-            $table->text('notas_resolucion')->nullable()->comment('Notas sobre la resolución del incidente');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('incidentes')) {
+            Schema::create('incidentes', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('envio_id')->nullable()->constrained('envios')->onDelete('set null');
+                $table->string('tipo_incidente')->comment('Tipo de incidente reportado');
+                $table->text('descripcion')->comment('Descripción detallada del incidente');
+                $table->string('foto_url')->nullable()->comment('URL de la foto del incidente');
+                $table->enum('estado', ['pendiente', 'en_proceso', 'resuelto'])->default('pendiente')->comment('Estado del incidente');
+                $table->timestamp('fecha_reporte')->useCurrent()->comment('Fecha en que se reportó el incidente');
+                $table->timestamp('fecha_resolucion')->nullable()->comment('Fecha en que se resolvió el incidente');
+                $table->text('notas_resolucion')->nullable()->comment('Notas sobre la resolución del incidente');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
