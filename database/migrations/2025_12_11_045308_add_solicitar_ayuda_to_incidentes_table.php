@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('incidentes', function (Blueprint $table) {
             if (!Schema::hasColumn('incidentes', 'solicitar_ayuda')) {
-                $table->boolean('solicitar_ayuda')->default(false)->after('estado')->comment('Indica si el transportista solicita ayuda del administrador');
+                $table->boolean('solicitar_ayuda')->default(false)->comment('Indica si el transportista solicita ayuda del administrador');
             }
         });
     }
