@@ -36,7 +36,7 @@
         </div>
     </div>
     <div class="col-lg-3 col-md-6 col-sm-6">
-        <div class="small-box bg-gradient-success">
+        <div class="small-box bg-gradient-success clickeable-kpi" data-tipo="envios_mes" style="cursor: pointer;">
             <div class="inner">
                 <h3>{{ number_format($kpis['envios_mes']) }}</h3>
                 <p>Envíos Este Mes 
@@ -48,29 +48,27 @@
                 </p>
             </div>
             <div class="icon"><i class="fas fa-calendar-check"></i></div>
-            <div class="small-box-footer">&nbsp;</div>
+            <div class="small-box-footer">Click para ver detalles <i class="fas fa-arrow-circle-right"></i></div>
         </div>
     </div>
     <div class="col-lg-3 col-md-6 col-sm-6">
-        <div class="small-box bg-gradient-warning">
+        <div class="small-box bg-gradient-warning clickeable-kpi" data-tipo="en_transito" style="cursor: pointer;">
             <div class="inner">
                 <h3>{{ number_format($kpis['en_transito']) }}</h3>
                 <p>En Tránsito</p>
             </div>
             <div class="icon"><i class="fas fa-truck"></i></div>
-            <div class="small-box-footer">&nbsp;</div>
+            <div class="small-box-footer">Click para ver detalles <i class="fas fa-arrow-circle-right"></i></div>
         </div>
     </div>
     <div class="col-lg-3 col-md-6 col-sm-6">
-        <div class="small-box bg-gradient-danger">
+        <div class="small-box bg-gradient-danger clickeable-kpi" data-tipo="incidentes_activos" style="cursor: pointer;">
             <div class="inner">
                 <h3>{{ number_format($kpis['incidentes_activos']) }}</h3>
                 <p>Incidentes Activos</p>
             </div>
             <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <a href="{{ route('incidentes.index') }}" class="small-box-footer">
-                Ver incidentes <i class="fas fa-arrow-circle-right"></i>
-            </a>
+            <div class="small-box-footer">Click para ver detalles <i class="fas fa-arrow-circle-right"></i></div>
         </div>
     </div>
 </div>
@@ -78,7 +76,7 @@
 <!-- Segunda fila de KPIs -->
 <div class="row">
     <div class="col-lg-2 col-md-4 col-6">
-        <div class="info-box bg-gradient-info">
+        <div class="info-box bg-gradient-info clickeable-kpi" data-tipo="envios_hoy" style="cursor: pointer;">
             <span class="info-box-icon"><i class="fas fa-box-open"></i></span>
             <div class="info-box-content">
                 <span class="info-box-text">Hoy</span>
@@ -87,7 +85,7 @@
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-6">
-        <div class="info-box bg-gradient-olive">
+        <div class="info-box bg-gradient-olive clickeable-kpi" data-tipo="entregados_mes" style="cursor: pointer;">
             <span class="info-box-icon"><i class="fas fa-check-double"></i></span>
             <div class="info-box-content">
                 <span class="info-box-text">Entregados/Mes</span>
@@ -96,7 +94,7 @@
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-6">
-        <div class="info-box bg-gradient-secondary">
+        <div class="info-box bg-gradient-secondary clickeable-kpi" data-tipo="pendientes" style="cursor: pointer;">
             <span class="info-box-icon"><i class="fas fa-clock"></i></span>
             <div class="info-box-content">
                 <span class="info-box-text">Pendientes</span>
@@ -360,6 +358,53 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para mostrar elementos filtrados -->
+<div class="modal fade" id="modalDetalles" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalDetallesTitle">
+                    <i class="fas fa-list"></i> Detalles
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="modalLoading" class="text-center py-5">
+                    <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                    <p class="mt-3">Cargando datos...</p>
+                </div>
+                <div id="modalContent" style="display: none;">
+                    <div class="alert alert-info">
+                        <strong>Total encontrados:</strong> <span id="modalTotal">0</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Fecha</th>
+                                    <th>Almacén Destino</th>
+                                    <th>Estado</th>
+                                    <th>Transportista</th>
+                                    <th class="text-right">Peso (kg)</th>
+                                    <th class="text-right">Valor (Bs)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('js')
@@ -378,17 +423,18 @@ document.addEventListener('DOMContentLoaded', function() {
         orange: '#fd7e14'
     };
 
-    // 1. Gráfico de Estados (Dona)
+    // 1. Gráfico de Estados (Dona) - INTERACTIVO
     const datosEstados = @json($enviosPorEstado);
     const estadoColores = {
         'pendiente': colores.warning,
         'asignado': colores.info,
         'en_transito': colores.primary,
         'entregado': colores.success,
-        'cancelado': colores.danger
+        'cancelado': colores.danger,
+        'pendiente_aprobacion_trazabilidad': colores.purple
     };
     
-    new Chart(document.getElementById('chartEstados'), {
+    const chartEstados = new Chart(document.getElementById('chartEstados'), {
         type: 'doughnut',
         data: {
             labels: datosEstados.map(d => d.estado.charAt(0).toUpperCase() + d.estado.slice(1).replace('_', ' ')),
@@ -403,6 +449,13 @@ document.addEventListener('DOMContentLoaded', function() {
             responsive: true,
             plugins: {
                 legend: { position: 'bottom', labels: { boxWidth: 12 } }
+            },
+            onClick: (evt, activeElements) => {
+                if (activeElements.length > 0) {
+                    const index = activeElements[0].index;
+                    const estado = datosEstados[index].estado;
+                    mostrarDetalles('estado', estado, 'Envíos con estado: ' + estado);
+                }
             }
         }
     });
@@ -440,10 +493,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 3. Gráfico de Almacenes (Barras horizontales)
+    // 3. Gráfico de Almacenes (Barras horizontales) - INTERACTIVO
     const datosAlmacenes = @json($topAlmacenes);
     
-    new Chart(document.getElementById('chartAlmacenes'), {
+    const chartAlmacenes = new Chart(document.getElementById('chartAlmacenes'), {
         type: 'bar',
         data: {
             labels: datosAlmacenes.map(d => d.nombre),
@@ -457,14 +510,21 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             indexAxis: 'y',
             responsive: true,
-            plugins: { legend: { display: false } }
+            plugins: { legend: { display: false } },
+            onClick: (evt, activeElements) => {
+                if (activeElements.length > 0) {
+                    const index = activeElements[0].index;
+                    const almacen = datosAlmacenes[index];
+                    mostrarDetalles('almacen', almacen.id, 'Envíos al almacén: ' + almacen.nombre);
+                }
+            }
         }
     });
 
-    // 4. Gráfico de Transportistas (Barras)
+    // 4. Gráfico de Transportistas (Barras) - INTERACTIVO
     const datosTransportistas = @json($topTransportistas);
     
-    new Chart(document.getElementById('chartTransportistas'), {
+    const chartTransportistas = new Chart(document.getElementById('chartTransportistas'), {
         type: 'bar',
         data: {
             labels: datosTransportistas.map(d => d.name),
@@ -478,15 +538,22 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             indexAxis: 'y',
             responsive: true,
-            plugins: { legend: { display: false } }
+            plugins: { legend: { display: false } },
+            onClick: (evt, activeElements) => {
+                if (activeElements.length > 0) {
+                    const index = activeElements[0].index;
+                    const transportista = datosTransportistas[index];
+                    mostrarDetalles('transportista', transportista.id, 'Entregas de: ' + transportista.name);
+                }
+            }
         }
     });
 
-    // 5. Gráfico de Incidentes (Polar)
+    // 5. Gráfico de Incidentes (Polar) - INTERACTIVO
     @if($incidentesPorTipo->count() > 0)
     const datosIncidentes = @json($incidentesPorTipo);
     
-    new Chart(document.getElementById('chartIncidentes'), {
+    const chartIncidentes = new Chart(document.getElementById('chartIncidentes'), {
         type: 'polarArea',
         data: {
             labels: datosIncidentes.map(d => d.tipo_incidente.replace('_', ' ')),
@@ -503,15 +570,23 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         options: {
             responsive: true,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } }
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
+            onClick: (evt, activeElements) => {
+                if (activeElements.length > 0) {
+                    const index = activeElements[0].index;
+                    const tipo = datosIncidentes[index].tipo_incidente;
+                    mostrarDetalles('incidente_tipo', tipo, 'Incidentes tipo: ' + tipo.replace('_', ' '));
+                }
+            }
         }
     });
     @endif
 
-    // 6. Gráfico Semanal (Barras)
+    // 6. Gráfico Semanal (Barras) - INTERACTIVO
     const datosSemanal = @json($actividadSemanal);
+    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     
-    new Chart(document.getElementById('chartSemanal'), {
+    const chartSemanal = new Chart(document.getElementById('chartSemanal'), {
         type: 'bar',
         data: {
             labels: datosSemanal.map(d => d.dia.substring(0, 3)),
@@ -525,9 +600,100 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
+            scales: { y: { beginAtZero: true } },
+            onClick: (evt, activeElements) => {
+                if (activeElements.length > 0) {
+                    const index = activeElements[0].index;
+                    const dia = datosSemanal[index];
+                    const diaNumero = diasSemana.indexOf(dia.dia);
+                    mostrarDetalles('dia_semana', diaNumero, 'Envíos del día: ' + dia.dia);
+                }
+            }
         }
     });
+
+    // Función para mostrar detalles desde gráficos
+    function mostrarDetalles(tipo, valor, titulo) {
+        $('#modalDetallesTitle').html('<i class="fas fa-list"></i> ' + titulo);
+        $('#modalDetalles').modal('show');
+        $('#modalLoading').show();
+        $('#modalContent').hide();
+
+        fetch(`/api/dashboard/filtrar?tipo=${tipo}&valor=${valor}`)
+            .then(response => response.json())
+            .then(data => {
+                mostrarDetallesModal(data, titulo);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                $('#modalLoading').html('<div class="alert alert-danger">Error al cargar los datos</div>');
+            });
+    }
+
+    // Función para mostrar detalles desde KPIs
+    $('.clickeable-kpi').on('click', function() {
+        const tipo = $(this).data('tipo');
+        const titulo = $(this).find('.inner p').text().trim() || $(this).find('.info-box-text').text().trim();
+        
+        $('#modalDetallesTitle').html('<i class="fas fa-list"></i> ' + titulo);
+        $('#modalDetalles').modal('show');
+        $('#modalLoading').show();
+        $('#modalContent').hide();
+
+        fetch(`/api/dashboard/kpi?tipo=${tipo}`)
+            .then(response => response.json())
+            .then(data => {
+                mostrarDetallesModal(data, titulo);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                $('#modalLoading').html('<div class="alert alert-danger">Error al cargar los datos</div>');
+            });
+    });
+
+    // Función para mostrar el modal con los datos
+    function mostrarDetallesModal(data, titulo) {
+        $('#modalLoading').hide();
+        $('#modalContent').show();
+        $('#modalTotal').text(data.total || 0);
+
+        const tbody = $('#modalTableBody');
+        tbody.empty();
+
+        if (data.data && data.data.length > 0) {
+            data.data.forEach(envio => {
+                const estadoBadge = getEstadoBadge(envio.estado);
+                const fecha = new Date(envio.fecha_creacion).toLocaleDateString('es-ES');
+                
+                tbody.append(`
+                    <tr>
+                        <td><strong>${envio.codigo || 'N/A'}</strong></td>
+                        <td>${fecha}</td>
+                        <td>${envio.almacen_nombre || 'N/A'}</td>
+                        <td>${estadoBadge}</td>
+                        <td>${envio.transportista_nombre || 'Sin asignar'}</td>
+                        <td class="text-right">${parseFloat(envio.total_peso || 0).toFixed(2)}</td>
+                        <td class="text-right">Bs ${parseFloat(envio.total_precio || 0).toFixed(2)}</td>
+                    </tr>
+                `);
+            });
+        } else {
+            tbody.append('<tr><td colspan="7" class="text-center py-4">No se encontraron envíos</td></tr>');
+        }
+    }
+
+    // Función para obtener el badge del estado
+    function getEstadoBadge(estado) {
+        const badges = {
+            'pendiente': '<span class="badge badge-warning">Pendiente</span>',
+            'asignado': '<span class="badge badge-info">Asignado</span>',
+            'en_transito': '<span class="badge badge-primary">En Tránsito</span>',
+            'entregado': '<span class="badge badge-success">Entregado</span>',
+            'cancelado': '<span class="badge badge-danger">Cancelado</span>',
+            'pendiente_aprobacion_trazabilidad': '<span class="badge badge-purple">Pendiente Aprobación</span>'
+        };
+        return badges[estado] || `<span class="badge badge-secondary">${estado}</span>`;
+    }
 });
 </script>
 @endsection
@@ -539,6 +705,20 @@ document.addEventListener('DOMContentLoaded', function() {
     .card-outline { border-top-width: 3px; }
     .progress { border-radius: 10px; height: 25px; }
     .progress-bar { border-radius: 10px; }
+    
+    /* Estilos para elementos clickeables */
+    .clickeable-kpi {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .clickeable-kpi:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Cursor pointer para gráficos */
+    canvas {
+        cursor: pointer;
+    }
 </style>
 @endsection
 

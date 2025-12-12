@@ -11,7 +11,7 @@ class Categoria extends Model
 
     protected $table = 'categorias';
 
-    protected $fillable = ['nombre', 'descripcion'];
+    protected $fillable = ['nombre'];
 
     public function productos()
     {

@@ -40,6 +40,11 @@ class EnvioProducto extends Model
         return $this->belongsTo(Envio::class);
     }
 
+    public function producto()
+    {
+        return $this->belongsTo(Producto::class, 'producto_id');
+    }
+
     public function unidadMedida()
     {
         return $this->belongsTo(UnidadMedida::class);

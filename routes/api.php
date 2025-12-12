@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\EnvioApiController;
 use App\Http\Controllers\Api\AlmacenApiController;
 use App\Http\Controllers\Api\UsuarioApiController;
 use App\Http\Controllers\Api\RutaApiController;
+use App\Http\Controllers\Api\DashboardApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -80,6 +81,10 @@ Route::prefix('envios')->group(function () {
     Route::post('/{id}/simular-movimiento', [\App\Http\Controllers\Api\EnvioController::class, 'simularMovimiento']);
     Route::get('/{id}/seguimiento', [\App\Http\Controllers\Api\EnvioController::class, 'getSeguimiento']);
     Route::get('/{id}/documento', [\App\Http\Controllers\Api\DocumentoController::class, 'generarDocumento']);
+    
+    // Rutas para propuesta de vehículos (integración con Trazabilidad)
+    Route::get('/{id}/propuesta-vehiculos-pdf', [EnvioApiController::class, 'propuestaVehiculosPdf']);
+    Route::post('/{id}/aprobar-rechazar', [EnvioApiController::class, 'aprobarRechazarTrazabilidad']);
 });
 
 // Rutas de envíos (API) - Usando apiResource para rutas estándar REST (debe ir DESPUÉS de rutas personalizadas)
@@ -255,5 +260,14 @@ Route::prefix('rutas')->group(function () {
     
     // Obtener seguimiento de un envío específico
     Route::get('/seguimiento/{id}', [RutaApiController::class, 'seguimiento']);
+});
+
+// ========== RUTAS DASHBOARD INTERACTIVO ==========
+Route::prefix('dashboard')->group(function () {
+    // Filtrar envíos por criterio (estado, almacén, transportista, etc.)
+    Route::get('/filtrar', [DashboardApiController::class, 'filtrar']);
+    
+    // Obtener detalles de un KPI específico
+    Route::get('/kpi', [DashboardApiController::class, 'kpiDetalle']);
 });
 

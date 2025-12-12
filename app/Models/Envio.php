@@ -78,6 +78,11 @@ class Envio extends Model
         return $query->where('estado', 'pendiente');
     }
 
+    public function scopePendienteAprobacionTrazabilidad($query)
+    {
+        return $query->where('estado', 'pendiente_aprobacion_trazabilidad');
+    }
+
     public function scopeEnTransito($query)
     {
         return $query->where('estado', 'en_transito');

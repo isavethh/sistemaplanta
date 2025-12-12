@@ -41,7 +41,7 @@ class DashboardController extends Controller
         // =====================================
         $topAlmacenes = DB::table('envios as e')
             ->join('almacenes as a', 'e.almacen_destino_id', '=', 'a.id')
-            ->select('a.nombre', DB::raw('COUNT(*) as total'))
+            ->select('a.id', 'a.nombre', DB::raw('COUNT(*) as total'))
             ->groupBy('a.id', 'a.nombre')
             ->orderByDesc('total')
             ->limit(5)
@@ -55,7 +55,7 @@ class DashboardController extends Controller
             ->join('users as u', 'v.transportista_id', '=', 'u.id')
             ->join('envios as e', 'ea.envio_id', '=', 'e.id')
             ->where('e.estado', 'entregado')
-            ->select('u.name', DB::raw('COUNT(*) as entregas'))
+            ->select('u.id', 'u.name', DB::raw('COUNT(*) as entregas'))
             ->groupBy('u.id', 'u.name')
             ->orderByDesc('entregas')
             ->limit(5)

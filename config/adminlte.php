@@ -372,7 +372,7 @@ return [
             'role' => 'admin',
             'submenu' => [
                 ['text' => 'Centro de Reportes', 'url' => 'reportes', 'icon' => 'fas fa-folder-open'],
-                ['text' => 'Operaciones', 'url' => 'reportes/operaciones', 'icon' => 'fas fa-truck-loading'],
+                ['text' => 'Operaciones', 'url' => 'reportes/operaciones', 'icon' => 'fas fa-tasks'],
                 ['text' => 'Notas de Entrega', 'url' => 'reportes/nota-entrega', 'icon' => 'fas fa-file-signature'],
                 ['text' => 'Incidentes', 'url' => 'reportes/incidentes', 'icon' => 'fas fa-exclamation-circle text-danger'],
                 ['text' => 'Productividad', 'url' => 'reportes/productividad', 'icon' => 'fas fa-users-cog'],
