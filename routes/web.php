@@ -69,7 +69,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('tiposvehiculo', App\Http\Controllers\TipoVehiculoController::class);
     
     // Estados de Vehículo - CRUD Completo
-    Route::resource('estadosvehiculo', App\Http\Controllers\EstadoVehiculoController::class);
+    // Route::resource('estadosvehiculo', App\Http\Controllers\EstadoVehiculoController::class); // Tabla eliminada - no se usaba
     
     // Tipos de Transporte - CRUD Completo
     Route::resource('tipos-transporte', App\Http\Controllers\TipoTransporteController::class);

@@ -120,7 +120,8 @@ class PropuestaVehiculosService
     {
         $query = Vehiculo::with(['tipoTransporte', 'tamanoVehiculo', 'transportista'])
             ->where('disponible', true)
-            ->where('estado', 'activo');
+            ->where('estado', 'activo')
+            ->whereNotNull('transportista_id'); // Solo vehículos con transportista asignado
         
         // Filtrar por tipo de transporte si es requerido
         if ($tipoTransporte) {

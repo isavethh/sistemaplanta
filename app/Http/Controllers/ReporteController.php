@@ -1532,9 +1532,10 @@ class ReporteController extends Controller
         // Obtener almacén
         $almacen = DB::table('almacenes')->where('id', $envio->almacen_destino_id)->first();
         
-        // Obtener transportista y vehículo
+        // Obtener transportista y vehículo (transportista a través del vehículo)
         $asignacion = DB::table('envio_asignaciones')->where('envio_id', $envio->id)->first();
-        $transportista = $asignacion ? DB::table('users')->where('id', $asignacion->transportista_id)->first() : null;
+        $vehiculo = $asignacion ? DB::table('vehiculos')->where('id', $asignacion->vehiculo_id)->first() : null;
+        $transportista = $vehiculo ? DB::table('users')->where('id', $vehiculo->transportista_id)->first() : null;
         $vehiculo = $asignacion ? DB::table('vehiculos')->where('id', $asignacion->vehiculo_id)->first() : null;
         
         return view('reportes.resolucion-incidente-vista', compact(
@@ -1556,10 +1557,10 @@ class ReporteController extends Controller
         // Obtener almacén
         $almacen = DB::table('almacenes')->where('id', $envio->almacen_destino_id)->first();
         
-        // Obtener transportista y vehículo
+        // Obtener transportista y vehículo (transportista a través del vehículo)
         $asignacion = DB::table('envio_asignaciones')->where('envio_id', $envio->id)->first();
-        $transportista = $asignacion ? DB::table('users')->where('id', $asignacion->transportista_id)->first() : null;
         $vehiculo = $asignacion ? DB::table('vehiculos')->where('id', $asignacion->vehiculo_id)->first() : null;
+        $transportista = $vehiculo ? DB::table('users')->where('id', $vehiculo->transportista_id)->first() : null;
         
         $pdf = Pdf::loadView('reportes.pdf.resolucion-incidente', compact(
             'incidente', 'envio', 'almacen', 'transportista', 'vehiculo'

@@ -64,9 +64,9 @@ class PoblarHistorialEnvios extends Command
                     'usuario_id' => 1, // Asumimos admin
                     'fecha_hora' => $envio->fecha_asignacion,
                     'datos_extra' => [
-                        'transportista' => $envio->asignacion->transportista->name,
+                        'transportista' => $envio->asignacion->transportista?->name,
                         'vehiculo' => $envio->asignacion->vehiculo->placa,
-                        'transportista_id' => $envio->asignacion->transportista_id,
+                        'transportista_id' => $envio->asignacion->vehiculo->transportista_id ?? null,
                     ],
                 ]);
             }
@@ -77,7 +77,7 @@ class PoblarHistorialEnvios extends Command
                     'envio_id' => $envio->id,
                     'evento' => 'aceptado',
                     'descripcion' => "Transportista {$envio->asignacion->transportista->name} aceptó el envío",
-                    'usuario_id' => $envio->asignacion->transportista_id,
+                    'usuario_id' => $envio->asignacion->vehiculo->transportista_id ?? null,
                     'fecha_hora' => $envio->asignacion->fecha_aceptacion,
                 ]);
             }
@@ -88,7 +88,7 @@ class PoblarHistorialEnvios extends Command
                     'envio_id' => $envio->id,
                     'evento' => 'en_transito',
                     'descripcion' => "Envío en tránsito hacia {$envio->almacenDestino->nombre}",
-                    'usuario_id' => $envio->asignacion->transportista_id ?? null,
+                    'usuario_id' => $envio->asignacion->vehiculo->transportista_id ?? null,
                     'fecha_hora' => $envio->fecha_inicio_transito,
                 ]);
             }
@@ -100,7 +100,7 @@ class PoblarHistorialEnvios extends Command
                     'envio_id' => $envio->id,
                     'evento' => 'incidente',
                     'descripcion' => "Incidente reportado: {$incidente->tipo_incidente}. {$incidente->descripcion}",
-                    'usuario_id' => $envio->asignacion->transportista_id ?? null,
+                    'usuario_id' => $envio->asignacion->vehiculo->transportista_id ?? null,
                     'fecha_hora' => $incidente->created_at,
                     'datos_extra' => [
                         'tipo' => $incidente->tipo_incidente,
@@ -130,7 +130,7 @@ class PoblarHistorialEnvios extends Command
                     'envio_id' => $envio->id,
                     'evento' => 'entregado',
                     'descripcion' => "Envío entregado exitosamente en {$envio->almacenDestino->nombre}",
-                    'usuario_id' => $envio->asignacion->transportista_id ?? null,
+                    'usuario_id' => $envio->asignacion->vehiculo->transportista_id ?? null,
                     'fecha_hora' => $envio->fecha_entrega,
                     'datos_extra' => [
                         'latitud' => $envio->almacenDestino->latitud,

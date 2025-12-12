@@ -161,7 +161,7 @@ class AsignacionController extends Controller
                 'total_cantidad' => $envio->productos->sum('cantidad'),
                 'total_peso' => $envio->productos->sum('total_peso'),
                 'total_precio' => $envio->productos->sum('total_precio'),
-                'transportista_id' => $envio->asignacion->transportista_id ?? null,
+                'transportista_id' => $envio->asignacion->vehiculo->transportista_id ?? null,
                 'vehiculo_id' => $envio->asignacion->vehiculo_id ?? null,
             ];
 

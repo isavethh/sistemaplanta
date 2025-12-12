@@ -2,7 +2,7 @@
 namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
-use App\Models\Direccion;
+// use App\Models\Direccion; // Tabla eliminada - no se usa
 use App\Models\Almacen;
 use App\Models\TipoEmpaque;
 use App\Models\UnidadMedida;
@@ -28,36 +28,15 @@ class InitialSeeder extends Seeder
             'password' => bcrypt('trans123'),
             'role' => 'transportista',
         ]);
-        // Direcciones
-        $dirPlanta = Direccion::create([
-            'calle' => 'Av. Cristo Redentor',
-            'ciudad' => 'Santa Cruz',
-            'departamento' => 'Santa Cruz',
-            'lat' => -17.7833,
-            'lng' => -63.1821,
-            'descripcion' => 'Planta central, Av. Cristo Redentor, Santa Cruz',
-        ]);
-        $dir1 = Direccion::create([
-            'calle' => 'Calle Libertad',
-            'ciudad' => 'Santa Cruz',
-            'departamento' => 'Santa Cruz',
-            'lat' => -17.7890,
-            'lng' => -63.1800,
-            'descripcion' => 'Cliente 1, Calle Libertad',
-        ]);
-        $dir2 = Direccion::create([
-            'calle' => 'Calle Aroma',
-            'ciudad' => 'Santa Cruz',
-            'departamento' => 'Santa Cruz',
-            'lat' => -17.7900,
-            'lng' => -63.1850,
-            'descripcion' => 'Cliente 2, Calle Aroma',
-        ]);
-        // Almacén planta
+        // Direcciones - Tabla eliminada, ahora se usan direcciones directamente en almacenes
+        // Almacén planta (con dirección completa en el mismo registro)
         $almacenPlanta = Almacen::create([
             'nombre' => 'Planta Central',
-            'direccion_id' => $dirPlanta->id,
-            'user_id' => $admin->id,
+            'direccion_completa' => 'Av. Cristo Redentor, Santa Cruz',
+            'latitud' => -17.7833,
+            'longitud' => -63.1821,
+            'usuario_almacen_id' => $admin->id,
+            'es_planta' => true,
         ]);
         // Tipos de empaque
         $empaque1 = TipoEmpaque::create(['nombre' => 'Caja']);

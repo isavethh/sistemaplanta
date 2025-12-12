@@ -660,12 +660,19 @@ class EnvioApiController extends Controller
             Log::error('Error al generar PDF de propuesta de vehículos', [
                 'envio_id' => $id,
                 'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Error al generar PDF: ' . $e->getMessage()
+                'message' => 'Error al generar PDF: ' . $e->getMessage(),
+                'error_details' => config('app.debug') ? [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ] : null
             ], 500);
         }
     }

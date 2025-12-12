@@ -13,8 +13,7 @@ class EnvioAsignacion extends Model
 
     protected $fillable = [
         'envio_id',
-        'transportista_id', // Cualquier vehículo puede ser usado por cualquier transportista
-        'vehiculo_id',
+        'vehiculo_id', // El transportista se obtiene a través del vehículo (vehiculo.transportista_id)
         'fecha_asignacion',
         'fecha_aceptacion',
         'observaciones',
@@ -30,10 +29,23 @@ class EnvioAsignacion extends Model
         return $this->belongsTo(Envio::class);
     }
 
-    // Relación directa con transportista (cualquier vehículo puede ser usado por cualquier transportista)
+    // Obtener transportista a través del vehículo (rompe el cuadrado de conexiones)
     public function transportista()
     {
-        return $this->belongsTo(User::class, 'transportista_id');
+        return $this->hasOneThrough(
+            User::class,
+            Vehiculo::class,
+            'id', // FK en vehiculos
+            'id', // FK en users
+            'vehiculo_id', // Local key en envio_asignaciones
+            'transportista_id' // Local key en vehiculos
+        );
+    }
+
+    // Helper para obtener el transportista directamente
+    public function getTransportistaAttribute()
+    {
+        return $this->vehiculo?->transportista;
     }
 
     public function vehiculo()

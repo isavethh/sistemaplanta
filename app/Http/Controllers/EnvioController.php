@@ -38,7 +38,8 @@ class EnvioController extends Controller
             foreach ($envios as $envio) {
                 if ($envio->estado == 'asignado') {
                     $tieneAsignacionValida = $envio->asignacion 
-                        && $envio->asignacion->transportista_id;
+                        && $envio->asignacion->vehiculo 
+                        && $envio->asignacion->vehiculo->transportista_id;
                     
                     if (!$tieneAsignacionValida) {
                         // Corregir el estado a pendiente
@@ -146,7 +147,7 @@ class EnvioController extends Controller
         
         // Si el usuario es transportista, verificar que el envío le pertenece
         if ($user->hasRole('transportista')) {
-            $tieneAcceso = $envio->asignacion && $envio->asignacion->transportista_id == $user->id;
+            $tieneAcceso = $envio->asignacion && $envio->asignacion->vehiculo && $envio->asignacion->vehiculo->transportista_id == $user->id;
             
             if (!$tieneAcceso) {
                 abort(403, 'No tienes permiso para ver este envío.');
@@ -238,7 +239,7 @@ class EnvioController extends Controller
         
         // Si el usuario es transportista, verificar que el envío le pertenece
         if ($user->hasRole('transportista')) {
-            $tieneAcceso = $envio->asignacion && $envio->asignacion->transportista_id == $user->id;
+            $tieneAcceso = $envio->asignacion && $envio->asignacion->vehiculo && $envio->asignacion->vehiculo->transportista_id == $user->id;
             
             if (!$tieneAcceso) {
                 abort(403, 'No tienes permiso para ver el tracking de este envío.');
