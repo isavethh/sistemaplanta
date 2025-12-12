@@ -223,7 +223,7 @@ class DocumentoController extends Controller
             </div>
             <div class="info-row">
                 <span class="info-label">🚙 Vehículo:</span>
-                <span class="info-value">' . $envio->asignacion->vehiculo->placa . ' - ' . $envio->asignacion->vehiculo->marca . ' ' . $envio->asignacion->vehiculo->modelo . '</span>
+                <span class="info-value">' . $envio->asignacion->vehiculo->placa . '</span>
             </div>
             <div class="info-row">
                 <span class="info-label">📅 Fecha de Asignación:</span>

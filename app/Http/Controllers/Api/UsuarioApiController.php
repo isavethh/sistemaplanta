@@ -88,7 +88,7 @@ class UsuarioApiController extends Controller
 
             // Obtener vehículos del transportista
             $vehiculos = \App\Models\Vehiculo::where('transportista_id', $id)
-                ->select('id', 'placa', 'marca', 'modelo', 'transportista_id')
+                ->select('id', 'placa', 'transportista_id')
                 ->get();
 
             // Estadísticas del usuario

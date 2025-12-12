@@ -37,28 +37,18 @@ class RoleFilter implements FilterInterface
 
         $user = Auth::user();
 
-        // Si no hay restricción de rol, todos pueden verlo
+        // Super users should see everything. Use the Spanish role name
+        // 'administrador' (not 'admin') as requested.
+        if ($user->hasRole('super-admin') || $user->hasRole('administrador')) {
+            return false;
+        }
+
         if (empty($item['role'])) {
             return false;
         }
 
         $roles = is_array($item['role']) ? $item['role'] : [$item['role']];
 
-        // Admins pueden ver todo EXCEPTO elementos específicos de otros roles
-        if ($user->hasRole('admin')) {
-            // Permitir si el item tiene el rol 'admin' o no tiene rol específico
-            if (in_array('admin', $roles)) {
-                return false;
-            }
-            // Ocultar si es específico para transportista o almacen
-            if (in_array('transportista', $roles) || in_array('almacen', $roles)) {
-                return true;
-            }
-            // Permitir si no tiene restricción de rol
-            return false;
-        }
-
-        // Para otros usuarios, verificar si tienen el rol requerido
         foreach ($roles as $role) {
             if ($user->hasRole($role)) {
                 return false;

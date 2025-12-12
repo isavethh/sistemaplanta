@@ -63,7 +63,7 @@
                         <td class="bg-light font-weight-bold">Transportista:</td>
                         <td>{{ $transportista->name ?? 'N/A' }}</td>
                         <td class="bg-light font-weight-bold">Vehículo:</td>
-                        <td>{{ $vehiculo->placa ?? 'N/A' }} {{ $vehiculo->marca ?? '' }} {{ $vehiculo->modelo ?? '' }}</td>
+                        <td>{{ $vehiculo->placa ?? 'N/A' }}</td>
                     </tr>
                 </table>
             </div>

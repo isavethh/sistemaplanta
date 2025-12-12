@@ -60,10 +60,8 @@
                                         data-capacidad-peso="{{ $v->capacidad_carga ?? 1000 }}"
                                         data-capacidad-volumen="{{ $v->capacidad_volumen ?? 10 }}"
                                         data-tipo="{{ $v->tipoTransporte->nombre ?? $v->tipo_vehiculo ?? 'Estándar' }}"
-                                        data-tamano="{{ $v->tamanoVehiculo->nombre ?? 'N/A' }}"
-                                        data-marca="{{ $v->marca ?? '' }}"
-                                        data-modelo="{{ $v->modelo ?? '' }}">
-                                    🚛 {{ $v->placa }} - {{ $v->marca ?? '' }} {{ $v->modelo ?? '' }} 
+                                        data-tamano="{{ $v->tamanoVehiculo->nombre ?? 'N/A' }}">
+                                    🚛 {{ $v->placa }} 
                                     | Tipo: {{ $v->tipoTransporte->nombre ?? $v->tipo_vehiculo ?? 'N/A' }}
                                     | Tamaño: {{ $v->tamanoVehiculo->nombre ?? 'N/A' }}
                                     | Cap: {{ number_format($v->capacidad_carga ?? 0, 0) }} kg / {{ $v->capacidad_volumen ?? 0 }} m³
@@ -528,15 +526,13 @@ $(document).ready(function() {
         capacidadVehiculo = parseFloat($selected.data('capacidad-peso')) || 0;
         capacidadVolumen = parseFloat($selected.data('capacidad-volumen')) || 0;
         tipoVehiculoActual = $selected.data('tipo') || 'Estándar';
-        const marca = $selected.data('marca') || '';
-        const modelo = $selected.data('modelo') || '';
         
         if (capacidadVehiculo > 0) {
             $('#cardIndicadorCarga').show();
             $('#pesoDisponible').text(capacidadVehiculo.toLocaleString() + ' kg');
             
             // Mostrar tipo de vehículo
-            $('#tipoVehiculoTexto').text(tipoVehiculoActual + ' - ' + marca + ' ' + modelo);
+            $('#tipoVehiculoTexto').text(tipoVehiculoActual);
             $('#infoTipoVehiculo').show();
             
             actualizarIndicadorCarga();

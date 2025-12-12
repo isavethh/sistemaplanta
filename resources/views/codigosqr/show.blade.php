@@ -137,7 +137,6 @@
                         <div class="info-box">
                             <h5><i class="fas fa-truck"></i> VEHÍCULO</h5>
                             <p class="mb-1"><strong>Placa:</strong> {{ $envio->asignacion->vehiculo->placa }}</p>
-                            <p class="mb-0"><strong>Marca/Modelo:</strong> {{ $envio->asignacion->vehiculo->marca }} {{ $envio->asignacion->vehiculo->modelo }}</p>
                         </div>
                     </div>
                     @endif

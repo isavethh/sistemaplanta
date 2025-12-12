@@ -161,9 +161,7 @@ class ReporteController extends Controller
                 't.name as transportista_nombre',
                 't.email as transportista_email',
                 't.telefono as transportista_telefono',
-                'v.placa as vehiculo_placa',
-                'v.marca as vehiculo_marca',
-                'v.modelo as vehiculo_modelo'
+                'v.placa as vehiculo_placa'
             )
             ->first();
 
@@ -197,9 +195,7 @@ class ReporteController extends Controller
                 't.name as transportista_nombre',
                 't.email as transportista_email',
                 't.telefono as transportista_telefono',
-                'v.placa as vehiculo_placa',
-                'v.marca as vehiculo_marca',
-                'v.modelo as vehiculo_modelo'
+                'v.placa as vehiculo_placa'
             )
             ->first();
 

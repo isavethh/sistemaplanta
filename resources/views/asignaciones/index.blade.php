@@ -173,7 +173,7 @@
                             <option value="">Seleccione un vehículo</option>
                             @foreach($vehiculos as $vehiculo)
                                 <option value="{{ $vehiculo->id }}">
-                                    🚛 {{ $vehiculo->placa }} - {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
+                                    🚛 {{ $vehiculo->placa }}
                                     | Tipo: {{ $vehiculo->tipoTransporte->nombre ?? 'N/A' }}
                                     | Tamaño: {{ $vehiculo->tamanoVehiculo->nombre ?? 'N/A' }}
                                     | Cap: {{ number_format($vehiculo->capacidad_carga ?? 1000) }} kg
@@ -245,13 +245,6 @@
                             <td>
                                 <i class="fas fa-truck"></i> 
                                 {{ $envio->asignacion && $envio->asignacion->vehiculo ? $envio->asignacion->vehiculo->placa : 'N/A' }}
-                                @if($envio->asignacion && $envio->asignacion->vehiculo)
-                                    <br>
-                                    <small class="text-muted">
-                                        {{ $envio->asignacion->vehiculo->marca ?? '' }} 
-                                        {{ $envio->asignacion->vehiculo->modelo ?? '' }}
-                                    </small>
-                                @endif
                             </td>
                             <td>
                                 @if($envio->estado == 'asignado')
@@ -416,7 +409,7 @@
                                         data-tipo="{{ $vehiculo->tipoTransporte->nombre ?? 'Camión' }}"
                                         data-tamano="{{ $vehiculo->tamanoVehiculo->nombre ?? 'N/A' }}"
                                         data-placa="{{ $vehiculo->placa }}">
-                                    🚛 {{ $vehiculo->placa }} - {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
+                                    🚛 {{ $vehiculo->placa }}
                                     | Tipo: {{ $vehiculo->tipoTransporte->nombre ?? 'N/A' }}
                                     | Tamaño: {{ $vehiculo->tamanoVehiculo->nombre ?? 'N/A' }}
                                     | Cap: {{ number_format($vehiculo->capacidad_carga ?? 1000) }} kg

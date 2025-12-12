@@ -91,7 +91,7 @@
                 <div class="col-md-6">
                     <table class="info-table">
                         <tr><td class="label">Transportista:</td><td>{{ $envio->transportista_nombre ?? 'N/A' }}</td></tr>
-                        <tr><td class="label">Vehículo:</td><td>{{ $envio->vehiculo_placa ?? 'N/A' }} {{ $envio->vehiculo_marca ?? '' }} {{ $envio->vehiculo_modelo ?? '' }}</td></tr>
+                        <tr><td class="label">Vehículo:</td><td>{{ $envio->vehiculo_placa ?? 'N/A' }}</td></tr>
                     </table>
                 </div>
                 <div class="col-md-6">

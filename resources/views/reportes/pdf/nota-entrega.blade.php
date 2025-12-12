@@ -205,7 +205,7 @@
                 <div class="info-cell info-label">Transportista:</div>
                 <div class="info-cell">{{ $envio->transportista_nombre ?? 'N/A' }}</div>
                 <div class="info-cell info-label">Vehículo:</div>
-                <div class="info-cell">{{ $envio->vehiculo_placa ?? 'N/A' }} {{ $envio->vehiculo_marca ?? '' }} {{ $envio->vehiculo_modelo ?? '' }}</div>
+                <div class="info-cell">{{ $envio->vehiculo_placa ?? 'N/A' }}</div>
             </div>
             <div class="info-row">
                 <div class="info-cell info-label">Fecha Salida:</div>

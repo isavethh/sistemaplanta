@@ -194,9 +194,8 @@
                                         data-capacidad="{{ $v->capacidad_carga ?? 1000 }}"
                                         data-tipo="{{ $v->tipoTransporte->nombre ?? 'Camión' }}"
                                         data-tamano="{{ $v->tamanoVehiculo->nombre ?? 'N/A' }}"
-                                        data-placa="{{ $v->placa }}"
-                                        data-marca="{{ $v->marca }} {{ $v->modelo }}">
-                                    🚛 {{ $v->placa }} - {{ $v->marca }} {{ $v->modelo }}
+                                        data-placa="{{ $v->placa }}">
+                                    🚛 {{ $v->placa }}
                                     | Tipo: {{ $v->tipoTransporte->nombre ?? 'N/A' }}
                                     | Tamaño: {{ $v->tamanoVehiculo->nombre ?? 'N/A' }}
                                     | Cap: {{ number_format($v->capacidad_carga ?? 1000) }} kg
@@ -790,10 +789,9 @@ function actualizarAnimacionCamion() {
     capacidadVehiculo = parseFloat(option.dataset.capacidad) || 1000;
     const tipo = option.dataset.tipo || 'Camión';
     const placa = option.dataset.placa || '';
-    const marca = option.dataset.marca || '';
     
     // Actualizar info del vehículo
-    $('#info-vehiculo-nombre').text(marca);
+    $('#info-vehiculo-nombre').text(tipo);
     $('#info-vehiculo-placa').text(placa);
     
     // Calcular porcentaje

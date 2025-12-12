@@ -188,7 +188,7 @@
                 <div class="info-cell info-label">Transportista:</div>
                 <div class="info-cell">{{ $transportista->name ?? 'N/A' }}</div>
                 <div class="info-cell info-label">Vehículo:</div>
-                <div class="info-cell">{{ $vehiculo->placa ?? 'N/A' }} {{ $vehiculo->marca ?? '' }} {{ $vehiculo->modelo ?? '' }}</div>
+                <div class="info-cell">{{ $vehiculo->placa ?? 'N/A' }}</div>
             </div>
         </div>
     </div>
