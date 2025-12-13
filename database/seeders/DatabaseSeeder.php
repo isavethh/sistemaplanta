@@ -15,12 +15,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-            $this->call(InitialSeeder::class);
-        }
+        // 1. Primero crear roles y permisos (requerido para asignar roles a usuarios)
+        $this->call(RolesAndPermissionsSeeder::class);
+        
+        // 2. Crear datos iniciales básicos (categorías, tipos de empaque, unidades de medida, etc.)
+        $this->call(InitialSeeder::class);
+        
+        // 3. Crear usuarios del sistema (Mario, Carlos, Jorge, etc.)
+        $this->call(CrearUsuariosPorRolSeeder::class);
+        
+        // 4. Crear tamaños de vehículos si no existen
+        $this->call(TamanoVehiculoSeeder::class);
+        
+        // 5. Crear tipos de empaque si no existen
+        $this->call(TiposEmpaqueSeeder::class);
+    }
 }

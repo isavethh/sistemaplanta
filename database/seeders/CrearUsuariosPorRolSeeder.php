@@ -13,19 +13,19 @@ class CrearUsuariosPorRolSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Usuario PLANTA (solo 1)
+        // 1. Usuario PLANTA (solo 1) - Usar rol 'admin' ya que no existe rol 'planta'
         $planta = User::firstOrCreate(
             ['email' => 'planta@sistema.com'],
             [
                 'name' => 'Planta Principal',
                 'password' => Hash::make('planta123'),
                 'tipo' => 'planta',
-                'role' => 'planta',
+                'role' => 'admin',
             ]
         );
-        $planta->syncRoles(['planta']);
+        $planta->syncRoles(['admin']);
         
-        // 2. Usuarios ADMINISTRADOR (2)
+        // 2. Usuarios ADMINISTRADOR (2) - Usar rol 'admin'
         $admins = [
             ['name' => 'Mario Admin', 'email' => 'mario@sistema.com'],
             ['name' => 'Ana Administradora', 'email' => 'ana@sistema.com'],
@@ -38,10 +38,10 @@ class CrearUsuariosPorRolSeeder extends Seeder
                     'name' => $adminData['name'],
                     'password' => Hash::make('admin123'),
                     'tipo' => 'administrador',
-                    'role' => 'administrador',
+                    'role' => 'admin',
                 ]
             );
-            $admin->syncRoles(['administrador']);
+            $admin->syncRoles(['admin']);
         }
         
         // 3. Usuarios TRANSPORTISTA (10)

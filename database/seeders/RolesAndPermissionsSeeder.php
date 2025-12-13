@@ -21,101 +21,113 @@ class RolesAndPermissionsSeeder extends Seeder
         // ==========================================
 
         // Módulo: Dashboard
-        Permission::create(['name' => 'dashboard.ver']);
+        Permission::firstOrCreate(['name' => 'dashboard.ver', 'guard_name' => 'web']);
 
         // Módulo: Envíos
-        Permission::create(['name' => 'envios.ver']);
-        Permission::create(['name' => 'envios.crear']);
-        Permission::create(['name' => 'envios.editar']);
-        Permission::create(['name' => 'envios.eliminar']);
-        Permission::create(['name' => 'envios.asignar']);
-        Permission::create(['name' => 'envios.aprobar']);
-        Permission::create(['name' => 'envios.tracking']);
-        Permission::create(['name' => 'envios.actualizar-estado']);
-        Permission::create(['name' => 'envios.aceptar']);
-        Permission::create(['name' => 'envios.rechazar']);
-        Permission::create(['name' => 'envios.iniciar']);
-        Permission::create(['name' => 'envios.entregar']);
+        Permission::firstOrCreate(['name' => 'envios.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.eliminar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.asignar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.aprobar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.tracking', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.actualizar-estado', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.aceptar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.rechazar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.iniciar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'envios.entregar', 'guard_name' => 'web']);
 
         // Módulo: Asignaciones
-        Permission::create(['name' => 'asignaciones.ver']);
-        Permission::create(['name' => 'asignaciones.asignar']);
-        Permission::create(['name' => 'asignaciones.remover']);
-        Permission::create(['name' => 'asignaciones.multiple']);
+        Permission::firstOrCreate(['name' => 'asignaciones.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'asignaciones.asignar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'asignaciones.remover', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'asignaciones.multiple', 'guard_name' => 'web']);
 
         // Módulo: Rutas Multi-Entrega
-        Permission::create(['name' => 'rutas-multi.ver']);
-        Permission::create(['name' => 'rutas-multi.crear']);
-        Permission::create(['name' => 'rutas-multi.editar']);
-        Permission::create(['name' => 'rutas-multi.eliminar']);
-        Permission::create(['name' => 'rutas-multi.monitorear']);
-        Permission::create(['name' => 'rutas-multi.reordenar']);
-        Permission::create(['name' => 'rutas-multi.documentos']);
+        Permission::firstOrCreate(['name' => 'rutas-multi.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'rutas-multi.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'rutas-multi.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'rutas-multi.eliminar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'rutas-multi.monitorear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'rutas-multi.reordenar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'rutas-multi.documentos', 'guard_name' => 'web']);
 
         // Módulo: Usuarios
-        Permission::create(['name' => 'usuarios.ver']);
-        Permission::create(['name' => 'usuarios.crear']);
-        Permission::create(['name' => 'usuarios.editar']);
-        Permission::create(['name' => 'usuarios.eliminar']);
-        Permission::create(['name' => 'usuarios.asignar-roles']);
+        Permission::firstOrCreate(['name' => 'usuarios.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'usuarios.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'usuarios.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'usuarios.eliminar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'usuarios.asignar-roles', 'guard_name' => 'web']);
 
         // Módulo: Transportistas
-        Permission::create(['name' => 'transportistas.ver']);
-        Permission::create(['name' => 'transportistas.crear']);
-        Permission::create(['name' => 'transportistas.editar']);
-        Permission::create(['name' => 'transportistas.eliminar']);
-        Permission::create(['name' => 'transportistas.asignar-vehiculo']);
+        Permission::firstOrCreate(['name' => 'transportistas.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'transportistas.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'transportistas.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'transportistas.eliminar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'transportistas.asignar-vehiculo', 'guard_name' => 'web']);
 
         // Módulo: Clientes
-        Permission::create(['name' => 'clientes.ver']);
-        Permission::create(['name' => 'clientes.crear']);
-        Permission::create(['name' => 'clientes.editar']);
-        Permission::create(['name' => 'clientes.eliminar']);
+        Permission::firstOrCreate(['name' => 'clientes.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'clientes.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'clientes.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'clientes.eliminar', 'guard_name' => 'web']);
 
         // Módulo: Vehículos
-        Permission::create(['name' => 'vehiculos.ver']);
-        Permission::create(['name' => 'vehiculos.crear']);
-        Permission::create(['name' => 'vehiculos.editar']);
-        Permission::create(['name' => 'vehiculos.eliminar']);
+        Permission::firstOrCreate(['name' => 'vehiculos.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'vehiculos.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'vehiculos.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'vehiculos.eliminar', 'guard_name' => 'web']);
 
         // Módulo: Almacenes
-        Permission::create(['name' => 'almacenes.ver']);
-        Permission::create(['name' => 'almacenes.crear']);
-        Permission::create(['name' => 'almacenes.editar']);
-        Permission::create(['name' => 'almacenes.eliminar']);
-        Permission::create(['name' => 'almacenes.inventario']);
+        Permission::firstOrCreate(['name' => 'almacenes.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'almacenes.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'almacenes.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'almacenes.eliminar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'almacenes.inventario', 'guard_name' => 'web']);
 
         // Módulo: Productos
-        Permission::create(['name' => 'productos.ver']);
-        Permission::create(['name' => 'productos.crear']);
-        Permission::create(['name' => 'productos.editar']);
-        Permission::create(['name' => 'productos.eliminar']);
+        Permission::firstOrCreate(['name' => 'productos.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'productos.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'productos.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'productos.eliminar', 'guard_name' => 'web']);
 
         // Módulo: Categorías
-        Permission::create(['name' => 'categorias.ver']);
-        Permission::create(['name' => 'categorias.crear']);
-        Permission::create(['name' => 'categorias.editar']);
-        Permission::create(['name' => 'categorias.eliminar']);
+        Permission::firstOrCreate(['name' => 'categorias.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'categorias.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'categorias.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'categorias.eliminar', 'guard_name' => 'web']);
 
         // Módulo: Inventario
-        Permission::create(['name' => 'inventario.ver']);
-        Permission::create(['name' => 'inventario.crear']);
-        Permission::create(['name' => 'inventario.editar']);
-        Permission::create(['name' => 'inventario.eliminar']);
+        Permission::firstOrCreate(['name' => 'inventario.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'inventario.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'inventario.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'inventario.eliminar', 'guard_name' => 'web']);
 
         // Módulo: Incidentes
-        Permission::create(['name' => 'incidentes.ver']);
-        Permission::create(['name' => 'incidentes.crear']);
-        Permission::create(['name' => 'incidentes.actualizar']);
-        Permission::create(['name' => 'incidentes.resolver']);
+        Permission::firstOrCreate(['name' => 'incidentes.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'incidentes.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'incidentes.actualizar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'incidentes.resolver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'incidentes.reportar', 'guard_name' => 'web']);
+        
+        // Módulo: Documentos
+        Permission::firstOrCreate(['name' => 'documentos.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'documentos.nota-entrega', 'guard_name' => 'web']);
+        
+        // Módulo: Envíos (permisos adicionales)
+        Permission::firstOrCreate(['name' => 'envios.firmar', 'guard_name' => 'web']);
+        
+        // Módulo: Monitoreo
+        Permission::firstOrCreate(['name' => 'monitoreo.ver-propio', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'monitoreo.simular', 'guard_name' => 'web']);
 
         // Módulo: Reportes
-        Permission::create(['name' => 'reportes.ver']);
-        Permission::create(['name' => 'reportes.exportar']);
+        Permission::firstOrCreate(['name' => 'reportes.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'reportes.exportar', 'guard_name' => 'web']);
 
         // Módulo: Configuración (Catálogos)
-        Permission::create(['name' => 'configuracion.ver']);
-        Permission::create(['name' => 'configuracion.editar']);
+        Permission::firstOrCreate(['name' => 'configuracion.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'configuracion.editar', 'guard_name' => 'web']);
 
         // ==========================================
         // CREAR ROLES Y ASIGNAR PERMISOS
@@ -123,11 +135,11 @@ class RolesAndPermissionsSeeder extends Seeder
         // ==========================================
 
         // 1. ADMIN - Control total del sistema
-        $admin = Role::create(['name' => 'admin']);
+        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $admin->givePermissionTo(Permission::all());
 
         // 2. ALMACEN - Gestión de inventario y recepción de envíos
-        $almacen = Role::create(['name' => 'almacen']);
+        $almacen = Role::firstOrCreate(['name' => 'almacen', 'guard_name' => 'web']);
         $almacen->givePermissionTo([
             'dashboard.ver',
             // Envíos (ver y firmar)
@@ -149,7 +161,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
 
         // 3. TRANSPORTISTA - Ver y actualizar sus envíos asignados
-        $transportista = Role::create(['name' => 'transportista']);
+        $transportista = Role::firstOrCreate(['name' => 'transportista', 'guard_name' => 'web']);
         $transportista->givePermissionTo([
             'dashboard.ver',
             // Envíos (solo asignados)
