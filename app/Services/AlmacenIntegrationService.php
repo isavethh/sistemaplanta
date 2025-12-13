@@ -99,7 +99,7 @@ class AlmacenIntegrationService
                     'envio_id' => $envio->id,
                 ]);
 
-                $response = Http::timeout(10)->post($webhookUrl, $data);
+                $response = Http::timeout(3)->post($webhookUrl, $data); // Timeout reducido para no bloquear
 
                 if ($response->successful()) {
                     Log::info('Notificación de asignación enviada exitosamente', [
@@ -222,6 +222,161 @@ class AlmacenIntegrationService
         }
 
         return null;
+    }
+
+    /**
+     * Notificar a Almacenes que el envío fue aceptado por el transportista (estado: en proceso)
+     * 
+     * @param Envio $envio
+     * @return bool
+     */
+    public function notifyEnvioAceptado(Envio $envio): bool
+    {
+        try {
+            // Cargar relaciones necesarias
+            $envio->load(['asignacion.transportista', 'asignacion.vehiculo', 'almacenDestino']);
+
+            // Extraer información del pedido original desde las observaciones
+            $pedidoAlmacenId = $this->extractPedidoAlmacenId($envio);
+            $webhookUrl = $this->extractWebhookUrl($envio);
+
+            if (!$pedidoAlmacenId && !$webhookUrl) {
+                Log::info('Envío no tiene relación con pedido de almacenes, no se notifica aceptación', [
+                    'envio_id' => $envio->id,
+                    'codigo' => $envio->codigo,
+                ]);
+                return false;
+            }
+
+            // Verificar que haya asignación y transportista
+            if (!$envio->asignacion) {
+                Log::warning('Envío no tiene asignación, no se puede notificar aceptación', [
+                    'envio_id' => $envio->id,
+                    'codigo' => $envio->codigo,
+                ]);
+                return false;
+            }
+
+            // Obtener transportista a través de la relación
+            $transportista = $envio->asignacion->transportista;
+            
+            if (!$transportista) {
+                // Intentar obtener transportista a través del vehículo
+                $transportista = $envio->asignacion->vehiculo?->transportista;
+            }
+
+            if (!$transportista || !$transportista->id) {
+                Log::warning('Envío no tiene transportista asignado, no se puede notificar aceptación', [
+                    'envio_id' => $envio->id,
+                    'codigo' => $envio->codigo,
+                ]);
+                return false;
+            }
+
+            // Preparar datos de aceptación
+            $data = [
+                'pedido_id' => $pedidoAlmacenId,
+                'envio_id' => $envio->id,
+                'envio_codigo' => $envio->codigo,
+                'estado' => 'en_proceso', // Estado: en proceso cuando el transportista acepta
+                'transportista' => [
+                    'id' => $transportista->id,
+                    'nombre' => $transportista->name ?? null,
+                    'email' => $transportista->email ?? null,
+                ],
+                'vehiculo' => [
+                    'id' => $envio->asignacion->vehiculo->id ?? null,
+                    'placa' => $envio->asignacion->vehiculo->placa ?? null,
+                    'marca' => $envio->asignacion->vehiculo->marca ?? null,
+                    'modelo' => $envio->asignacion->vehiculo->modelo ?? null,
+                ],
+                'fecha_aceptacion' => now()->toIso8601String(),
+                'fecha_estimada_entrega' => $envio->fecha_estimada_entrega?->format('Y-m-d'),
+                'almacen_destino' => [
+                    'id' => $envio->almacenDestino->id ?? null,
+                    'nombre' => $envio->almacenDestino->nombre ?? null,
+                    'direccion' => $envio->almacenDestino->direccion ?? null,
+                ],
+            ];
+
+            // Si hay webhook_url, usarlo directamente
+            if ($webhookUrl) {
+                Log::info('Enviando notificación de aceptación a almacenes vía webhook', [
+                    'webhook_url' => $webhookUrl,
+                    'envio_id' => $envio->id,
+                ]);
+
+                try {
+                    $response = Http::timeout(3)->post($webhookUrl, $data); // Timeout reducido para no bloquear
+
+                    if ($response->successful()) {
+                        Log::info('Notificación de aceptación enviada exitosamente', [
+                            'envio_id' => $envio->id,
+                            'pedido_id' => $pedidoAlmacenId,
+                        ]);
+                        return true;
+                    } else {
+                        Log::warning('Error al enviar notificación de aceptación vía webhook', [
+                            'envio_id' => $envio->id,
+                            'status' => $response->status(),
+                            'response' => $response->body(),
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    // No fallar si la notificación falla - solo loguear
+                    Log::warning('Error de conexión al notificar aceptación (no crítico)', [
+                        'envio_id' => $envio->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    return false; // Retornar false pero no lanzar excepción
+                }
+            }
+
+            // Si no hay webhook_url pero hay pedido_id, usar el endpoint estándar
+            if ($pedidoAlmacenId) {
+                $endpoint = "{$this->apiUrl}/pedidos/{$pedidoAlmacenId}/asignacion-envio";
+                
+                Log::info('Enviando notificación de aceptación a almacenes vía API', [
+                    'endpoint' => $endpoint,
+                    'envio_id' => $envio->id,
+                    'pedido_id' => $pedidoAlmacenId,
+                ]);
+
+                try {
+                    $response = Http::timeout(3)->post($endpoint, $data); // Timeout reducido
+                } catch (\Exception $e) {
+                    Log::warning('Error de conexión al notificar aceptación vía API (no crítico)', [
+                        'envio_id' => $envio->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    return false; // No fallar si la notificación falla
+                }
+
+                if ($response->successful()) {
+                    Log::info('Notificación de aceptación enviada exitosamente', [
+                        'envio_id' => $envio->id,
+                        'pedido_id' => $pedidoAlmacenId,
+                    ]);
+                    return true;
+                } else {
+                    Log::warning('Error al enviar notificación de aceptación vía API', [
+                        'envio_id' => $envio->id,
+                        'status' => $response->status(),
+                        'response' => $response->body(),
+                    ]);
+                }
+            }
+
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error('Error al notificar aceptación a almacenes', [
+                'envio_id' => $envio->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return false;
+        }
     }
 }
 

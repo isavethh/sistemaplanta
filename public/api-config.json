@@ -1,0 +1,15 @@
+{
+  "api_base_url": "http://192.168.0.129:8001/api",
+  "endpoints": {
+    "transportistas_login": "/public/transportistas-login",
+    "login_transportista": "/public/login-transportista",
+    "envios_transportista": "/transportista/{id}/envios",
+    "aceptar_envio": "/envios/{id}/aceptar",
+    "rechazar_envio": "/envios/{id}/rechazar",
+    "iniciar_envio": "/envios/{id}/iniciar",
+    "marcar_entregado": "/envios/{id}/entregado"
+  },
+  "version": "1.0.0",
+  "last_updated": "2025-12-13"
+}
+

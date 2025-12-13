@@ -315,7 +315,7 @@
                     </thead>
                     <tbody>
                         @foreach($enviosRechazados as $envio)
-                        <tr>
+                        <tr class="table-danger">
                             <td><strong class="text-danger">{{ $envio->codigo }}</strong></td>
                             <td>
                                 <i class="fas fa-warehouse text-success"></i> 

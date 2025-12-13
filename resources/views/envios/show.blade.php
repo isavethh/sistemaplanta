@@ -186,7 +186,7 @@
                     </p>
                     @if($incidente->foto_url)
                     <p class="mb-1">
-                        <a href="http://10.26.13.220:3001{{ $incidente->foto_url }}" target="_blank" class="btn btn-sm btn-info">
+                        <a href="http://192.168.0.129:8001{{ $incidente->foto_url }}" target="_blank" class="btn btn-sm btn-info">
                             <i class="fas fa-camera"></i> Ver Foto de Evidencia
                         </a>
                     </p>

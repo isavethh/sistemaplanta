@@ -105,10 +105,41 @@ class TransportistaController extends Controller
         try {
             \Log::info("🔍 Buscando envíos para transportista ID: {$transportistaId}");
             
+            // Validar que el transportistaId sea un número válido
+            if (!is_numeric($transportistaId) || $transportistaId <= 0) {
+                \Log::warning("⚠️ ID de transportista inválido: {$transportistaId}");
+                return response()->json([
+                    'success' => false,
+                    'error' => 'ID de transportista inválido',
+                    'data' => [],
+                    'total' => 0
+                ], 400);
+            }
+            
+            // Verificar que el transportista existe
+            $transportista = User::where('id', $transportistaId)
+                ->where(function($query) {
+                    $query->where('tipo', 'transportista')
+                          ->orWhere('role', 'transportista');
+                })
+                ->first();
+            
+            if (!$transportista) {
+                \Log::warning("⚠️ Transportista no encontrado con ID: {$transportistaId}");
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                    'transportista_id' => $transportistaId,
+                    'total' => 0,
+                    'message' => 'Transportista no encontrado o no tiene envíos asignados'
+                ], 200);
+            }
+            
             // Obtener planta (origen)
             $planta = \App\Models\Almacen::where('es_planta', true)->first();
             
             // IMPORTANTE: Filtrar SOLO por el transportista específico
+            // Usar leftJoin para evitar que falle si no hay asignaciones
             $envios = Envio::select('envios.*', 
                     'almacenes.nombre as almacen_nombre',
                     'almacenes.direccion_completa',
@@ -116,13 +147,14 @@ class TransportistaController extends Controller
                     'almacenes.longitud',
                     'envio_asignaciones.vehiculo_id',
                     'envio_asignaciones.fecha_asignacion',
+                    'envio_asignaciones.fecha_aceptacion',
                     'vehiculos.placa as vehiculo_placa',
                     'vehiculos.transportista_id') // Obtener transportista a través de vehiculo
                 ->join('envio_asignaciones', 'envios.id', '=', 'envio_asignaciones.envio_id')
                 ->leftJoin('almacenes', 'envios.almacen_destino_id', '=', 'almacenes.id')
                 ->leftJoin('vehiculos', 'envio_asignaciones.vehiculo_id', '=', 'vehiculos.id')
                 ->where('vehiculos.transportista_id', '=', $transportistaId) // Filtro a través de vehiculo
-                ->whereIn('envios.estado', ['asignado', 'aceptado', 'en_transito'])
+                ->whereIn('envios.estado', ['asignado', 'aceptado', 'en_transito', 'entregado', 'cancelado', 'rechazado'])
                 ->orderBy('envios.created_at', 'desc')
                 ->get()
                 ->map(function($envio) use ($planta, $transportistaId) {
@@ -144,7 +176,7 @@ class TransportistaController extends Controller
                         
                         // Intentar obtener información de la ruta desde Node.js
                         try {
-                            $nodeApiUrl = env('NODE_API_URL', 'http://localhost:3001/api');
+                            $nodeApiUrl = env('NODE_API_URL', config('services.app_mobile.api_base_url', 'http://localhost:3001/api'));
                             $rutaResponse = \Illuminate\Support\Facades\Http::timeout(5)
                                 ->get("{$nodeApiUrl}/rutas-entrega/{$rutaEntregaId}");
                             
@@ -192,18 +224,109 @@ class TransportistaController extends Controller
             $enviosIds = $envios->pluck('id')->toArray();
             \Log::info("📦 IDs de envíos: " . implode(', ', $enviosIds));
 
+            // Obtener la URL base de la API para que la app móvil sepa dónde conectarse
+            $apiBaseUrl = config('services.app_mobile.api_base_url', env('APP_URL', 'http://localhost') . '/api');
+            
+            // Convertir la colección a array para evitar problemas de serialización
+            $enviosArray = $envios->map(function($envio) use ($apiBaseUrl) {
+                // Helper para convertir fechas de forma segura
+                $formatDate = function($date) {
+                    if (!$date) return null;
+                    if (is_string($date)) {
+                        try {
+                            return \Carbon\Carbon::parse($date)->toIso8601String();
+                        } catch (\Exception $e) {
+                            return $date; // Devolver como string si no se puede parsear
+                        }
+                    }
+                    if ($date instanceof \Carbon\Carbon || $date instanceof \DateTime) {
+                        return $date->toIso8601String();
+                    }
+                    return null;
+                };
+                
+                return [
+                    'id' => $envio->id,
+                    'codigo' => $envio->codigo,
+                    'estado' => $envio->estado,
+                    'fecha_creacion' => $formatDate($envio->fecha_creacion),
+                    'fecha_estimada_entrega' => $envio->fecha_estimada_entrega ? (is_string($envio->fecha_estimada_entrega) ? $envio->fecha_estimada_entrega : $envio->fecha_estimada_entrega->format('Y-m-d')) : null,
+                    'hora_estimada' => $envio->hora_estimada,
+                    'fecha_asignacion' => $formatDate($envio->fecha_asignacion),
+                    'fecha_aceptacion' => $formatDate($envio->fecha_aceptacion),
+                    'total_cantidad' => $envio->total_cantidad,
+                    'total_peso' => (float) $envio->total_peso,
+                    'total_precio' => (float) $envio->total_precio,
+                    'almacen_nombre' => $envio->almacen_nombre,
+                    'direccion_completa' => $envio->direccion_completa,
+                    'latitud' => $envio->latitud ? (float) $envio->latitud : null,
+                    'longitud' => $envio->longitud ? (float) $envio->longitud : null,
+                    'origen_lat' => $envio->origen_lat ? (float) $envio->origen_lat : null,
+                    'origen_lng' => $envio->origen_lng ? (float) $envio->origen_lng : null,
+                    'origen_direccion' => $envio->origen_direccion,
+                    'vehiculo_id' => $envio->vehiculo_id,
+                    'vehiculo_placa' => $envio->vehiculo_placa,
+                    'es_asignacion_multiple' => $envio->es_asignacion_multiple ?? false,
+                    'tipo_asignacion' => $envio->tipo_asignacion ?? 'normal',
+                    'total_envios_asignacion' => $envio->total_envios_asignacion ?? 1,
+                    'ruta_id' => $envio->ruta_id ?? null,
+                    'ruta_codigo' => $envio->ruta_codigo ?? null,
+                    'ruta_estado' => $envio->ruta_estado ?? null,
+                    'total_envios_ruta' => $envio->total_envios_ruta ?? 0,
+                    'total_paradas' => $envio->total_paradas ?? 0,
+                    // Agregar URLs de acciones para la app móvil
+                    'url_aceptar' => "{$apiBaseUrl}/envios/{$envio->id}/aceptar",
+                    'url_rechazar' => "{$apiBaseUrl}/envios/{$envio->id}/rechazar",
+                    'url_iniciar' => "{$apiBaseUrl}/envios/{$envio->id}/iniciar",
+                    'url_entregado' => "{$apiBaseUrl}/envios/{$envio->id}/entregado",
+                ];
+            })->toArray();
+
+            \Log::info("✅ Encontrados {$envios->count()} envíos para transportista {$transportistaId}");
+            
             return response()->json([
                 'success' => true,
-                'data' => $envios,
-                'transportista_id' => $transportistaId, // Para debugging
-                'total' => $envios->count()
+                'data' => $enviosArray,
+                'transportista_id' => (int) $transportistaId,
+                'total' => count($enviosArray),
+                'api_base_url' => $apiBaseUrl, // Incluir URL base para referencia
+            ], 200, [
+                'Content-Type' => 'application/json',
+                'Access-Control-Allow-Origin' => '*',
+                'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
             ]);
-        } catch (\Exception $e) {
-            \Log::error("❌ Error al obtener envíos para transportista {$transportistaId}: " . $e->getMessage());
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error("❌ Error de base de datos al obtener envíos para transportista {$transportistaId}", [
+                'error' => $e->getMessage(),
+                'sql' => $e->getSql(),
+                'bindings' => $e->getBindings(),
+            ]);
             return response()->json([
                 'success' => false,
-                'error' => 'Error al obtener envíos: ' . $e->getMessage()
-            ], 500);
+                'error' => 'Error de base de datos al obtener envíos',
+                'data' => [],
+                'total' => 0
+            ], 500, [
+                'Content-Type' => 'application/json',
+                'Access-Control-Allow-Origin' => '*',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("❌ Error al obtener envíos para transportista {$transportistaId}", [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener envíos: ' . $e->getMessage(),
+                'data' => [],
+                'total' => 0
+            ], 500, [
+                'Content-Type' => 'application/json',
+                'Access-Control-Allow-Origin' => '*',
+            ]);
         }
     }
 }

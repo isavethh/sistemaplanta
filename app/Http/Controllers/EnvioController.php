@@ -34,17 +34,27 @@ class EnvioController extends Controller
                 ->orderBy('id', 'desc') // Ordenar por ID para mostrar los más recientes primero
                 ->get();
             
-            // Corregir envíos inconsistentes: si están "asignado" pero no tienen asignación válida con transportista
+            // Corregir envíos inconsistentes: si están "asignado" pero no tienen asignación válida
+            // Solo verificar que tenga asignación y vehículo, no verificar transportista (puede no estar cargado)
             foreach ($envios as $envio) {
                 if ($envio->estado == 'asignado') {
-                    $tieneAsignacionValida = $envio->asignacion 
-                        && $envio->asignacion->vehiculo 
-                        && $envio->asignacion->vehiculo->transportista_id;
+                    // Recargar relaciones para asegurar que estén cargadas
+                    $envio->load(['asignacion.vehiculo']);
                     
-                    if (!$tieneAsignacionValida) {
-                        // Corregir el estado a pendiente
+                    // Verificar que tenga asignación y vehículo
+                    $tieneAsignacion = $envio->asignacion && $envio->asignacion->vehiculo;
+                    
+                    if (!$tieneAsignacion) {
+                        // Solo corregir si realmente no hay asignación o vehículo
                         $envio->update(['estado' => 'pendiente']);
-                        \Log::warning("⚠️ Envío {$envio->codigo} corregido: estado 'asignado' sin asignación válida, cambiado a 'pendiente'");
+                        \Log::warning("⚠️ Envío {$envio->codigo} corregido: estado 'asignado' sin asignación o vehículo, cambiado a 'pendiente'");
+                    } else {
+                        // Verificar que el vehículo tenga transportista (solo loguear, no cambiar estado)
+                        $vehiculo = $envio->asignacion->vehiculo;
+                        if (!$vehiculo->transportista_id) {
+                            \Log::warning("⚠️ Envío {$envio->codigo} tiene asignación pero el vehículo {$vehiculo->placa} no tiene transportista asignado");
+                            // No cambiar el estado, solo advertir - el vehículo puede tener transportista pero no estar cargado
+                        }
                     }
                 }
             }

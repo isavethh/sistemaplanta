@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         
         // CORS para permitir peticiones desde la app móvil
         $middleware->api(append: [
+            \App\Http\Middleware\ForceCors::class,
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
     })

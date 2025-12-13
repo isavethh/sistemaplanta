@@ -225,6 +225,14 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ============================================================================
+// MÓDULO: PROPUESTAS DE VEHÍCULOS
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    Route::get('/propuestas-vehiculos', [App\Http\Controllers\PropuestaVehiculoController::class, 'index'])->name('propuestas-vehiculos.index');
+    Route::get('/propuestas-vehiculos/{id}', [App\Http\Controllers\PropuestaVehiculoController::class, 'show'])->name('propuestas-vehiculos.show');
+});
+
+// ============================================================================
 // MÓDULO: REPORTES Y ANÁLISIS (Ibex CRUD)
 // ============================================================================
 Route::prefix('reportes')->name('reportes.')->middleware(['auth'])->group(function () {

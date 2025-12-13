@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Envio;
 use App\Models\EnvioProducto;
 use App\Models\Almacen;
+use App\Models\RechazoTransportista;
+use App\Services\AlmacenIntegrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class EnvioController extends Controller
 {
@@ -76,12 +79,37 @@ class EnvioController extends Controller
     public function aceptar($id)
     {
         try {
-            $envio = Envio::findOrFail($id);
+            // Validar que el ID sea numérico
+            if (!is_numeric($id) || $id <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'ID de envío inválido'
+                ], 400, [
+                    'Content-Type' => 'application/json',
+                    'Access-Control-Allow-Origin' => '*',
+                ]);
+            }
+
+            $envio = Envio::with(['asignacion.transportista', 'asignacion.vehiculo', 'almacenDestino'])->find($id);
+
+            if (!$envio) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Envío no encontrado'
+                ], 404, [
+                    'Content-Type' => 'application/json',
+                    'Access-Control-Allow-Origin' => '*',
+                ]);
+            }
 
             if ($envio->estado !== 'asignado') {
                 return response()->json([
-                    'error' => 'El envío no está en estado asignado'
-                ], 400);
+                    'success' => false,
+                    'error' => 'El envío no está en estado asignado. Estado actual: ' . $envio->estado
+                ], 400, [
+                    'Content-Type' => 'application/json',
+                    'Access-Control-Allow-Origin' => '*',
+                ]);
             }
 
             $envio->estado = 'aceptado';
@@ -119,15 +147,41 @@ class EnvioController extends Controller
                 ]);
             }
 
+            // Notificar a Almacenes que el pedido está "en proceso"
+            try {
+                $almacenService = new AlmacenIntegrationService();
+                $almacenService->notifyEnvioAceptado($envio);
+            } catch (\Exception $e) {
+                Log::warning("No se pudo notificar aceptación a almacenes: " . $e->getMessage());
+                // No fallar la aceptación si la notificación falla
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Envío aceptado correctamente. Firma digital registrada.',
-                'envio' => $envio
+                'envio' => [
+                    'id' => $envio->id,
+                    'codigo' => $envio->codigo,
+                    'estado' => $envio->estado,
+                ]
+            ], 200, [
+                'Content-Type' => 'application/json',
+                'Access-Control-Allow-Origin' => '*',
             ]);
         } catch (\Exception $e) {
+            Log::error('Error al aceptar envío', [
+                'envio_id' => $id,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             return response()->json([
+                'success' => false,
                 'error' => 'Error al aceptar envío: ' . $e->getMessage()
-            ], 500);
+            ], 500, [
+                'Content-Type' => 'application/json',
+                'Access-Control-Allow-Origin' => '*',
+            ]);
         }
     }
 
@@ -138,37 +192,114 @@ class EnvioController extends Controller
     public function rechazar(Request $request, $id)
     {
         try {
-            $envio = Envio::findOrFail($id);
+            // Validar que el ID sea numérico
+            if (!is_numeric($id) || $id <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'ID de envío inválido'
+                ], 400, [
+                    'Content-Type' => 'application/json',
+                    'Access-Control-Allow-Origin' => '*',
+                ]);
+            }
+
+            DB::beginTransaction();
+
+            $envio = Envio::with(['asignacion.transportista', 'asignacion.vehiculo'])->find($id);
+            
+            if (!$envio) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Envío no encontrado'
+                ], 404, [
+                    'Content-Type' => 'application/json',
+                    'Access-Control-Allow-Origin' => '*',
+                ]);
+            }
+
+            if ($envio->estado !== 'asignado') {
+                return response()->json([
+                    'error' => 'El envío no está en estado asignado'
+                ], 400);
+            }
 
             $motivo = $request->input('motivo', 'Sin motivo especificado');
-            $transportistaNombre = $envio->asignacion && $envio->asignacion->transportista 
-                ? $envio->asignacion->transportista->name 
-                : 'Transportista desconocido';
+            $transportista = $envio->asignacion?->transportista;
+            
+            if (!$transportista) {
+                // Intentar obtener transportista a través del vehículo
+                $transportista = $envio->asignacion?->vehiculo?->transportista;
+            }
+
+            if (!$transportista) {
+                return response()->json([
+                    'error' => 'No se pudo identificar el transportista'
+                ], 400);
+            }
+
+            // Guardar rechazo en la tabla de rechazos para productividad
+            RechazoTransportista::create([
+                'envio_id' => $envio->id,
+                'transportista_id' => $transportista->id,
+                'codigo_envio' => $envio->codigo,
+                'motivo_rechazo' => $motivo,
+                'fecha_rechazo' => now(),
+            ]);
 
             // Cambiar a estado rechazado
             $envio->estado = 'rechazado';
             $envio->fecha_rechazo = now();
-            $envio->motivo_rechazo = "Rechazado por: {$transportistaNombre}\nMotivo: {$motivo}\nFecha: " . now()->format('d/m/Y H:i:s');
+            $envio->motivo_rechazo = "Rechazado por: {$transportista->name}\nMotivo: {$motivo}\nFecha: " . now()->format('d/m/Y H:i:s');
             $envio->save();
 
-            // NO eliminar la asignación, mantenerla para historial
+            // NO eliminar la asignación, mantenerla para historial pero marcar como rechazada
             if ($envio->asignacion) {
                 $envio->asignacion->update([
                     'estado' => 'rechazado',
                     'fecha_rechazo' => now(),
-                    'observaciones' => $motivo
+                    'observaciones' => ($envio->asignacion->observaciones ?? '') . "\n\nRECHAZADO: {$motivo}"
                 ]);
             }
 
+            DB::commit();
+
+            Log::info('✅ Envío rechazado por transportista', [
+                'envio_id' => $envio->id,
+                'codigo' => $envio->codigo,
+                'transportista_id' => $transportista->id,
+                'transportista_nombre' => $transportista->name,
+                'motivo' => $motivo,
+            ]);
+
             return response()->json([
                 'success' => true,
-                'message' => 'Envío rechazado. El administrador será notificado.',
-                'envio' => $envio
+                'message' => 'Envío rechazado. El administrador será notificado y podrá asignar a otro transportista.',
+                'envio' => [
+                    'id' => $envio->id,
+                    'codigo' => $envio->codigo,
+                    'estado' => $envio->estado,
+                ]
+            ], 200, [
+                'Content-Type' => 'application/json',
+                'Access-Control-Allow-Origin' => '*',
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al rechazar envío', [
+                'envio_id' => $id,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
+                'success' => false,
                 'error' => 'Error al rechazar envío: ' . $e->getMessage()
-            ], 500);
+            ], 500, [
+                'Content-Type' => 'application/json',
+                'Access-Control-Allow-Origin' => '*',
+            ]);
         }
     }
 

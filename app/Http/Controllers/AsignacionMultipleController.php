@@ -99,6 +99,12 @@ class AsignacionMultipleController extends Controller
                 })
                 ->firstOrFail();
             
+            // Asignar el transportista al vehículo si no lo tiene
+            if (!$vehiculo->transportista_id || $vehiculo->transportista_id != $request->transportista_id) {
+                $vehiculo->update(['transportista_id' => $request->transportista_id]);
+                \Log::info("✅ Transportista {$transportista->name} (ID: {$request->transportista_id}) asignado al vehículo {$vehiculo->placa}");
+            }
+            
             // Calcular peso total de los envíos
             $envios = Envio::whereIn('id', $request->envios_ids)
                 ->where('estado', 'pendiente')
@@ -155,12 +161,12 @@ class AsignacionMultipleController extends Controller
             $enviosAsignados = [];
             
             foreach ($envios as $envio) {
-                // Actualizar o crear asignación (cualquier vehículo puede ser usado por cualquier transportista)
+                // Actualizar o crear asignación
                 // Si ya existe una asignación para este envío, la actualizamos
+                // El transportista se obtiene a través del vehículo
                 EnvioAsignacion::updateOrCreate(
                     ['envio_id' => $envio->id],
                     [
-                        'transportista_id' => $request->transportista_id,
                         'vehiculo_id' => $request->vehiculo_id,
                         'fecha_asignacion' => now(),
                     ]

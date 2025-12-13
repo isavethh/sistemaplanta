@@ -187,7 +187,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const PLANTA_COORDS = [-17.7833, -63.1821];
-    const NODE_API_URL = '{{ env("NODE_API_URL", "http://10.26.13.220:3001/api") }}';
+    const NODE_API_URL = '{{ env("NODE_API_URL", "http://192.168.0.129:8001/api") }}';
     const rutasActivas = @json($rutasActivas ?? []);
     let marcadoresRutas = {};
     let polilneasRutas = {};

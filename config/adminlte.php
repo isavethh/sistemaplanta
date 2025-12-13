@@ -364,6 +364,15 @@ return [
             'role' => 'admin'
         ],
 
+        // Propuestas de Vehículos
+        [
+            'text' => 'Propuestas',
+            'route' => 'propuestas-vehiculos.index',
+            'icon' => 'fas fa-clipboard-check',
+            'icon_color' => 'success',
+            'role' => 'admin'
+        ],
+
         // Centro de Reportes
         [
             'text' => 'Reportes',

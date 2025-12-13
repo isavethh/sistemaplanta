@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Envio;
 use App\Models\Almacen;
+use App\Models\PropuestaVehiculo;
+use App\Services\PropuestaVehiculosService;
 use Illuminate\Http\Request;
 
 class DocumentoController extends Controller
@@ -19,9 +21,34 @@ class DocumentoController extends Controller
             $envio = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
                 ->findOrFail($id);
 
+            // Verificar si tiene propuesta aprobada por Trazabilidad
+            // Primero verificar si viene de Trazabilidad
+            $vieneDeTrazabilidad = strpos($envio->observaciones ?? '', 'ORIGEN: TRAZABILIDAD') !== false 
+                || $envio->estado === 'pendiente_aprobacion_trazabilidad';
+            
+            if ($vieneDeTrazabilidad) {
+                // Buscar propuesta (puede estar aprobada, rechazada o pendiente)
+                $propuesta = \App\Models\PropuestaVehiculo::where('envio_id', $id)->first();
+                
+                // Si tiene propuesta (aprobada o pendiente), devolver el PDF de la propuesta
+                if ($propuesta && in_array($propuesta->estado, ['aprobada', 'pendiente'])) {
+                    $propuestaService = new \App\Services\PropuestaVehiculosService();
+                    $propuestaData = $propuestaService->calcularPropuestaVehiculos($envio);
+                    
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('envios.pdf.propuesta-vehiculos', [
+                        'propuesta' => $propuestaData,
+                        'envio' => $envio,
+                        'aprobada' => $propuesta->estado === 'aprobada',
+                    ]);
+                    $pdf->setPaper('a4', 'portrait');
+                    
+                    return $pdf->stream('propuesta-' . ($propuesta->estado === 'aprobada' ? 'aprobada' : 'pendiente') . '-' . $envio->codigo . '.pdf');
+                }
+            }
+
             $planta = Almacen::where('es_planta', true)->first();
 
-            // Generar HTML del documento
+            // Generar HTML del documento normal
             $html = $this->generarHTML($envio, $planta);
 
             // Por ahora retornamos HTML

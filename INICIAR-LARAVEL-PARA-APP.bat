@@ -1,31 +1,23 @@
 @echo off
 echo ========================================
-echo  INICIANDO LARAVEL PARA APP MOVIL
+echo Iniciando Laravel para App Movil
 echo ========================================
 echo.
-echo Este script inicia Laravel en el puerto 8000
-echo y lo hace accesible desde la red local
-echo para que la app movil pueda conectarse.
+echo IMPORTANTE: Este servidor escucha en TODAS las interfaces (0.0.0.0)
+echo para que la app movil pueda conectarse desde cualquier dispositivo
+echo en la misma red.
 echo.
-echo IMPORTANTE: Tu celular debe estar en la misma red WiFi
+echo Para encontrar tu IP local, ejecuta: ipconfig
+echo Busca "Direccion IPv4" (generalmente 192.168.x.x)
 echo.
-
-cd /d "%~dp0"
-
-echo Verificando Laravel...
-if not exist "artisan" (
-    echo ERROR: No se encuentra Laravel en esta carpeta
-    pause
-    exit /b 1
-)
-
-echo.
-echo Iniciando servidor Laravel...
-echo URL local: http://localhost:8000
-echo URL red local: http://10.26.13.220:8000
+echo La app movil debe usar: http://TU_IP:8001/api
 echo.
 echo Presiona Ctrl+C para detener el servidor
 echo.
+echo ========================================
+echo.
 
-php artisan serve --host=0.0.0.0 --port=8000
+cd /d "%~dp0"
+php artisan serve --host=0.0.0.0 --port=8001
 
+pause

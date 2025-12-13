@@ -43,4 +43,21 @@ return [
         'api_url' => env('PLANTACRUDS_API_URL', 'http://localhost:8001/api'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | API Base URL para App Móvil
+    |--------------------------------------------------------------------------
+    |
+    | Esta es la URL base que la app móvil usará para conectarse a la API.
+    | IMPORTANTE: Debe ser la IP de la red local (ej: http://192.168.0.129:8001)
+    | NO usar localhost ya que la app móvil no puede acceder a localhost.
+    | 
+    | Para encontrar tu IP local, ejecuta: ipconfig (Windows) o ifconfig (Linux/Mac)
+    | Busca la IP en la red local (generalmente 192.168.x.x o 10.x.x.x)
+    |
+    */
+    'app_mobile' => [
+        'api_base_url' => env('APP_MOBILE_API_URL', env('APP_URL', 'http://localhost') . '/api'),
+    ],
+
 ];

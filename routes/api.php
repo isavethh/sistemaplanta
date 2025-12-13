@@ -22,7 +22,29 @@ Route::get('/ping', function () {
     return response()->json([
         'success' => true,
         'message' => 'Laravel API funcionando correctamente',
-        'timestamp' => now()
+        'timestamp' => now(),
+        'api_base_url' => config('services.app_mobile.api_base_url', env('APP_URL', 'http://localhost') . '/api'),
+    ]);
+});
+
+// Ruta para obtener configuración de la API (útil para la app móvil)
+Route::get('/config', function () {
+    $apiBaseUrl = config('services.app_mobile.api_base_url', env('APP_URL', 'http://localhost') . '/api');
+    return response()->json([
+        'success' => true,
+        'api_base_url' => $apiBaseUrl,
+        'endpoints' => [
+            'transportistas_login' => "{$apiBaseUrl}/public/transportistas-login",
+            'login_transportista' => "{$apiBaseUrl}/public/login-transportista",
+            'envios_transportista' => "{$apiBaseUrl}/transportista/{id}/envios",
+            'aceptar_envio' => "{$apiBaseUrl}/envios/{id}/aceptar",
+            'rechazar_envio' => "{$apiBaseUrl}/envios/{id}/rechazar",
+            'iniciar_envio' => "{$apiBaseUrl}/envios/{id}/iniciar",
+            'marcar_entregado' => "{$apiBaseUrl}/envios/{id}/entregado",
+        ],
+    ], 200, [
+        'Content-Type' => 'application/json',
+        'Access-Control-Allow-Origin' => '*',
     ]);
 });
 
@@ -55,6 +77,13 @@ Route::prefix('public')->group(function () {
 
 // Rutas de transportistas (sin prefix para que funcione con /api/transportista/{id}/envios)
 Route::get('/transportista/{id}/envios', [\App\Http\Controllers\Api\TransportistaController::class, 'getEnviosAsignados']);
+Route::options('/transportista/{id}/envios', function () {
+    return response()->json([], 200, [
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+    ]);
+});
 
 // Rutas de notas de entrega (compatibles con Node.js backend)
 Route::prefix('notas-venta')->group(function () {
@@ -76,6 +105,21 @@ Route::prefix('envios')->group(function () {
     Route::put('/{id}/estado', [EnvioApiController::class, 'updateEstado']);
     Route::post('/{id}/aceptar', [\App\Http\Controllers\Api\EnvioController::class, 'aceptar']);
     Route::post('/{id}/rechazar', [\App\Http\Controllers\Api\EnvioController::class, 'rechazar']);
+    // Rutas OPTIONS para CORS preflight
+    Route::options('/{id}/aceptar', function () {
+        return response()->json([], 200, [
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+        ]);
+    });
+    Route::options('/{id}/rechazar', function () {
+        return response()->json([], 200, [
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+        ]);
+    });
     Route::post('/{id}/iniciar', [\App\Http\Controllers\Api\EnvioController::class, 'iniciar']);
     Route::post('/{id}/entregado', [\App\Http\Controllers\Api\EnvioController::class, 'marcarEntregado']);
     Route::post('/{id}/simular-movimiento', [\App\Http\Controllers\Api\EnvioController::class, 'simularMovimiento']);
@@ -125,11 +169,15 @@ Route::post('/sync/envio-estado', function (Request $request) {
 Route::post('/pedido-almacen', function (Request $request) {
     try {
         $validated = $request->validate([
-            'codigo_origen' => 'required|string',
+            'codigo_origen' => 'nullable|string', // Ahora es opcional, se puede usar 'codigo' directamente
+            'codigo' => 'nullable|string', // Código directo del pedido de almacenes
             'almacen_destino' => 'required|string',
             'almacen_destino_lat' => 'nullable|numeric',
             'almacen_destino_lng' => 'nullable|numeric',
             'almacen_destino_direccion' => 'nullable|string',
+            'origen_lat' => 'nullable|numeric', // Latitud del punto de recogida (planta de Trazabilidad)
+            'origen_lng' => 'nullable|numeric', // Longitud del punto de recogida (planta de Trazabilidad)
+            'origen_direccion' => 'nullable|string', // Dirección del punto de recogida (planta de Trazabilidad)
             'solicitante_id' => 'nullable|integer',
             'solicitante_nombre' => 'nullable|string',
             'solicitante_email' => 'nullable|email',
@@ -193,28 +241,77 @@ Route::post('/pedido-almacen', function (Request $request) {
         }
 
         // Obtener la planta (almacén origen)
-        $planta = \App\Models\Almacen::where('es_planta', true)->first();
-        if (!$planta) {
-            $planta = \App\Models\Almacen::firstOrCreate(
-                ['es_planta' => true],
-                [
-                    'nombre' => 'Planta Principal',
-                    'latitud' => -17.7833,
-                    'longitud' => -63.1821,
-                    'direccion_completa' => 'Planta Principal',
+        // Si viene desde Trazabilidad, usar la dirección de origen enviada
+        // Si no viene, buscar o crear la planta por defecto
+        if (($validated['origen'] ?? '') === 'trazabilidad' && 
+            isset($validated['origen_lat']) && isset($validated['origen_lng'])) {
+            // Usar la dirección de origen enviada desde Trazabilidad
+            $plantaNombre = $validated['origen_direccion'] ?? 'Planta Trazabilidad';
+            $plantaLat = $validated['origen_lat'];
+            $plantaLng = $validated['origen_lng'];
+            
+            // Buscar o crear la planta con la dirección de Trazabilidad
+            $planta = \App\Models\Almacen::where('es_planta', true)->first();
+            if (!$planta) {
+                $planta = \App\Models\Almacen::create([
+                    'nombre' => $plantaNombre,
+                    'latitud' => $plantaLat,
+                    'longitud' => $plantaLng,
+                    'direccion_completa' => $plantaNombre,
                     'activo' => true,
                     'es_planta' => true,
-                ]
-            );
+                ]);
+            } else {
+                // Actualizar la planta con la dirección de Trazabilidad si es diferente
+                if ($planta->latitud != $plantaLat || $planta->longitud != $plantaLng || 
+                    $planta->direccion_completa != $plantaNombre) {
+                    $planta->latitud = $plantaLat;
+                    $planta->longitud = $plantaLng;
+                    $planta->direccion_completa = $plantaNombre;
+                    $planta->nombre = $plantaNombre;
+                    $planta->save();
+                }
+            }
+        } else {
+            // Si no viene desde Trazabilidad, usar la planta por defecto
+            $planta = \App\Models\Almacen::where('es_planta', true)->first();
+            if (!$planta) {
+                $planta = \App\Models\Almacen::firstOrCreate(
+                    ['es_planta' => true],
+                    [
+                        'nombre' => 'Planta Principal',
+                        'latitud' => -17.7833,
+                        'longitud' => -63.1821,
+                        'direccion_completa' => 'Planta Principal',
+                        'activo' => true,
+                        'es_planta' => true,
+                    ]
+                );
+            }
         }
 
-        // Generar código único para el envío
-        // Usar prefijo TRAZ- para envíos desde Trazabilidad
-        $ultimoEnvio = \App\Models\Envio::orderBy('id', 'desc')->first();
-        $numero = $ultimoEnvio ? $ultimoEnvio->id + 1 : 1;
-        // Generar código con formato TRAZ-YYMMDD-XXXXX (5 caracteres aleatorios)
-        $random = strtoupper(substr(md5(uniqid(rand(), true)), 0, 5));
-        $codigo = 'TRAZ-' . date('ymd') . '-' . $random;
+        // Usar el mismo código del pedido de almacenes si viene en la petición
+        // Esto mantiene el mismo código en todos los sistemas (almacenes, Trazabilidad, plantaCruds)
+        // Prioridad: codigo > codigo_origen > generar nuevo
+        if (!empty($validated['codigo'])) {
+            $codigo = $validated['codigo'];
+        } elseif (!empty($validated['codigo_origen'])) {
+            $codigo = $validated['codigo_origen'];
+        } else {
+            // Solo generar código nuevo si no viene del almacén o Trazabilidad
+            $ultimoEnvio = \App\Models\Envio::orderBy('id', 'desc')->first();
+            $numero = $ultimoEnvio ? $ultimoEnvio->id + 1 : 1;
+            // Generar código con formato ENV-YYMMDD-XXXXX (5 caracteres aleatorios)
+            $random = strtoupper(substr(md5(uniqid(rand(), true)), 0, 5));
+            $codigo = 'ENV-' . date('ymd') . '-' . $random;
+        }
+        
+        // Verificar que el código no esté duplicado
+        $envioExistente = \App\Models\Envio::where('codigo', $codigo)->first();
+        if ($envioExistente) {
+            // Si ya existe, agregar un sufijo único
+            $codigo = $codigo . '-' . strtoupper(substr(uniqid(), -3));
+        }
 
         // Construir observaciones
         $observacionesAlmacen = $validated['observaciones'] ?? '';

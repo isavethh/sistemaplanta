@@ -9,6 +9,7 @@ use App\Models\EnvioProducto;
 use App\Models\CodigoQR;
 use App\Models\Producto;
 use App\Models\Categoria;
+use App\Models\PropuestaVehiculo;
 use App\Services\PropuestaVehiculosService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -434,10 +435,38 @@ class EnvioApiController extends Controller
             $qr = CodigoQR::where('codigo', $envio->codigo)->first();
         }
 
+        // Mapear estado a estado_nombre para compatibilidad
+        $estadosMap = [
+            'pendiente' => 'Pendiente',
+            'pendiente_aprobacion_trazabilidad' => 'Pendiente Aprobación Trazabilidad',
+            'asignado' => 'Asignado',
+            'aceptado' => 'Aceptado',
+            'en_transito' => 'En Tránsito',
+            'entregado' => 'Entregado',
+            'cancelado' => 'Cancelado',
+            'rechazado' => 'Rechazado',
+        ];
+
+        // Agregar estado_nombre si no existe
+        $envioData = $envio->toArray();
+        $envioData['estado_nombre'] = $estadosMap[$envio->estado] ?? ucfirst(str_replace('_', ' ', $envio->estado));
+        
+        // Agregar coordenadas de origen y destino para el tracking
+        $planta = \App\Models\Almacen::where('es_planta', true)->first();
+        $envioData['origen_latitud'] = $planta->latitud ?? $envio->origen_lat ?? -17.7833;
+        $envioData['origen_longitud'] = $planta->longitud ?? $envio->origen_lng ?? -63.1821;
+        $envioData['destino_latitud'] = $envio->almacenDestino->latitud ?? $envio->latitud ?? -17.7892;
+        $envioData['destino_longitud'] = $envio->almacenDestino->longitud ?? $envio->longitud ?? -63.1751;
+
         return response()->json([
             'success' => true,
-            'data' => $envio,
+            'data' => $envioData,
+            'estado' => $envio->estado, // Asegurar que estado esté presente
+            'estado_nombre' => $envioData['estado_nombre'], // Asegurar que estado_nombre esté presente
             'qr_code' => $qr ? ($qr->qr_image ?? null) : null
+        ], 200, [
+            'Content-Type' => 'application/json',
+            'Access-Control-Allow-Origin' => '*',
         ]);
     }
 
@@ -658,6 +687,22 @@ class EnvioApiController extends Controller
             $propuestaService = new PropuestaVehiculosService();
             $propuesta = $propuestaService->calcularPropuestaVehiculos($envio);
 
+            // Guardar la propuesta en la base de datos si no existe (estado pendiente)
+            PropuestaVehiculo::updateOrCreate(
+                [
+                    'envio_id' => $envio->id,
+                ],
+                [
+                    'codigo_envio' => $envio->codigo,
+                    'propuesta_data' => $propuesta,
+                    'estado' => 'pendiente', // Estado inicial cuando se genera el PDF
+                    'observaciones_trazabilidad' => null,
+                    'aprobado_por' => null,
+                    'fecha_propuesta' => now(),
+                    'fecha_decision' => null, // Aún no hay decisión
+                ]
+            );
+
             // Generar PDF
             $pdf = Pdf::loadView('envios.pdf.propuesta-vehiculos', compact('propuesta'));
             $pdf->setPaper('a4', 'portrait');
@@ -718,6 +763,29 @@ class EnvioApiController extends Controller
             }
 
             DB::beginTransaction();
+
+            // Calcular y guardar la propuesta antes de aprobar/rechazar
+            $propuestaService = new PropuestaVehiculosService();
+            $propuestaData = $propuestaService->calcularPropuestaVehiculos($envio);
+            
+            // Determinar el estado de la propuesta
+            $estadoPropuesta = $validated['accion'] === 'aprobar' ? 'aprobada' : 'rechazada';
+            
+            // Guardar o actualizar la propuesta
+            PropuestaVehiculo::updateOrCreate(
+                [
+                    'envio_id' => $envio->id,
+                ],
+                [
+                    'codigo_envio' => $envio->codigo,
+                    'propuesta_data' => $propuestaData,
+                    'estado' => $estadoPropuesta,
+                    'observaciones_trazabilidad' => $validated['observaciones'] ?? null,
+                    'aprobado_por' => null, // Trazabilidad no envía usuario, se puede agregar después si es necesario
+                    'fecha_propuesta' => now(),
+                    'fecha_decision' => now(),
+                ]
+            );
 
             if ($validated['accion'] === 'aprobar') {
                 // Aprobar: cambiar estado a 'pendiente' para que continúe el flujo normal
