@@ -29,6 +29,7 @@
         <table id="enviosTable" class="table table-striped table-bordered table-hover">
             <thead class="thead-dark">
                 <tr>
+                    <th style="display:none;">ID</th>
                     <th>Código</th>
                     <th>Fecha/Hora Creación</th>
                     <th>Almacén</th>
@@ -41,18 +42,23 @@
             <tbody>
                 @foreach($envios as $envio)
                 @php
-                    $esNuevo = $envio->created_at->diffInHours(now()) < 24;
+                    $esNuevo = $envio->created_at && $envio->created_at->diffInHours(now()) < 24;
                 @endphp
                 <tr class="{{ $esNuevo ? 'table-success' : '' }}" style="{{ $esNuevo ? 'animation: highlight 2s ease-in-out;' : '' }}">
+                    <td style="display:none;" data-order="{{ $envio->id }}">{{ $envio->id }}</td>
                     <td>
                         <strong>{{ $envio->codigo }}</strong>
                         @if($esNuevo)
                             <span class="badge badge-success badge-pill ml-1">NUEVO</span>
                         @endif
                     </td>
-                    <td>
-                        <i class="fas fa-calendar-alt text-primary"></i> {{ $envio->created_at->format('d/m/Y') }}<br>
-                        <small><i class="fas fa-clock text-info"></i> {{ $envio->created_at->format('H:i:s') }}</small>
+                    <td data-order="{{ $envio->created_at ? $envio->created_at->timestamp : 0 }}">
+                        @if($envio->created_at)
+                            <i class="fas fa-calendar-alt text-primary"></i> {{ $envio->created_at->format('d/m/Y') }}<br>
+                            <small><i class="fas fa-clock text-info"></i> {{ $envio->created_at->format('H:i:s') }}</small>
+                        @else
+                            <span class="text-muted">N/A</span>
+                        @endif
                     </td>
                     <td>
                         <i class="fas fa-warehouse text-success"></i> {{ $envio->almacenDestino->nombre ?? 'N/A' }}
@@ -120,17 +126,52 @@
 @section('js')
 <script>
     $(document).ready(function() {
-        $('#enviosTable').DataTable({
+        // Inicializar DataTable con configuración que evite ocultar filas
+        var table = $('#enviosTable').DataTable({
             responsive: true,
-            order: [[0, 'desc']], // Ordenar por código (más reciente primero)
+            order: [[0, 'desc']], // Ordenar por ID (columna 0 oculta, más reciente primero)
+            pageLength: 100, // Mostrar más registros por página por defecto
+            lengthMenu: [[10, 25, 50, 100, 200, -1], [10, 25, 50, 100, 200, "Todos"]],
             language: {
                 url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
             },
             dom: 'Bfrtip',
             buttons: [
                 'copy', 'csv', 'excel', 'pdf', 'print'
-            ]
+            ],
+            // Deshabilitar filtros automáticos que puedan ocultar filas
+            search: {
+                smart: false
+            },
+            // Asegurar que todas las filas se muestren
+            processing: false,
+            serverSide: false, // Usar procesamiento del lado del cliente
+            deferRender: false,
+            // No ocultar filas con valores null o vacíos
+            columnDefs: [
+                {
+                    targets: 0, // Columna ID (oculta)
+                    visible: false,
+                    searchable: false
+                },
+                {
+                    targets: '_all',
+                    defaultContent: 'N/A' // Valor por defecto para celdas vacías
+                }
+            ],
+            // Asegurar que todas las filas se rendericen
+            drawCallback: function(settings) {
+                // Verificar que todas las filas estén visibles
+                var api = this.api();
+                var rows = api.rows({page: 'current'}).nodes();
+                $(rows).css('display', 'table-row');
+            }
         });
+        
+        // Forzar renderizado completo después de un pequeño delay
+        setTimeout(function() {
+            table.draw(false); // Redibujar sin resetear la paginación
+        }, 100);
     });
 </script>
 @endsection

@@ -26,12 +26,12 @@ class EnvioController extends Controller
                 ->whereHas('asignacion', function($query) use ($user) {
                     $query->where('transportista_id', $user->id);
                 })
-                ->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc') // Ordenar por ID para mostrar los más recientes primero
                 ->get();
         } else {
             // Si es admin u otro rol, mostrar todos los envíos
             $envios = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
-                ->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc') // Ordenar por ID para mostrar los más recientes primero
                 ->get();
             
             // Corregir envíos inconsistentes: si están "asignado" pero no tienen asignación válida con transportista
@@ -49,9 +49,9 @@ class EnvioController extends Controller
                 }
             }
             
-            // Recargar los envíos después de las correcciones
+            // Recargar los envíos después de las correcciones, ordenados por ID
             $envios = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
-                ->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc') // Ordenar por ID para mostrar los más recientes primero
                 ->get();
         }
         

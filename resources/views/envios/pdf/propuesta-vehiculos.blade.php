@@ -264,52 +264,103 @@
             border-top-color: #C62828;
         }
         
-        /* Caja 3D dentro del contenedor */
+        /* Caja 3D mejorada dentro del contenedor */
         .caja-3d-container {
             position: absolute;
-            top: 6px;
-            left: 6px;
-            right: 6px;
-            bottom: 6px;
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            bottom: 4px;
             display: table;
-            width: calc(100% - 12px);
-            height: calc(100% - 12px);
+            width: calc(100% - 8px);
+            height: calc(100% - 8px);
+            perspective: 300px;
         }
         
         .caja-3d-wrapper {
             display: table-cell;
             vertical-align: middle;
             text-align: center;
+            transform-style: preserve-3d;
         }
         
         .caja-3d {
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
-            border: 2px solid #654321;
-            border-radius: 3px;
             position: relative;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.4), 2px 2px 6px rgba(0,0,0,0.3);
-            display: table;
+            transform-style: preserve-3d;
+            transform: rotateY(-25deg) rotateX(8deg);
+            margin: 0 auto;
+            max-width: 150px;
+            max-height: 75px;
         }
         
-        .caja-3d::before {
+        /* Cara frontal de la caja */
+        .caja-frontal {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 30%, #8B4513 60%, #654321 100%);
+            border: 3px solid #654321;
+            border-radius: 4px;
+            position: relative;
+            box-shadow: 
+                inset 0 0 20px rgba(0,0,0,0.4),
+                5px 5px 15px rgba(0,0,0,0.5),
+                0 0 0 1px rgba(255,255,255,0.1);
+            display: table;
+            transform: translateZ(8px);
+        }
+        
+        .caja-frontal::before {
             content: '';
             position: absolute;
-            top: 8%;
-            left: 8%;
-            right: 8%;
-            bottom: 8%;
-            border: 1px dashed rgba(255,255,255,0.3);
-            border-radius: 2px;
+            top: 10%;
+            left: 10%;
+            right: 10%;
+            bottom: 10%;
+            border: 2px dashed rgba(255,255,255,0.25);
+            border-radius: 3px;
+            z-index: 0;
+        }
+        
+        /* Cara superior de la caja (efecto 3D) */
+        .caja-top {
+            position: absolute;
+            top: -6px;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(135deg, #A0522D 0%, #8B4513 100%);
+            border: 2px solid #654321;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            transform: rotateX(90deg) translateZ(3px);
+            transform-origin: bottom;
+        }
+        
+        /* Cara lateral derecha de la caja (efecto 3D) */
+        .caja-side {
+            position: absolute;
+            top: 0;
+            right: -6px;
+            bottom: 0;
+            width: 6px;
+            background: linear-gradient(90deg, #8B4513 0%, #654321 100%);
+            border: 2px solid #654321;
+            border-left: none;
+            border-radius: 0 4px 4px 0;
+            transform: rotateY(90deg) translateZ(3px);
+            transform-origin: left;
         }
         
         .productos-dentro {
             display: table-cell;
             vertical-align: middle;
-            padding: 4px;
+            padding: 6px;
             position: relative;
             z-index: 1;
+            width: 100%;
+            height: 100%;
         }
         
         .productos-grid {
@@ -317,6 +368,7 @@
             width: 100%;
             height: 100%;
             margin: 0 auto;
+            table-layout: fixed;
         }
         
         .productos-row {
@@ -327,18 +379,56 @@
             display: table-cell;
             text-align: center;
             vertical-align: middle;
-            padding: 1px;
+            padding: 2px;
+            width: auto;
         }
         
         .producto-item-mini {
             display: inline-block;
-            width: 10px;
-            height: 10px;
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            border: 1px solid #FF8C00;
-            border-radius: 1px;
+            width: 14px;
+            height: 14px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%);
+            border: 1.5px solid #FF6600;
+            border-radius: 2px;
             margin: 0;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.3);
+            box-shadow: 
+                0 2px 4px rgba(0,0,0,0.5),
+                inset 0 1px 2px rgba(255,255,255,0.5),
+                inset 0 -1px 1px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .producto-item-mini::before {
+            content: '📦';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 9px;
+            line-height: 1;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+        }
+        
+        /* Variación de colores para diferentes productos */
+        .producto-item-mini.producto-1 { 
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-color: #FF8C00;
+        }
+        .producto-item-mini.producto-2 { 
+            background: linear-gradient(135deg, #FF6B6B 0%, #EE5A6F 100%);
+            border-color: #E53935;
+        }
+        .producto-item-mini.producto-3 { 
+            background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+            border-color: #26A69A;
+        }
+        .producto-item-mini.producto-4 { 
+            background: linear-gradient(135deg, #95E1D3 0%, #F38181 100%);
+            border-color: #E57373;
+        }
+        .producto-item-mini.producto-5 { 
+            background: linear-gradient(135deg, #FCE38A 0%, #F38181 100%);
+            border-color: #FFB74D;
         }
         
         .cargo-percentage {
@@ -506,11 +596,11 @@
         <div class="section-title">VEHÍCULOS PROPUESTOS</div>
         
         <div style="background: #e3f2fd; padding: 8px; margin-bottom: 15px; border-left: 4px solid #2196F3; font-size: 9px;">
-            <strong>Leyenda Visual:</strong> Los camiones muestran gráficamente la carga asignada. 
+            <strong>Leyenda Visual:</strong> Los camiones muestran gráficamente la carga asignada con visualización 3D mejorada. 
             El color <span style="color: #28a745; font-weight: bold;">verde</span> indica carga normal (0-70%), 
             <span style="color: #ffc107; font-weight: bold;">amarillo</span> indica alta carga (70-90%), 
             y <span style="color: #dc3545; font-weight: bold;">rojo</span> indica carga crítica (90%+). 
-            Las cajas naranjas representan los productos a transportar.
+            Las cajas 3D dentro del contenedor muestran los productos a transportar con diferentes colores para identificar distintos tipos de productos.
         </div>
         
         @if(empty($propuesta['vehiculos_propuestos']))
@@ -536,31 +626,36 @@
                 $totalItems = 0;
                 
                 if (count($propuesta['vehiculos_propuestos']) == 1) {
-                    // Un solo vehículo: mostrar todos los productos
+                    // Un solo vehículo: mostrar todos los productos proporcionalmente
                     foreach ($propuesta['productos'] as $p) {
-                        $cantidad = max(1, floor($p->cantidad));
-                        for ($i = 0; $i < min($cantidad, 20); $i++) { // Máximo 20 por producto
+                        // Calcular cuántos items mostrar de este producto (máximo 8 por producto para mejor visualización)
+                        $cantidadProducto = max(1, floor($p->cantidad));
+                        $itemsPorProducto = min($cantidadProducto, 8);
+                        
+                        for ($i = 0; $i < $itemsPorProducto; $i++) {
                             $productosEnVehiculo[] = $p;
                             $totalItems++;
-                            if ($totalItems >= 25) break 2; // Máximo 25 items totales
+                            if ($totalItems >= 30) break 2; // Máximo 30 items totales para mejor visualización
                         }
                     }
                 } else {
-                    // Múltiples vehículos: distribuir proporcionalmente
+                    // Múltiples vehículos: distribuir proporcionalmente según peso asignado
                     $factorDistribucion = $item['peso_asignado_kg'] / max($propuesta['totales']['peso_kg'], 1);
                     foreach ($propuesta['productos'] as $p) {
                         $cantidad = max(1, floor($p->cantidad * $factorDistribucion));
-                        for ($i = 0; $i < min($cantidad, 10); $i++) {
+                        $itemsPorProducto = min($cantidad, 6); // Máximo 6 por producto en múltiples vehículos
+                        
+                        for ($i = 0; $i < $itemsPorProducto; $i++) {
                             $productosEnVehiculo[] = $p;
                             $totalItems++;
-                            if ($totalItems >= 25) break 2;
+                            if ($totalItems >= 30) break 2;
                         }
                     }
                 }
                 
-                $itemsAMostrar = min(count($productosEnVehiculo), 25);
+                $itemsAMostrar = min(count($productosEnVehiculo), 30);
                 
-                // Determinar grid según cantidad
+                // Determinar grid óptimo según cantidad para mejor visualización
                 if ($itemsAMostrar <= 9) {
                     $columnas = 3;
                 } elseif ($itemsAMostrar <= 16) {
@@ -568,7 +663,7 @@
                 } elseif ($itemsAMostrar <= 25) {
                     $columnas = 5;
                 } else {
-                    $columnas = 5;
+                    $columnas = 6; // Para más de 25 items, usar 6 columnas
                 }
             @endphp
             
@@ -592,28 +687,41 @@
                                 <div class="truck-cargo">
                                     <div class="truck-cargo-fill {{ $cargoClass }}" style="height: {{ min($porcentajeUso, 100) }}%;"></div>
                                     
-                                    <!-- Caja 3D con productos -->
+                                    <!-- Caja 3D mejorada con productos -->
                                     <div class="caja-3d-container">
                                         <div class="caja-3d-wrapper">
                                             <div class="caja-3d">
-                                                <div class="productos-dentro">
-                                                    <div class="productos-grid">
-                                                        @php
-                                                            $itemIndex = 0;
-                                                            $filasNecesarias = ceil($itemsAMostrar / $columnas);
-                                                        @endphp
-                                                        @for($fila = 0; $fila < $filasNecesarias && $itemIndex < $itemsAMostrar; $fila++)
-                                                        <div class="productos-row">
-                                                            @for($col = 0; $col < $columnas && $itemIndex < $itemsAMostrar; $col++)
-                                                            <div class="productos-cell">
-                                                                <div class="producto-item-mini" title="{{ $productosEnVehiculo[$itemIndex]->producto_nombre ?? 'Producto' }}"></div>
+                                                <!-- Cara frontal de la caja -->
+                                                <div class="caja-frontal">
+                                                    <div class="productos-dentro">
+                                                        <div class="productos-grid">
+                                                            @php
+                                                                $itemIndex = 0;
+                                                                $filasNecesarias = ceil($itemsAMostrar / $columnas);
+                                                                $productoVariacion = 0;
+                                                            @endphp
+                                                            @for($fila = 0; $fila < $filasNecesarias && $itemIndex < $itemsAMostrar; $fila++)
+                                                            <div class="productos-row">
+                                                                @for($col = 0; $col < $columnas && $itemIndex < $itemsAMostrar; $col++)
+                                                                <div class="productos-cell">
+                                                                    @php
+                                                                        $productoActual = $productosEnVehiculo[$itemIndex] ?? null;
+                                                                        $variacionClass = 'producto-' . (($productoVariacion % 5) + 1);
+                                                                        $productoVariacion++;
+                                                                    @endphp
+                                                                    <div class="producto-item-mini {{ $variacionClass }}" title="{{ $productoActual->producto_nombre ?? 'Producto' }}"></div>
+                                                                </div>
+                                                                @php $itemIndex++; @endphp
+                                                                @endfor
                                                             </div>
-                                                            @php $itemIndex++; @endphp
                                                             @endfor
                                                         </div>
-                                                        @endfor
                                                     </div>
                                                 </div>
+                                                <!-- Cara superior (efecto 3D) -->
+                                                <div class="caja-top"></div>
+                                                <!-- Cara lateral (efecto 3D) -->
+                                                <div class="caja-side"></div>
                                             </div>
                                         </div>
                                     </div>

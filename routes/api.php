@@ -141,44 +141,108 @@ Route::post('/pedido-almacen', function (Request $request) {
             'total_precio' => 'nullable|numeric',
             'productos' => 'required|array|min:1',
             'webhook_url' => 'nullable|string',
+            'origen' => 'nullable|string', // 'trazabilidad' o null
         ]);
 
-        // Buscar o crear almacén destino
-        $almacen = \App\Models\Almacen::where('nombre', 'like', '%' . $validated['almacen_destino'] . '%')->first();
+        // Crear o buscar almacén destino usando la información recibida
+        // IMPORTANTE: Usar el nombre exacto que viene desde Trazabilidad
+        // Buscar por nombre exacto (case-insensitive) para evitar duplicados
+        $almacenDestino = \App\Models\Almacen::whereRaw('LOWER(nombre) = LOWER(?)', [$validated['almacen_destino']])
+            ->where('es_planta', false)
+            ->first();
         
-        if (!$almacen) {
-            // Crear almacén automáticamente si no existe
-            $almacen = \App\Models\Almacen::create([
-                'nombre' => $validated['almacen_destino'],
-                'latitud' => $validated['almacen_destino_lat'] ?? -17.7833,
-                'longitud' => $validated['almacen_destino_lng'] ?? -63.1821,
+        // Si no existe, crear un almacén con el nombre exacto recibido
+        if (!$almacenDestino) {
+            $almacenDestino = \App\Models\Almacen::create([
+                'nombre' => $validated['almacen_destino'], // Usar el nombre exacto recibido desde Trazabilidad
+                'latitud' => $validated['almacen_destino_lat'] ?? null,
+                'longitud' => $validated['almacen_destino_lng'] ?? null,
                 'direccion_completa' => $validated['almacen_destino_direccion'] ?? $validated['almacen_destino'],
                 'activo' => true,
-                'es_planta' => false,
+                'es_planta' => false, // Este es un almacén de destino, no una planta
             ]);
+            
+            \Illuminate\Support\Facades\Log::info('Almacén creado desde Trazabilidad', [
+                'nombre' => $validated['almacen_destino'],
+                'id' => $almacenDestino->id
+            ]);
+        } else {
+            // Si existe pero el nombre es diferente (case-sensitive), actualizarlo
+            if ($almacenDestino->nombre !== $validated['almacen_destino']) {
+                $almacenDestino->nombre = $validated['almacen_destino']; // Actualizar al nombre exacto recibido
+            }
+            
+            // Actualizar coordenadas y dirección si están disponibles y diferentes
+            $updated = false;
+            if ($validated['almacen_destino_lat'] && $validated['almacen_destino_lng']) {
+                if ($almacenDestino->latitud != $validated['almacen_destino_lat'] || 
+                    $almacenDestino->longitud != $validated['almacen_destino_lng']) {
+                    $almacenDestino->latitud = $validated['almacen_destino_lat'];
+                    $almacenDestino->longitud = $validated['almacen_destino_lng'];
+                    $updated = true;
+                }
+            }
+            if ($validated['almacen_destino_direccion'] && 
+                $almacenDestino->direccion_completa != $validated['almacen_destino_direccion']) {
+                $almacenDestino->direccion_completa = $validated['almacen_destino_direccion'];
+                $updated = true;
+            }
+            if ($updated || $almacenDestino->isDirty('nombre')) {
+                $almacenDestino->save();
+            }
+        }
+
+        // Obtener la planta (almacén origen)
+        $planta = \App\Models\Almacen::where('es_planta', true)->first();
+        if (!$planta) {
+            $planta = \App\Models\Almacen::firstOrCreate(
+                ['es_planta' => true],
+                [
+                    'nombre' => 'Planta Principal',
+                    'latitud' => -17.7833,
+                    'longitud' => -63.1821,
+                    'direccion_completa' => 'Planta Principal',
+                    'activo' => true,
+                    'es_planta' => true,
+                ]
+            );
         }
 
         // Generar código único para el envío
+        // Usar prefijo TRAZ- para envíos desde Trazabilidad
         $ultimoEnvio = \App\Models\Envio::orderBy('id', 'desc')->first();
         $numero = $ultimoEnvio ? $ultimoEnvio->id + 1 : 1;
-        $codigo = 'ENV-' . date('Ymd') . '-' . str_pad($numero, 4, '0', STR_PAD_LEFT);
+        // Generar código con formato TRAZ-YYMMDD-XXXXX (5 caracteres aleatorios)
+        $random = strtoupper(substr(md5(uniqid(rand(), true)), 0, 5));
+        $codigo = 'TRAZ-' . date('ymd') . '-' . $random;
 
-        // Crear el envío
+        // Construir observaciones
+        $observacionesAlmacen = $validated['observaciones'] ?? '';
+        
+        // Agregar webhook_url si viene en la petición
+        if (!empty($validated['webhook_url'])) {
+            $observacionesAlmacen .= "\nwebhook_url: {$validated['webhook_url']}";
+        }
+
+        // Determinar el estado inicial según el origen
+        // Si viene de Trazabilidad, debe estar pendiente de aprobación
+        $estadoInicial = ($validated['origen'] ?? '') === 'trazabilidad' 
+            ? 'pendiente_aprobacion_trazabilidad' 
+            : 'pendiente';
+
+        // Crear el envío usando el almacén destino correcto
         $envio = \App\Models\Envio::create([
             'codigo' => $codigo,
-            'almacen_destino_id' => $almacen->id,
+            'almacen_destino_id' => $almacenDestino->id, // Usar el almacén destino correcto
             'categoria' => 'General',
             'fecha_creacion' => now(),
             'fecha_estimada_entrega' => $validated['fecha_requerida'],
             'hora_estimada' => $validated['hora_requerida'] ?? null,
-            'estado' => 'pendiente',
+            'estado' => $estadoInicial, // Usar estado según origen
             'total_cantidad' => $validated['total_cantidad'] ?? 0,
             'total_peso' => $validated['total_peso'] ?? 0,
             'total_precio' => $validated['total_precio'] ?? 0,
-            'observaciones' => "[Pedido desde Sistema Almacén]" .
-                "\nSolicitante: " . ($validated['solicitante_nombre'] ?? 'N/A') .
-                "\nCódigo origen: " . $validated['codigo_origen'] .
-                ($validated['observaciones'] ?? '' ? "\nNotas: " . $validated['observaciones'] : ''),
+            'observaciones' => $observacionesAlmacen,
         ]);
 
         // Crear productos del envío
@@ -200,7 +264,7 @@ Route::post('/pedido-almacen', function (Request $request) {
                 \Illuminate\Support\Facades\Http::post($validated['webhook_url'] . '/envio', [
                     'id' => $envio->id,
                     'codigo' => $envio->codigo,
-                    'almacen_destino' => $almacen->nombre,
+                    'almacen_destino' => $almacenDestino->nombre,
                     'estado' => $envio->estado,
                     'fecha_creacion' => $envio->fecha_creacion,
                     'fecha_estimada_entrega' => $envio->fecha_estimada_entrega,
@@ -215,9 +279,6 @@ Route::post('/pedido-almacen', function (Request $request) {
             }
         }
 
-        // Obtener la planta (origen)
-        $planta = \App\Models\Almacen::where('es_planta', true)->first();
-
         return response()->json([
             'success' => true,
             'message' => 'Pedido recibido y envío creado correctamente',
@@ -226,10 +287,10 @@ Route::post('/pedido-almacen', function (Request $request) {
             'estado' => $envio->estado,
             'fecha_creacion' => $envio->fecha_creacion,
             'fecha_estimada_entrega' => $envio->fecha_estimada_entrega,
-            'almacen_destino' => $almacen->nombre,
-            'destino_lat' => $almacen->latitud,
-            'destino_lng' => $almacen->longitud,
-            'destino_direccion' => $almacen->direccion_completa,
+            'almacen_destino' => $almacenDestino->nombre, // Usar el nombre del almacén destino correcto
+            'destino_lat' => $almacenDestino->latitud ?? $validated['almacen_destino_lat'] ?? null,
+            'destino_lng' => $almacenDestino->longitud ?? $validated['almacen_destino_lng'] ?? null,
+            'destino_direccion' => $almacenDestino->direccion_completa ?? $validated['almacen_destino_direccion'] ?? $validated['almacen_destino'],
             'origen_lat' => $planta->latitud ?? -17.7833,
             'origen_lng' => $planta->longitud ?? -63.1821,
             'origen_direccion' => $planta->direccion_completa ?? 'Planta Principal',

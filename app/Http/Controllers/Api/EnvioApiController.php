@@ -33,7 +33,7 @@ class EnvioApiController extends Controller
     {
         try {
             $envios = Envio::with(['almacenDestino', 'productos', 'asignacion'])
-                ->orderBy('fecha_creacion', 'desc')
+                ->orderBy('id', 'desc') // Ordenar por ID para mostrar los más recientes primero
                 ->get()
                 ->map(function($envio) {
                     // Agregar flag para identificar si es asignación múltiple
@@ -417,7 +417,7 @@ class EnvioApiController extends Controller
         $envio = Envio::with([
             'almacenDestino',
             'productos.producto.categoria',
-            'asignacion.transportista.usuario',
+            'asignacion.transportista',
             'asignacion.vehiculo'
         ])->find($id);
 
@@ -428,15 +428,16 @@ class EnvioApiController extends Controller
             ], 404);
         }
 
-        // Obtener QR
-        $qr = CodigoQR::where('referencia_id', $id)
-            ->where('tipo', 'envio')
-            ->first();
+        // Obtener QR si existe - buscar por código del envío
+        $qr = null;
+        if ($envio->codigo) {
+            $qr = CodigoQR::where('codigo', $envio->codigo)->first();
+        }
 
         return response()->json([
             'success' => true,
             'data' => $envio,
-            'qr_code' => $qr ? 'data:image/png;base64,' . $qr->qr_image : null
+            'qr_code' => $qr ? ($qr->qr_image ?? null) : null
         ]);
     }
 
@@ -445,27 +446,29 @@ class EnvioApiController extends Controller
      */
     public function getByQrCode($codigo)
     {
-        $qr = CodigoQR::where('codigo', $codigo)
-            ->where('tipo', 'envio')
+        // Buscar envío directamente por código
+        $envio = Envio::where('codigo', $codigo)
+            ->with([
+                'almacenDestino',
+                'productos.producto',
+                'asignacion'
+            ])
             ->first();
 
-        if (!$qr) {
+        if (!$envio) {
             return response()->json([
                 'success' => false,
-                'message' => 'Código QR no encontrado'
+                'message' => 'Envío no encontrado'
             ], 404);
         }
 
-        $envio = Envio::with([
-            'almacenDestino',
-            'productos.producto',
-            'asignacion'
-        ])->find($qr->referencia_id);
+        // Buscar QR si existe
+        $qr = CodigoQR::where('codigo', $codigo)->first();
 
         return response()->json([
             'success' => true,
             'data' => $envio,
-            'qr_code' => 'data:image/png;base64,' . $qr->qr_image
+            'qr_code' => $qr ? ('data:image/png;base64,' . $qr->qr_image) : null
         ]);
     }
 
@@ -636,11 +639,18 @@ class EnvioApiController extends Controller
             }
 
             // Verificar que el envío viene de Trazabilidad
-            if (strpos($envio->observaciones ?? '', 'ORIGEN: TRAZABILIDAD') === false 
-                && $envio->estado !== 'pendiente_aprobacion_trazabilidad') {
+            // Buscar en observaciones si viene de Trazabilidad o verificar el estado
+            $vieneDeTrazabilidad = (
+                strpos($envio->observaciones ?? '', 'Trazabilidad') !== false ||
+                strpos($envio->observaciones ?? '', 'trazabilidad') !== false ||
+                strpos($envio->observaciones ?? '', 'TRAZABILIDAD') !== false ||
+                $envio->estado === 'pendiente_aprobacion_trazabilidad'
+            );
+            
+            if (!$vieneDeTrazabilidad) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Este envío no requiere propuesta de vehículos'
+                    'message' => 'Este envío no requiere propuesta de vehículos. Solo los envíos desde Trazabilidad requieren propuesta de vehículos.'
                 ], 400);
             }
 

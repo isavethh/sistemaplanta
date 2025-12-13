@@ -6,6 +6,7 @@ use App\Models\Envio;
 use App\Models\EnvioAsignacion;
 use App\Models\Vehiculo;
 use App\Models\User;
+use App\Services\AlmacenIntegrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -150,20 +151,6 @@ class AsignacionMultipleController extends Controller
                 );
             }
             
-            // Verificar que el vehículo no esté ocupado en envíos activos (excluyendo los envíos que vamos a asignar)
-            $enviosIds = $envios->pluck('id')->toArray();
-            $vehiculoOcupado = EnvioAsignacion::whereHas('envio', function($query) {
-                $query->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);
-            })
-            ->where('vehiculo_id', $request->vehiculo_id)
-            ->whereNotIn('envio_id', $enviosIds)
-            ->exists();
-
-            if ($vehiculoOcupado) {
-                DB::rollBack();
-                return back()->with('error', '❌ El vehículo seleccionado ya está asignado a otro envío activo. Por favor, seleccione otro vehículo.');
-            }
-            
             // Asignar cada envío
             $enviosAsignados = [];
             
@@ -186,6 +173,15 @@ class AsignacionMultipleController extends Controller
                 ]);
 
                 $enviosAsignados[] = $envio->codigo;
+                
+                // Notificar a sistema-almacen-PSIII sobre la asignación
+                try {
+                    $almacenService = new AlmacenIntegrationService();
+                    $almacenService->notifyAsignacion($envio);
+                } catch (\Exception $e) {
+                    \Log::warning("No se pudo notificar asignación a almacenes para envío {$envio->codigo}: " . $e->getMessage());
+                    // No fallar la asignación si la notificación falla
+                }
                 
                 \Log::info("✅ Envío {$envio->codigo} asignado a {$transportista->name}");
             }

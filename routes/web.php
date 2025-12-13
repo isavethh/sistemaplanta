@@ -79,21 +79,22 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ============================================================================
-// MÓDULO: GESTIÓN DE ALMACENES (Ibex CRUD)
+// MÓDULO: GESTIÓN DE ALMACENES (Ibex CRUD) - OCULTO
+// Los almacenes se gestionan desde sistema-almacen-PSIII, no desde plantaCruds
 // ============================================================================
 Route::middleware(['auth'])->group(function () {
-    // Almacenes - CRUD Completo
-    Route::resource('almacenes', App\Http\Controllers\AlmacenController::class);
+    // Almacenes - CRUD Completo (OCULTO)
+    // Route::resource('almacenes', App\Http\Controllers\AlmacenController::class);
     
-    // Rutas adicionales de Almacenes
-    Route::get('almacenes/{almacen}/inventario', [App\Http\Controllers\AlmacenController::class, 'inventario'])->name('almacenes.inventario');
-    Route::get('almacenes/monitoreo', [App\Http\Controllers\AlmacenController::class, 'monitoreo'])->name('almacenes.monitoreo');
+    // Rutas adicionales de Almacenes (OCULTAS)
+    // Route::get('almacenes/{almacen}/inventario', [App\Http\Controllers\AlmacenController::class, 'inventario'])->name('almacenes.inventario');
+    // Route::get('almacenes/monitoreo', [App\Http\Controllers\AlmacenController::class, 'monitoreo'])->name('almacenes.monitoreo');
     
-    // Inventarios - CRUD Completo
-    Route::resource('inventarios', App\Http\Controllers\InventarioAlmacenController::class);
+    // Inventarios - CRUD Completo (OCULTO)
+    // Route::resource('inventarios', App\Http\Controllers\InventarioAlmacenController::class);
     
-    // Rutas adicionales de Inventarios
-    Route::get('inventarios/almacen/{almacen}', [App\Http\Controllers\InventarioAlmacenController::class, 'porAlmacen'])->name('inventarios.porAlmacen');
+    // Rutas adicionales de Inventarios (OCULTAS)
+    // Route::get('inventarios/almacen/{almacen}', [App\Http\Controllers\InventarioAlmacenController::class, 'porAlmacen'])->name('inventarios.porAlmacen');
     
     // Inventario del Transportista
     Route::get('inventarios-transportista', [App\Http\Controllers\InventarioTransportistaController::class, 'index'])->name('inventarios-transportista.index');
@@ -145,7 +146,7 @@ Route::middleware(['auth'])->group(function () {
     // Asignaciones - CRUD Completo
     Route::get('asignaciones', [App\Http\Controllers\AsignacionController::class, 'index'])->name('asignaciones.index');
     Route::post('asignaciones/asignar', [App\Http\Controllers\AsignacionController::class, 'asignar'])->name('asignaciones.asignar');
-    Route::post('asignaciones/asignar-multiple', [App\Http\Controllers\AsignacionController::class, 'asignarMultiple'])->name('asignaciones.asignar-multiple');
+    Route::post('asignaciones/asignar-multiple', [App\Http\Controllers\AsignacionMultipleController::class, 'asignar'])->name('asignaciones.asignar-multiple');
     Route::delete('asignaciones/{envio}/remover', [App\Http\Controllers\AsignacionController::class, 'remover'])->name('asignaciones.remover');
     
     // Asignación Múltiple por Fecha - CRUD Completo

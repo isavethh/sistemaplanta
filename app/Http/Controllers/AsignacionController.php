@@ -6,6 +6,7 @@ use App\Models\Envio;
 use App\Models\EnvioAsignacion;
 use App\Models\Vehiculo;
 use App\Models\User;
+use App\Services\AlmacenIntegrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -76,16 +77,6 @@ class AsignacionController extends Controller
                 return back()->with('error', 'El transportista seleccionado no es válido.');
             }
 
-            // Verificar que el vehículo no esté ocupado
-            $vehiculoOcupado = EnvioAsignacion::whereHas('envio', function($query) {
-                $query->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);
-            })->where('vehiculo_id', $request->vehiculo_id)->exists();
-
-            if ($vehiculoOcupado) {
-                DB::rollBack();
-                return back()->with('error', 'El vehículo seleccionado ya está asignado a otro envío activo.');
-            }
-
             // Crear asignación
             $asignacion = EnvioAsignacion::create([
                 'envio_id' => $request->envio_id,
@@ -102,6 +93,15 @@ class AsignacionController extends Controller
             ]);
 
             DB::commit();
+            
+            // Notificar a sistema-almacen-PSIII sobre la asignación
+            try {
+                $almacenService = new AlmacenIntegrationService();
+                $almacenService->notifyAsignacion($envio);
+            } catch (\Exception $e) {
+                \Log::warning("No se pudo notificar asignación a almacenes: " . $e->getMessage());
+                // No fallar la asignación si la notificación falla
+            }
             
             \Log::info("✅ Envío {$envio->codigo} asignado a transportista {$transportista->name}");
             
