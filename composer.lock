@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "916e16d7009623064de3b69eb5d28bfd",
+    "content-hash": "90bda960164406b59bd8c3182d984428",
     "packages": [
         {
             "name": "almasaeed2010/adminlte",
@@ -2412,6 +2412,64 @@
                 }
             ],
             "time": "2025-11-18T12:17:23+00:00"
+        },
+        {
+            "name": "lukehowland/helpdeskwidget",
+            "version": "2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Lukehowland/helpdeskwidget.git",
+                "reference": "c8f1d155304d72ae6854aee87ee5e22fcf4075ba"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Lukehowland/helpdeskwidget/zipball/c8f1d155304d72ae6854aee87ee5e22fcf4075ba",
+                "reference": "c8f1d155304d72ae6854aee87ee5e22fcf4075ba",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.0",
+                "illuminate/console": "^11.0|^12.0",
+                "illuminate/support": "^11.0|^12.0",
+                "php": "^8.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Lukehowland\\HelpdeskWidget\\HelpdeskWidgetServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Lukehowland\\HelpdeskWidget\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Lucas De La Quintana Montenegro",
+                    "email": "lukqs05@gmail.com"
+                }
+            ],
+            "description": "Widget embebible para integrar Helpdesk en proyectos Laravel externos",
+            "keywords": [
+                "AdminLTE",
+                "helpdesk",
+                "laravel",
+                "support",
+                "tickets",
+                "widget"
+            ],
+            "support": {
+                "issues": "https://github.com/Lukehowland/helpdeskwidget/issues",
+                "source": "https://github.com/Lukehowland/helpdeskwidget/tree/v2.0.0"
+            },
+            "time": "2025-12-12T22:40:11+00:00"
         },
         {
             "name": "maatwebsite/excel",

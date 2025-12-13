@@ -328,3 +328,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/dashboard-estadistico/{id}', [App\Http\Controllers\DashboardController::class, 'estadisticoUpdate'])->name('dashboard.estadistico.update');
     Route::delete('/dashboard-estadistico/{id}', [App\Http\Controllers\DashboardController::class, 'estadisticoDestroy'])->name('dashboard.estadistico.destroy');
 });
+
+
+// ========== HELPDESK WIDGET ==========
+// Ruta generada por: php artisan helpdeskwidget:install
+Route::get('helpdesk', function () {
+    return view('helpdesk');
+})->name('helpdesk')->middleware('auth');
