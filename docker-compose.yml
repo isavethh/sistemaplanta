@@ -1,0 +1,59 @@
+services:
+  laravel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: org2-laravel
+    volumes:
+      - .:/var/www
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db       # Nombre del servicio del contenedor de postgres
+      DB_PORT: 5432
+      DB_DATABASE: org2_db
+      DB_USERNAME: admin
+      DB_PASSWORD: admin123
+      CACHE_STORE: file
+    depends_on:
+      - db
+    networks:
+      - org2-net
+  nginx:
+    image: nginx:latest
+    container_name: orgtrack2
+    expose:
+      - "80"
+    # ports:
+    #   - "8080:80" ---> despliegue local con puerto 8080
+    volumes:
+      - .:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - laravel
+    networks:
+      - org2-net
+      - internal-network
+      - proxy-network
+  db:
+    image: postgres:latest
+    container_name: org2-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: org2_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    volumes:
+      - db-data:/var/lib/postgresql
+    networks:
+      - org2-net
+
+networks:
+  org2-net:
+    driver: bridge
+  internal-network:
+    external: true
+  proxy-network:
+    external: true
+
+volumes:
+  db-data:
