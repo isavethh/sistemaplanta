@@ -21,6 +21,13 @@ class InitialSeeder extends Seeder
             'password' => bcrypt('admin123'),
             'role' => 'admin',
         ]);
+        
+        // Asignar rol de Spatie al admin
+        if (!$admin->hasRole('admin')) {
+            $roleAdmin = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+            $admin->assignRole($roleAdmin);
+        }
+        
         $transportista = User::firstOrCreate([
             'email' => 'trans@orgtrack.com'
         ], [
@@ -28,6 +35,12 @@ class InitialSeeder extends Seeder
             'password' => bcrypt('trans123'),
             'role' => 'transportista',
         ]);
+        
+        // Asignar rol de Spatie al transportista
+        if (!$transportista->hasRole('transportista')) {
+            $roleTransportista = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'transportista', 'guard_name' => 'web']);
+            $transportista->assignRole($roleTransportista);
+        }
         // Direcciones - Tabla eliminada, ahora se usan direcciones directamente en almacenes
         // Almacén planta (con dirección completa en el mismo registro)
         $almacenPlanta = Almacen::create([
