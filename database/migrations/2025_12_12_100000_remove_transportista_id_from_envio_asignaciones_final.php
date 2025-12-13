@@ -57,13 +57,24 @@ return new class extends Migration
             });
             
             // Crear nuevo índice único sin transportista_id (solo envio_id y vehiculo_id)
-            Schema::table('envio_asignaciones', function (Blueprint $table) {
-                try {
-                    $table->unique(['envio_id', 'vehiculo_id'], 'unique_asignacion_envio_vehiculo');
-                } catch (\Exception $e) {
-                    // Índice ya existe o hay datos duplicados
-                }
-            });
+            // Verificar si el índice ya existe antes de crearlo
+            $indexExists = DB::selectOne("
+                SELECT COUNT(*) as count 
+                FROM pg_indexes 
+                WHERE schemaname = 'public' 
+                AND tablename = 'envio_asignaciones' 
+                AND indexname = 'unique_asignacion_envio_vehiculo'
+            ");
+            
+            if (!$indexExists || $indexExists->count == 0) {
+                Schema::table('envio_asignaciones', function (Blueprint $table) {
+                    try {
+                        $table->unique(['envio_id', 'vehiculo_id'], 'unique_asignacion_envio_vehiculo');
+                    } catch (\Exception $e) {
+                        // Índice ya existe o hay datos duplicados
+                    }
+                });
+            }
         }
     }
 
@@ -97,4 +108,5 @@ return new class extends Migration
         }
     }
 };
+
 
