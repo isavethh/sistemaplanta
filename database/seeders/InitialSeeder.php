@@ -49,14 +49,69 @@ class InitialSeeder extends Seeder
         // Categorías y productos
         $catVerduras = Categoria::create(['nombre' => 'Verduras']);
         $catFrutas = Categoria::create(['nombre' => 'Frutas']);
-        foreach(['Lechuga','Tomate','Zanahoria'] as $nombre) {
-            \App\Models\Producto::create(['categoria_id' => $catVerduras->id, 'nombre' => $nombre]);
+        
+        // Generar códigos únicos para productos (usar firstOrCreate para evitar duplicados)
+        $productosVerduras = ['Lechuga', 'Tomate', 'Zanahoria'];
+        foreach($productosVerduras as $index => $nombre) {
+            $codigo = 'VER-' . str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+            \App\Models\Producto::firstOrCreate(
+                ['codigo' => $codigo],
+                [
+                    'categoria_id' => $catVerduras->id,
+                    'nombre' => $nombre
+                ]
+            );
         }
-        foreach(['Manzana','Banana','Naranja'] as $nombre) {
-            \App\Models\Producto::create(['categoria_id' => $catFrutas->id, 'nombre' => $nombre]);
+        
+        $productosFrutas = ['Manzana', 'Banana', 'Naranja'];
+        foreach($productosFrutas as $index => $nombre) {
+            $codigo = 'FRU-' . str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+            \App\Models\Producto::firstOrCreate(
+                ['codigo' => $codigo],
+                [
+                    'categoria_id' => $catFrutas->id,
+                    'nombre' => $nombre
+                ]
+            );
         }
-        // Vehículos
-        Vehiculo::create(['placa' => '1234ABC', 'tipo' => 'Camión', 'capacidad' => 1000, 'user_id' => $transportista->id]);
-        Vehiculo::create(['placa' => '5678DEF', 'tipo' => 'Furgón', 'capacidad' => 500, 'user_id' => $transportista->id]);
+        // Vehículos (usar estructura correcta de la tabla)
+        // Nota: Los vehículos requieren más campos, así que solo creamos si hay tipos de transporte y tamaños disponibles
+        $tipoTransporte = \App\Models\TipoTransporte::first();
+        $tamanoVehiculo = \App\Models\TamanoVehiculo::first();
+        $unidadMedida = UnidadMedida::first();
+        
+        if ($tipoTransporte && $tamanoVehiculo && $unidadMedida) {
+            Vehiculo::firstOrCreate(
+                ['placa' => '1234ABC'],
+                [
+                    'tipo_vehiculo' => 'Camión',
+                    'tipo_transporte_id' => $tipoTransporte->id,
+                    'tamano_vehiculo_id' => $tamanoVehiculo->id,
+                    'capacidad_carga' => 1000,
+                    'unidad_medida_carga_id' => $unidadMedida->id,
+                    'capacidad_volumen' => 10,
+                    'transportista_id' => $transportista->id,
+                    'licencia_requerida' => 'B',
+                    'disponible' => true,
+                    'estado' => 'activo'
+                ]
+            );
+            
+            Vehiculo::firstOrCreate(
+                ['placa' => '5678DEF'],
+                [
+                    'tipo_vehiculo' => 'Furgón',
+                    'tipo_transporte_id' => $tipoTransporte->id,
+                    'tamano_vehiculo_id' => $tamanoVehiculo->id,
+                    'capacidad_carga' => 500,
+                    'unidad_medida_carga_id' => $unidadMedida->id,
+                    'capacidad_volumen' => 5,
+                    'transportista_id' => $transportista->id,
+                    'licencia_requerida' => 'B',
+                    'disponible' => true,
+                    'estado' => 'activo'
+                ]
+            );
+        }
     }
 }
