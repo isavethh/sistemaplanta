@@ -11,6 +11,7 @@ use App\Services\AlmacenIntegrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class EnvioController extends Controller
 {
@@ -365,17 +366,77 @@ class EnvioController extends Controller
             $destinoLat = $envio->almacenDestino->latitud ?? -17.7892;
             $destinoLng = $envio->almacenDestino->longitud ?? -63.1751;
 
-            // Generar 20 puntos intermedios para animación más suave
+            // Obtener ruta real usando OSRM (Open Source Routing Machine) - GRATIS y sin API key
             $puntos = [];
-            for ($i = 0; $i <= 20; $i++) {
-                $lat = $origenLat + ($destinoLat - $origenLat) * ($i / 20);
-                $lng = $origenLng + ($destinoLng - $origenLng) * ($i / 20);
-                $puntos[] = [
-                    'lat' => round($lat, 7),
-                    'lng' => round($lng, 7),
-                    'velocidad' => 30 + rand(0, 20), // 30-50 km/h
-                    'timestamp' => now()->addSeconds($i * 30)->toIso8601String() // Cada 30 segundos
-                ];
+            
+            try {
+                \Log::info("🔄 Obteniendo ruta con OSRM desde ({$origenLat}, {$origenLng}) hasta ({$destinoLat}, {$destinoLng})");
+                
+                // OSRM usa formato [lng, lat] para las coordenadas
+                $osrmUrl = "https://router.project-osrm.org/route/v1/driving/{$origenLng},{$origenLat};{$destinoLng},{$destinoLat}?overview=full&geometries=geojson&steps=true&alternatives=false";
+                
+                $osrmResponse = Http::timeout(15)->get($osrmUrl);
+                $osrmData = $osrmResponse->json();
+                
+                if (isset($osrmData['code']) && $osrmData['code'] === 'Ok' && !empty($osrmData['routes'])) {
+                    $osrmRoute = $osrmData['routes'][0];
+                    $coordinates = $osrmRoute['geometry']['coordinates'];
+                    
+                    if (empty($coordinates)) {
+                        throw new \Exception("OSRM devolvió ruta sin coordenadas");
+                    }
+                    
+                    \Log::info("✅ OSRM devolvió " . count($coordinates) . " puntos de coordenadas");
+                    
+                    // Convertir coordenadas GeoJSON [lng, lat] a formato [lat, lng] con velocidad y timestamp
+                    $tiempoInicio = now();
+                    $tiempoPorPunto = 2; // 2 segundos por punto
+                    
+                    foreach ($coordinates as $index => $coord) {
+                        if (count($coord) >= 2 && is_numeric($coord[0]) && is_numeric($coord[1])) {
+                            $puntos[] = [
+                                'lat' => round((float)$coord[1], 7), // OSRM devuelve [lng, lat], necesitamos [lat, lng]
+                                'lng' => round((float)$coord[0], 7),
+                                'velocidad' => 30 + rand(0, 20), // 30-50 km/h
+                                'timestamp' => $tiempoInicio->copy()->addSeconds($index * $tiempoPorPunto)->toIso8601String()
+                            ];
+                        }
+                    }
+                    
+                    if (empty($puntos)) {
+                        throw new \Exception("No se pudieron convertir coordenadas de OSRM");
+                    }
+                    
+                    \Log::info("✅ Ruta obtenida de OSRM: " . count($puntos) . " puntos válidos");
+                    
+                    // Información adicional de la ruta
+                    if (isset($osrmRoute['distance']) && isset($osrmRoute['duration'])) {
+                        $distanciaKm = round($osrmRoute['distance'] / 1000, 1);
+                        $duracionMin = round($osrmRoute['duration'] / 60, 1);
+                        \Log::info("📊 Distancia: {$distanciaKm} km, Duración estimada: {$duracionMin} min");
+                    }
+                } else {
+                    $errorMsg = $osrmData['code'] ?? 'unknown';
+                    throw new \Exception("OSRM error: " . $errorMsg);
+                }
+            } catch (\Exception $e) {
+                \Log::error("❌ Error al obtener ruta de OSRM: " . $e->getMessage());
+                \Log::warning("⚠️ Usando interpolación como último recurso (línea recta)");
+                
+                // Último fallback: Generar puntos interpolados (línea recta)
+                // Aumentar a 100 puntos para que al menos se vea más suave
+                for ($i = 0; $i <= 100; $i++) {
+                    $lat = $origenLat + ($destinoLat - $origenLat) * ($i / 100);
+                    $lng = $origenLng + ($destinoLng - $origenLng) * ($i / 100);
+                    $puntos[] = [
+                        'lat' => round($lat, 7),
+                        'lng' => round($lng, 7),
+                        'velocidad' => 30 + rand(0, 20),
+                        'timestamp' => now()->addSeconds($i * 30)->toIso8601String()
+                    ];
+                }
+                
+                \Log::warning("⚠️ Ruta interpolada generada: " . count($puntos) . " puntos (línea recta)");
             }
 
             // Cambiar estado a en_transito si no lo está
@@ -416,16 +477,73 @@ class EnvioController extends Controller
     }
 
     /**
+     * Decodificar polyline de Google Maps
+     */
+    private function decodePolyline($encoded)
+    {
+        $points = [];
+        $index = 0;
+        $len = strlen($encoded);
+        $lat = 0;
+        $lng = 0;
+
+        while ($index < $len) {
+            $b = 0;
+            $shift = 0;
+            $result = 0;
+            do {
+                $b = ord($encoded[$index++]) - 63;
+                $result |= ($b & 0x1f) << $shift;
+                $shift += 5;
+            } while ($b >= 0x20);
+            $dlat = (($result & 1) ? ~($result >> 1) : ($result >> 1));
+            $lat += $dlat;
+
+            $shift = 0;
+            $result = 0;
+            do {
+                $b = ord($encoded[$index++]) - 63;
+                $result |= ($b & 0x1f) << $shift;
+                $shift += 5;
+            } while ($b >= 0x20);
+            $dlng = (($result & 1) ? ~($result >> 1) : ($result >> 1));
+            $lng += $dlng;
+
+            $points[] = [
+                'lat' => $lat * 1e-5,
+                'lng' => $lng * 1e-5
+            ];
+        }
+
+        return $points;
+    }
+
+    /**
      * Obtener seguimiento de un envío
      * GET /api/envios/{id}/seguimiento
      */
     public function getSeguimiento($id)
     {
         try {
-            // Por ahora retornamos array vacío ya que no tenemos tabla de seguimiento
-            // En producción esto consultaría la tabla seguimiento_envio
-            return response()->json([]);
+            $seguimiento = DB::table('seguimiento_envio')
+                ->where('envio_id', $id)
+                ->orderBy('timestamp', 'asc')
+                ->get(['latitud', 'longitud', 'velocidad', 'timestamp']);
+            
+            if ($seguimiento->isEmpty()) {
+                return response()->json([]);
+            }
+            
+            return response()->json($seguimiento->map(function($punto) {
+                return [
+                    'latitud' => (float) $punto->latitud,
+                    'longitud' => (float) $punto->longitud,
+                    'velocidad' => (float) ($punto->velocidad ?? 0),
+                    'timestamp' => $punto->timestamp
+                ];
+            })->toArray());
         } catch (\Exception $e) {
+            \Log::error("Error obteniendo seguimiento para envío {$id}: " . $e->getMessage());
             return response()->json([
                 'error' => 'Error al obtener seguimiento: ' . $e->getMessage()
             ], 500);
