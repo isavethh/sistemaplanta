@@ -6,7 +6,6 @@ use App\Models\Envio;
 use App\Models\EnvioAsignacion;
 use App\Models\Vehiculo;
 use App\Models\User;
-use App\Services\AlmacenIntegrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -51,8 +50,8 @@ class AsignacionController extends Controller
         try {
             $validated = $request->validate([
                 'envio_id' => 'required|exists:envios,id',
+                'transportista_id' => 'required|exists:users,id',
                 'vehiculo_id' => 'required|exists:vehiculos,id',
-                'transportista_id' => 'nullable|exists:users,id', // Opcional: si viene, se asigna al vehículo
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->with('error', 'Datos inválidos: ' . implode(', ', $e->validator->errors()->all()));
@@ -67,64 +66,33 @@ class AsignacionController extends Controller
                 return back()->with('error', 'El envío no se puede asignar en su estado actual: ' . $envio->estado);
             }
 
-            // Verificar que el vehículo exista
-            $vehiculo = Vehiculo::with('transportista')->findOrFail($request->vehiculo_id);
+            // Verificar que el transportista exista y sea tipo transportista
+            $transportista = User::where('id', $request->transportista_id)
+                ->where('tipo', 'transportista')
+                ->first();
             
-            // Obtener o asignar transportista
-            $transportista = null;
-            
-            // Si viene transportista_id en el request, asignarlo al vehículo
-            if ($request->has('transportista_id') && $request->transportista_id) {
-                // Verificar que el transportista exista y sea válido
-                $transportista = User::where('id', $request->transportista_id)
-                    ->where(function($q) {
-                        $q->where('tipo', 'transportista')
-                          ->orWhere('role', 'transportista');
-                    })
-                    ->first();
-                
-                if (!$transportista) {
-                    DB::rollBack();
-                    return back()->with('error', 'El transportista seleccionado no es válido.');
-                }
-                
-                // Asignar el transportista al vehículo
-                $vehiculo->update(['transportista_id' => $request->transportista_id]);
-                \Log::info("✅ Transportista {$transportista->name} (ID: {$request->transportista_id}) asignado al vehículo {$vehiculo->placa}");
-            } else {
-                // Si no viene transportista_id, obtenerlo del vehículo
-                $vehiculo->refresh(); // Recargar para obtener el transportista_id actualizado
-                $vehiculo->load('transportista');
-                $transportista = $vehiculo->transportista;
-            }
-            
-            // Verificar que tengamos un transportista válido
-            if (!$transportista || !$transportista->id) {
+            if (!$transportista) {
                 DB::rollBack();
-                \Log::error("❌ Intento de asignar envío {$request->envio_id} a vehículo {$vehiculo->placa} sin transportista");
-                return back()->with('error', 'El vehículo seleccionado (' . $vehiculo->placa . ') no tiene un transportista asignado. Por favor, selecciona un transportista en el formulario.');
+                return back()->with('error', 'El transportista seleccionado no es válido.');
             }
-            
-            \Log::info("🔍 Verificando asignación para envío {$request->envio_id}, vehículo {$vehiculo->placa}, transportista {$transportista->name} (ID: {$transportista->id})");
 
-            // Verificar si ya existe una asignación para este envío
-            $asignacionExistente = EnvioAsignacion::where('envio_id', $request->envio_id)->first();
-            
-            if ($asignacionExistente) {
-                // Actualizar asignación existente
-                $asignacionExistente->update([
-                    'vehiculo_id' => $request->vehiculo_id,
-                    'fecha_asignacion' => now(),
-                ]);
-                $asignacion = $asignacionExistente;
-            } else {
-                // Crear nueva asignación
-                $asignacion = EnvioAsignacion::create([
-                    'envio_id' => $request->envio_id,
-                    'vehiculo_id' => $request->vehiculo_id,
-                    'fecha_asignacion' => now(),
-                ]);
+            // Verificar que el vehículo no esté ocupado
+            $vehiculoOcupado = EnvioAsignacion::whereHas('envio', function($query) {
+                $query->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);
+            })->where('vehiculo_id', $request->vehiculo_id)->exists();
+
+            if ($vehiculoOcupado) {
+                DB::rollBack();
+                return back()->with('error', 'El vehículo seleccionado ya está asignado a otro envío activo.');
             }
+
+            // Crear asignación
+            $asignacion = EnvioAsignacion::create([
+                'envio_id' => $request->envio_id,
+                'transportista_id' => $request->transportista_id,
+                'vehiculo_id' => $request->vehiculo_id,
+                'fecha_asignacion' => now(),
+            ]);
 
             // Actualizar estado del envío y fecha de asignación
             $envio->update([
@@ -134,15 +102,6 @@ class AsignacionController extends Controller
             ]);
 
             DB::commit();
-            
-            // Notificar a sistema-almacen-PSIII sobre la asignación
-            try {
-                $almacenService = new AlmacenIntegrationService();
-                $almacenService->notifyAsignacion($envio);
-            } catch (\Exception $e) {
-                \Log::warning("No se pudo notificar asignación a almacenes: " . $e->getMessage());
-                // No fallar la asignación si la notificación falla
-            }
             
             \Log::info("✅ Envío {$envio->codigo} asignado a transportista {$transportista->name}");
             
