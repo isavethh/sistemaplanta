@@ -112,7 +112,7 @@
 // Configuración
 const PLANTA_COORDS = [-17.783333, -63.182778];
 const INTERVALO_ACTUALIZACION = 10000; // 10 segundos como backup (WebSocket es principal)
-const SOCKET_URL = 'http://192.168.0.129:8001/tracking'; // WebSocket server
+const SOCKET_URL = 'http://192.168.0.129:3001/tracking'; // WebSocket server (Node.js)
 const ALMACEN_ID = {{ $almacenId ?? 'null' }}; // ID del almacén del usuario
 
 // Variables globales
@@ -130,26 +130,104 @@ let rutasOSRM = {};
 let posicionesWebSocket = {};
 let ultimaActualizacionWS = {};
 let ultimoProgresoWS = {};
+let intervaloProgreso = null;
 
-// Obtener ruta real usando OSRM
+// Obtener ruta desde seguimiento_envio (puntos reales de Google Directions)
+async function obtenerRutaDesdeSeguimiento(envioId) {
+    try {
+        const response = await fetch(`/api/envios/${envioId}/seguimiento`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.length > 0) {
+                const puntos = data.map(p => [parseFloat(p.latitud), parseFloat(p.longitud)]);
+                if (puntos.length > 1) {
+                    console.log(`✅ Ruta obtenida desde seguimiento_envio: ${puntos.length} puntos`);
+                    return puntos;
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Error obteniendo ruta desde seguimiento:', error);
+    }
+    return null;
+}
+
+// Obtener ruta real usando OSRM - RUTA REAL POR CALLES
 async function obtenerRutaOSRM(origen, destino) {
     const cacheKey = `${origen[0]},${origen[1]}-${destino[0]},${destino[1]}`;
     if (rutasOSRM[cacheKey]) {
+        console.log(`✅ Ruta OSRM desde cache: ${rutasOSRM[cacheKey].length} puntos`);
         return rutasOSRM[cacheKey];
     }
+    
     try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${origen[1]},${origen[0]};${destino[1]},${destino[0]}?overview=full&geometries=geojson`;
+        console.log(`🔄 Obteniendo ruta OSRM desde (${origen[0]}, ${origen[1]}) hasta (${destino[0]}, ${destino[1]})`);
+        
+        // OSRM usa formato [lng, lat] para las coordenadas
+        // overview=full obtiene TODOS los puntos de la ruta (no simplificados)
+        const url = `https://router.project-osrm.org/route/v1/driving/${origen[1]},${origen[0]};${destino[1]},${destino[0]}?overview=full&geometries=geojson&steps=true&alternatives=false`;
+        
         const response = await fetch(url);
         const data = await response.json();
+        
         if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-            const coordinates = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-            rutasOSRM[cacheKey] = coordinates;
-            return coordinates;
+            const route = data.routes[0];
+            const coordinates = route.geometry.coordinates;
+            
+            if (!coordinates || coordinates.length === 0) {
+                throw new Error('OSRM devolvió ruta sin coordenadas');
+            }
+            
+            // Convertir coordenadas GeoJSON [lng, lat] a formato Leaflet [lat, lng]
+            // Filtrar coordenadas inválidas
+            const validCoordinates = coordinates
+                .filter(coord => 
+                    Array.isArray(coord) && 
+                    coord.length >= 2 && 
+                    typeof coord[0] === 'number' && 
+                    typeof coord[1] === 'number' &&
+                    !isNaN(coord[0]) && 
+                    !isNaN(coord[1]) &&
+                    coord[0] !== 0 && 
+                    coord[1] !== 0
+                )
+                .map(coord => [coord[1], coord[0]]); // [lng, lat] -> [lat, lng]
+            
+            if (validCoordinates.length === 0) {
+                throw new Error('No se pudieron convertir coordenadas de OSRM');
+            }
+            
+            // Cachear la ruta
+            rutasOSRM[cacheKey] = validCoordinates;
+            
+            console.log(`✅ Ruta OSRM obtenida: ${validCoordinates.length} puntos válidos (de ${coordinates.length} coordenadas originales)`);
+            
+            // Log información adicional
+            if (route.distance && route.duration) {
+                const distKm = (route.distance / 1000).toFixed(1);
+                const durMin = Math.round(route.duration / 60);
+                console.log(`📊 Distancia: ${distKm} km, Duración estimada: ~${durMin} min`);
+            }
+            
+            return validCoordinates;
+        } else {
+            const errorMsg = data.code || data.message || 'unknown';
+            throw new Error(`OSRM error: ${errorMsg}`);
         }
     } catch (error) {
-        console.warn('⚠️ Error obteniendo ruta OSRM:', error);
+        console.error('❌ Error obteniendo ruta OSRM:', error);
+        console.warn('⚠️ Usando interpolación como último recurso (línea recta)');
+        
+        // Último fallback: línea recta con más puntos interpolados (100 puntos para que se vea más suave)
+        const puntos = [];
+        for (let i = 0; i <= 100; i++) {
+            const lat = origen[0] + (destino[0] - origen[0]) * (i / 100);
+            const lng = origen[1] + (destino[1] - origen[1]) * (i / 100);
+            puntos.push([lat, lng]);
+        }
+        console.warn(`⚠️ Ruta interpolada generada: ${puntos.length} puntos (línea recta)`);
+        return puntos;
     }
-    return [origen, destino];
 }
 
 // Iconos personalizados
@@ -194,12 +272,22 @@ function inicializarWebSocket() {
             console.log('🔌 WebSocket conectado');
             document.getElementById('estado-conexion').className = 'badge badge-success';
             document.getElementById('estado-conexion').innerHTML = '<i class="fas fa-circle"></i> WebSocket Conectado';
+            // Reconectar todos los envíos activos
+            Object.keys(marcadores).forEach(envioId => {
+                socket.emit('join', `envio-${envioId}`);
+            });
         });
 
         socket.on('disconnect', () => {
             console.log('❌ WebSocket desconectado');
             document.getElementById('estado-conexion').className = 'badge badge-warning';
             document.getElementById('estado-conexion').innerHTML = '<i class="fas fa-exclamation-circle"></i> Reconectando...';
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.warn('⚠️ Error de conexión WebSocket:', error);
+            document.getElementById('estado-conexion').className = 'badge badge-danger';
+            document.getElementById('estado-conexion').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Sin WebSocket (usando polling)';
         });
 
         socket.on('simulacion-iniciada', async (data) => {
@@ -241,17 +329,26 @@ function inicializarWebSocket() {
                         .addTo(map)
                         .bindPopup(`<b>🚚 Envío ${envioId}</b><br>Iniciando ruta...`);
                     
+                    // Validar que la ruta tenga suficientes puntos
+                    if (rutaLeaflet.length < 3) {
+                        console.warn(`⚠️ Ruta para envío ${envioId} tiene muy pocos puntos (${rutaLeaflet.length}) en verEnMapa`);
+                    }
+                    
+                    console.log(`🗺️ Renderizando ruta en verEnMapa para envío ${envioId}: ${rutaLeaflet.length} puntos`);
+                    
                     const lineaRutaCompleta = L.polyline(rutaLeaflet, {
                         color: '#2196F3',
                         weight: 5,
                         opacity: 0.5,
-                        dashArray: '10, 10'
+                        dashArray: '10, 10',
+                        smoothFactor: 1.0 // Reducir suavizado para mantener todos los puntos
                     }).addTo(map);
                     
                     const lineaRutaRecorrida = L.polyline([primerPunto], {
                         color: '#4CAF50',
                         weight: 6,
-                        opacity: 0.9
+                        opacity: 0.9,
+                        smoothFactor: 1.0 // Reducir suavizado para mantener todos los puntos
                     }).addTo(map);
                     
                     marcadores[envioId] = { 
@@ -271,8 +368,11 @@ function inicializarWebSocket() {
         });
 
         socket.on('posicion-actualizada', (data) => {
+            console.log('📍 Posición actualizada recibida:', data);
             const { envioId, posicion, progreso } = data;
-            actualizarPosicionCamion(envioId, posicion, progreso);
+            if (envioId && posicion && progreso !== undefined) {
+                actualizarPosicionCamion(envioId, posicion, progreso);
+            }
         });
 
         socket.on('envio-completado', (data) => {
@@ -300,11 +400,23 @@ function inicializarWebSocket() {
 }
 
 function actualizarPosicionCamion(envioId, posicion, progreso) {
+    console.log(`📍 Actualizando posición envío ${envioId}:`, { posicion, progreso });
     const lat = posicion.latitude || posicion.lat;
     const lng = posicion.longitude || posicion.lng;
-    if (!lat || !lng) return;
+    if (!lat || !lng) {
+        console.warn(`⚠️ Posición inválida para envío ${envioId}`);
+        return;
+    }
     
+    // Validar progreso
+    if (progreso === undefined || progreso === null || isNaN(progreso)) {
+        console.warn(`⚠️ Progreso inválido para envío ${envioId}:`, progreso);
+        return;
+    }
+    
+    // Evitar retrocesos significativos (más de 5%)
     if (ultimoProgresoWS[envioId] !== undefined && progreso < ultimoProgresoWS[envioId] - 0.05) {
+        console.log(`⏪ Ignorando retroceso de progreso para envío ${envioId}`);
         return;
     }
     
@@ -323,6 +435,7 @@ function actualizarPosicionCamion(envioId, posicion, progreso) {
     ultimaActualizacionWS[envioId] = Date.now();
     ultimoProgresoWS[envioId] = progreso;
     
+    // Actualizar marcador en el mapa
     if (marcadores[envioId] && marcadores[envioId].vehiculo) {
         marcadores[envioId].vehiculo.setLatLng(nuevaPosicion);
         if (marcadores[envioId].rutaRecorrida && posicionesWebSocket[envioId].length > 0) {
@@ -333,12 +446,43 @@ function actualizarPosicionCamion(envioId, posicion, progreso) {
         );
     }
     
+    // Actualizar barra de progreso en la tarjeta de la lista
+    const progressBar = document.getElementById(`progress-${envioId}`);
+    const progressText = document.getElementById(`progress-text-${envioId}`);
+    if (progressBar) {
+        const progresoPercent = Math.round(progreso * 100);
+        progressBar.style.width = progresoPercent + '%';
+        if (progressText) {
+            progressText.textContent = progresoPercent + '% completado';
+        }
+    }
+    
+    // Actualizar panel de seguimiento activo si está seleccionado
     if (envioSeleccionado == envioId) {
         const progresoPercent = Math.round(progreso * 100);
-        document.getElementById('progress-bar').style.width = progresoPercent + '%';
-        document.getElementById('progress-bar').textContent = progresoPercent + '%';
-        document.getElementById('progreso-texto').textContent = progresoPercent + '%';
+        const mainProgressBar = document.getElementById('progress-bar');
+        const mainProgressText = document.getElementById('progreso-texto');
+        if (mainProgressBar) {
+            mainProgressBar.style.width = progresoPercent + '%';
+            mainProgressBar.textContent = progresoPercent + '%';
+        }
+        if (mainProgressText) {
+            mainProgressText.textContent = progresoPercent + '%';
+        }
+        // También actualizar el código del envío si no está actualizado
+        const envioCodigo = document.getElementById('envio-codigo');
+        if (envioCodigo && envioCodigo.textContent === '-') {
+            const envioCard = document.querySelector(`[data-envio-id="${envioId}"]`);
+            if (envioCard) {
+                const codigoMatch = envioCard.textContent.match(/P\d+/);
+                if (codigoMatch) {
+                    envioCodigo.textContent = codigoMatch[0];
+                }
+            }
+        }
     }
+    
+    console.log(`✅ Posición actualizada para envío ${envioId}: ${Math.round(progreso * 100)}%`);
 }
 
 function mostrarNotificacion(mensaje) {
@@ -366,6 +510,56 @@ function inicializarMapa() {
 function iniciarActualizacionAutomatica() {
     if (intervaloActualizacion) clearInterval(intervaloActualizacion);
     intervaloActualizacion = setInterval(actualizarEnvios, INTERVALO_ACTUALIZACION);
+    
+    // También actualizar progreso de envíos activos cada 2 segundos si no hay websocket
+    if (intervaloProgreso) clearInterval(intervaloProgreso);
+    intervaloProgreso = setInterval(() => {
+        // Solo actualizar si el socket no está conectado
+        if (!socket || !socket.connected) {
+            actualizarProgresoEnviosActivos();
+        }
+    }, 2000); // Cada 2 segundos
+}
+
+let intervaloProgreso = null;
+
+function actualizarProgresoEnviosActivos() {
+    // Actualizar progreso de envíos que están en tránsito
+    Object.keys(marcadores).forEach(envioId => {
+        // Buscar el envío en la lista usando el data attribute
+        const envioCard = document.querySelector(`[data-envio-id="${envioId}"]`);
+        if (envioCard) {
+            // Si hay progreso del websocket, usarlo directamente
+            if (ultimoProgresoWS[envioId] !== undefined) {
+                const progreso = ultimoProgresoWS[envioId];
+                const progressBar = document.getElementById(`progress-${envioId}`);
+                const progressText = document.getElementById(`progress-text-${envioId}`);
+                if (progressBar) {
+                    const percent = Math.round(progreso * 100);
+                    progressBar.style.width = percent + '%';
+                    if (progressText) {
+                        progressText.textContent = percent + '% completado';
+                    }
+                }
+            } else {
+                // Si no hay progreso del websocket, calcular basándose en tiempo
+                const fechaInicio = envioCard.dataset.fechaInicio;
+                if (fechaInicio) {
+                    const progreso = calcularProgreso(envioId, fechaInicio);
+                    // Actualizar barra de progreso en la tarjeta usando IDs específicos
+                    const progressBar = document.getElementById(`progress-${envioId}`);
+                    const progressText = document.getElementById(`progress-text-${envioId}`);
+                    if (progressBar) {
+                        const percent = Math.round(progreso * 100);
+                        progressBar.style.width = percent + '%';
+                        if (progressText) {
+                            progressText.textContent = percent + '% completado';
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
 async function actualizarEnvios() {
@@ -415,7 +609,9 @@ function renderizarListaEnvios(enTransito, esperando) {
             
             html += `
                 <div class="envio-card mb-2 p-3 border rounded bg-info text-white ${claseNuevo} ${envioSeleccionado == envio.id ? 'activo' : ''}" 
-                     onclick="seleccionarEnvio(${envio.id}, '${envio.codigo}', ${envio.destino_lat || -17.78}, ${envio.destino_lng || -63.18}, this)">
+                     onclick="seleccionarEnvio(${envio.id}, '${envio.codigo}', ${envio.destino_lat || -17.78}, ${envio.destino_lng || -63.18}, this)"
+                     data-envio-id="${envio.id}"
+                     data-fecha-inicio="${envio.fecha_inicio_transito || ''}">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <span class="badge badge-warning mb-1">🚚 EN RUTA</span>
@@ -424,9 +620,9 @@ function renderizarListaEnvios(enTransito, esperando) {
                             <p class="mb-1 small">📍 Destino: ${envio.direccion_completa || 'N/A'}</p>
                             ${envio.transportista_nombre ? `<p class="mb-0 small">👤 ${envio.transportista_nombre}</p>` : ''}
                             <div class="progress mt-2" style="height: 8px;">
-                                <div class="progress-bar bg-warning" style="width: ${Math.round(progreso * 100)}%"></div>
+                                <div class="progress-bar bg-warning" id="progress-${envio.id}" style="width: ${Math.round(progreso * 100)}%"></div>
                             </div>
-                            <small>${Math.round(progreso * 100)}% completado</small>
+                            <small id="progress-text-${envio.id}">${Math.round(progreso * 100)}% completado</small>
                         </div>
                         <button class="btn btn-sm btn-light" onclick="event.stopPropagation(); verEnMapa(${envio.id}, '${envio.codigo}', ${envio.destino_lat || -17.78}, ${envio.destino_lng || -63.18})">
                             <i class="fas fa-map-marker-alt"></i>
@@ -495,8 +691,26 @@ async function actualizarMapaConEnvios(enviosEnTransito) {
             let rutaCompleta;
             if (rutasCompletas[envioId] && rutasCompletas[envioId].length > 0) {
                 rutaCompleta = rutasCompletas[envioId];
+                console.log(`✅ Ruta desde cache para envío ${envioId}: ${rutaCompleta.length} puntos`);
             } else {
-                rutaCompleta = await obtenerRutaOSRM(PLANTA_COORDS, destino);
+                // PRIORIDAD 1: Intentar obtener desde seguimiento_envio (ruta real de OSRM guardada)
+                const rutaSeguimiento = await obtenerRutaDesdeSeguimiento(envioId);
+                if (rutaSeguimiento && rutaSeguimiento.length > 10) {
+                    rutaCompleta = rutaSeguimiento;
+                    rutasCompletas[envioId] = rutaCompleta; // Cachear
+                    console.log(`✅ Ruta desde seguimiento_envio para envío ${envioId}: ${rutaCompleta.length} puntos`);
+                } else {
+                    // PRIORIDAD 2: Obtener ruta real de OSRM (sigue calles reales)
+                    console.log(`🔄 Obteniendo ruta OSRM para envío ${envioId}...`);
+                    rutaCompleta = await obtenerRutaOSRM(PLANTA_COORDS, destino);
+                    rutasCompletas[envioId] = rutaCompleta; // Cachear
+                    
+                    if (rutaCompleta.length < 10) {
+                        console.warn(`⚠️ Ruta OSRM para envío ${envioId} tiene muy pocos puntos (${rutaCompleta.length}), puede verse como línea recta`);
+                    } else {
+                        console.log(`✅ Ruta OSRM obtenida para envío ${envioId}: ${rutaCompleta.length} puntos`);
+                    }
+                }
             }
             
             const progreso = calcularProgreso(envioId, envio.fecha_inicio_transito);
@@ -520,17 +734,28 @@ async function actualizarMapaConEnvios(enviosEnTransito) {
                 .addTo(map)
                 .bindPopup(`<b>🚚 ${envio.codigo}</b><br>Progreso: ${Math.round(progreso * 100)}%<br>${envio.transportista_nombre || ''}<br>${envio.vehiculo_placa ? `Placa: ${envio.vehiculo_placa}` : ''}`);
             
+            // Validar que la ruta tenga suficientes puntos (más de 2 = no es línea recta)
+            if (rutaCompleta.length < 3) {
+                console.warn(`⚠️ Ruta para envío ${envioId} tiene muy pocos puntos (${rutaCompleta.length}), puede verse como línea recta. Obteniendo nueva ruta OSRM...`);
+                rutaCompleta = await obtenerRutaOSRM(PLANTA_COORDS, destino);
+                rutasCompletas[envioId] = rutaCompleta;
+            }
+            
+            console.log(`🗺️ Renderizando ruta para envío ${envioId}: ${rutaCompleta.length} puntos`);
+            
             const lineaRutaCompleta = L.polyline(rutaCompleta, {
                 color: '#2196F3',
                 weight: 5,
                 opacity: 0.5,
-                dashArray: '10, 10'
+                dashArray: '10, 10',
+                smoothFactor: 1.0 // Reducir suavizado para mantener todos los puntos
             }).addTo(map);
             
             const lineaRutaRecorrida = L.polyline(rutaRecorridaPuntos, {
                 color: '#4CAF50',
                 weight: 6,
-                opacity: 0.9
+                opacity: 0.9,
+                smoothFactor: 1.0 // Reducir suavizado para mantener todos los puntos
             }).addTo(map);
             
             marcadores[envioId] = { 
@@ -564,6 +789,12 @@ async function actualizarMapaConEnvios(enviosEnTransito) {
 }
 
 function calcularProgreso(envioId, fechaInicio) {
+    // Si hay progreso del websocket, usarlo (tiene prioridad)
+    if (ultimoProgresoWS[envioId] !== undefined) {
+        return ultimoProgresoWS[envioId];
+    }
+    
+    // Si no, calcular basándose en tiempo transcurrido
     if (!fechaInicio) return 0;
     const inicio = new Date(fechaInicio).getTime();
     const ahora = Date.now();
@@ -624,6 +855,29 @@ function verEnMapa(id, codigo, lat, lng) {
     document.getElementById('info-panel').innerHTML = 
         `<i class="fas fa-truck"></i> Siguiendo envío <strong>${codigo}</strong> en tiempo real - Actualizando cada 2 segundos`;
     document.getElementById('info-panel').className = 'alert alert-success mb-3';
+    
+    // Actualizar progreso en el card azul
+    const envioCard = document.querySelector(`[data-envio-id="${id}"]`);
+    let progreso = 0;
+    if (ultimoProgresoWS[id] !== undefined) {
+        progreso = ultimoProgresoWS[id];
+    } else if (envioCard) {
+        const fechaInicio = envioCard.dataset.fechaInicio;
+        if (fechaInicio) {
+            progreso = calcularProgreso(id, fechaInicio);
+        }
+    }
+    
+    const progresoPercent = Math.round(progreso * 100);
+    const progressBar = document.getElementById('progress-bar');
+    const progresoTexto = document.getElementById('progreso-texto');
+    if (progressBar) {
+        progressBar.style.width = progresoPercent + '%';
+        progressBar.textContent = progresoPercent + '%';
+    }
+    if (progresoTexto) {
+        progresoTexto.textContent = progresoPercent + '%';
+    }
 }
 
 function cerrarSeguimiento() {

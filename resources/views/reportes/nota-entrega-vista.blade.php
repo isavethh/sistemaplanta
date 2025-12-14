@@ -150,6 +150,115 @@
         </div>
         @endif
 
+        <!-- CHECKLIST DE COMPROMISO -->
+        @if($checklistSalida)
+        <div class="section">
+            <div class="section-title"><i class="fas fa-clipboard-check"></i> CHECKLIST DE COMPROMISO (ANTES DE INICIAR ENVÍO)</div>
+            <div class="p-3 bg-light border rounded">
+                <p class="mb-2"><strong>Fecha del Checklist:</strong> 
+                    {{ isset($checklistSalida['created_at']) ? \Carbon\Carbon::parse($checklistSalida['created_at'])->format('d/m/Y H:i:s') : 'N/A' }}
+                </p>
+                
+                @php
+                    $datosChecklist = is_string($checklistSalida['datos'] ?? '{}') 
+                        ? json_decode($checklistSalida['datos'], true) 
+                        : ($checklistSalida['datos'] ?? []);
+                    $templateItems = [
+                        'documentos_carga' => 'Documentos de carga completos',
+                        'guias_remision' => 'Guías de remisión disponibles',
+                        'carga_verificada' => 'Carga verificada y contada',
+                        'carga_asegurada' => 'Carga asegurada correctamente',
+                        'embalaje_correcto' => 'Embalaje en buen estado',
+                        'combustible_ok' => 'Combustible suficiente',
+                        'llantas_ok' => 'Llantas en buen estado',
+                        'luces_ok' => 'Luces funcionando',
+                        'frenos_ok' => 'Frenos funcionando',
+                        'documentos_vehiculo' => 'Documentos del vehículo',
+                        'licencia_conductor' => 'Licencia de conducir vigente',
+                        'epp_completo' => 'EPP completo (si aplica)'
+                    ];
+                @endphp
+                
+                <table class="table table-sm table-bordered mt-3">
+                    <thead class="table-success">
+                        <tr>
+                            <th style="width: 60%;">Item</th>
+                            <th style="width: 20%; text-align: center;">Estado</th>
+                            <th style="width: 20%; text-align: center;">Evidencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($templateItems as $itemId => $itemLabel)
+                        @php
+                            $marcado = isset($datosChecklist[$itemId]) && $datosChecklist[$itemId];
+                            $tieneEvidencia = false;
+                            if (!$marcado && !empty($evidenciasChecklist)) {
+                                foreach ($evidenciasChecklist as $evidencia) {
+                                    if (isset($evidencia['item_id']) && $evidencia['item_id'] === $itemId) {
+                                        $tieneEvidencia = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        @endphp
+                        <tr class="{{ !$marcado ? 'table-warning' : '' }}">
+                            <td>{{ $itemLabel }}</td>
+                            <td class="text-center">
+                                @if($marcado)
+                                    <span class="badge bg-success">✓ VERIFICADO</span>
+                                @else
+                                    <span class="badge bg-danger">✗ NO VERIFICADO</span>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                @if(!$marcado && $tieneEvidencia)
+                                    <span class="badge bg-info">📷 FOTO ADJUNTA</span>
+                                @elseif(!$marcado)
+                                    <span class="badge bg-warning text-dark">⚠️ SIN EVIDENCIA</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                
+                @if(!empty($checklistSalida['items_no_marcados'] ?? []))
+                <div class="alert alert-warning mt-3">
+                    <strong><i class="fas fa-exclamation-triangle"></i> ITEMS NO VERIFICADOS (RESPONSABILIDAD DEL TRANSPORTISTA):</strong>
+                    <ul class="mb-0 mt-2">
+                        @foreach($checklistSalida['items_no_marcados'] as $item)
+                        <li>{{ $item }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
+                
+                @if(!empty($evidenciasChecklist))
+                <div class="mt-3">
+                    <p class="fw-bold mb-2"><i class="fas fa-camera"></i> EVIDENCIAS FOTOGRÁFICAS:</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach($evidenciasChecklist as $evidencia)
+                        @if(isset($evidencia['url_foto']) || isset($evidencia['foto_base64']))
+                        <div style="width: 100px; height: 100px; border: 1px solid #dee2e6; overflow: hidden; border-radius: 5px;">
+                            @if(isset($evidencia['foto_base64']))
+                                <img src="data:image/jpeg;base64,{{ $evidencia['foto_base64'] }}" 
+                                     style="width: 100%; height: 100%; object-fit: cover;" alt="Evidencia">
+                            @elseif(isset($evidencia['url_foto']))
+                                <img src="{{ $evidencia['url_foto'] }}" 
+                                     style="width: 100%; height: 100%; object-fit: cover;" alt="Evidencia">
+                            @endif
+                        </div>
+                        @endif
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
+
         <div class="signature-section">
             <div class="signature-box">
                 <img src="{{ asset('images/sello-planta.svg') }}" style="width: 100px; height: 100px; opacity: 0.7;">
@@ -159,10 +268,12 @@
                 </div>
             </div>
             <div class="signature-box">
-                @if($envio->firma_transportista)
-                    <img src="{{ $envio->firma_transportista }}" style="max-width: 120px; max-height: 80px;">
+                @if($firmaTransportista)
+                    <img src="data:image/png;base64,{{ $firmaTransportista }}" style="max-width: 120px; max-height: 80px; border: 1px solid #ddd; border-radius: 4px;">
                 @else
-                    <img src="{{ asset('images/firma-generica.svg') }}" style="max-width: 120px; max-height: 60px;">
+                    <div style="width: 120px; height: 80px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                        <span style="color: #999; font-size: 0.8rem;">Sin firma</span>
+                    </div>
                 @endif
                 <div class="signature-line">
                     <strong>FIRMA TRANSPORTISTA</strong><br>

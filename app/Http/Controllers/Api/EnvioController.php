@@ -334,15 +334,58 @@ class EnvioController extends Controller
     {
         try {
             $envio = Envio::findOrFail($id);
+            
+            // Verificar si ya está entregado
+            if ($envio->estado === 'entregado') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'El envío ya estaba marcado como entregado',
+                    'envio' => $envio
+                ]);
+            }
+            
+            // Marcar como entregado (operación rápida)
             $envio->marcarEntregado();
+            $envio->refresh();
 
-            return response()->json([
+            // Responder INMEDIATAMENTE sin esperar documentos
+            $response = response()->json([
                 'success' => true,
                 'message' => 'Envío marcado como entregado',
                 'envio' => $envio
             ]);
+
+            // Generar y enviar documentos EN SEGUNDO PLANO (después de enviar la respuesta)
+            // Usar register_shutdown_function para ejecutar después de enviar la respuesta HTTP
+            register_shutdown_function(function () use ($envio) {
+                try {
+                    \Log::info('📄 [EnvioController] Iniciando generación de documentos en segundo plano', [
+                        'envio_id' => $envio->id,
+                        'codigo' => $envio->codigo,
+                    ]);
+                    
+                    $documentoService = new \App\Services\DocumentoEntregaService(
+                        new \App\Services\AlmacenIntegrationService()
+                    );
+                    $documentoService->generarYEnviarDocumentos($envio);
+                } catch (\Exception $e) {
+                    \Log::error('Error generando/enviando documentos al marcar como entregado (background)', [
+                        'envio_id' => $envio->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                }
+            });
+
+            return $response;
         } catch (\Exception $e) {
+            \Log::error('Error al marcar como entregado', [
+                'envio_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json([
+                'success' => false,
                 'error' => 'Error al marcar como entregado: ' . $e->getMessage()
             ], 500);
         }

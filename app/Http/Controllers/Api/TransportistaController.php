@@ -176,8 +176,8 @@ class TransportistaController extends Controller
                         
                         // Intentar obtener información de la ruta desde Node.js
                         try {
-                            $nodeApiUrl = env('NODE_API_URL', config('services.app_mobile.api_base_url', 'http://localhost:3001/api'));
-                            $rutaResponse = \Illuminate\Support\Facades\Http::timeout(5)
+                            $nodeApiUrl = env('NODE_API_URL', config('services.app_mobile.api_base_url', 'http://localhost:3000/api'));
+                            $rutaResponse = \Illuminate\Support\Facades\Http::timeout(3)
                                 ->get("{$nodeApiUrl}/rutas-entrega/{$rutaEntregaId}");
                             
                             if ($rutaResponse->successful() && $rutaResponse->json('success')) {
@@ -188,7 +188,8 @@ class TransportistaController extends Controller
                                 $envio->total_paradas = count($rutaData['paradas'] ?? []);
                             }
                         } catch (\Exception $e) {
-                            \Log::warning("No se pudo obtener info de ruta {$rutaEntregaId}: " . $e->getMessage());
+                            // Silenciar error, no es crítico para la respuesta
+                            \Log::debug("No se pudo obtener info de ruta {$rutaEntregaId} desde Node.js: " . $e->getMessage());
                         }
                     } else {
                         // Verificar si es asignación múltiple sin ruta (legacy)
@@ -228,59 +229,69 @@ class TransportistaController extends Controller
             $apiBaseUrl = config('services.app_mobile.api_base_url', env('APP_URL', 'http://localhost') . '/api');
             
             // Convertir la colección a array para evitar problemas de serialización
-            $enviosArray = $envios->map(function($envio) use ($apiBaseUrl) {
-                // Helper para convertir fechas de forma segura
-                $formatDate = function($date) {
-                    if (!$date) return null;
-                    if (is_string($date)) {
-                        try {
-                            return \Carbon\Carbon::parse($date)->toIso8601String();
-                        } catch (\Exception $e) {
-                            return $date; // Devolver como string si no se puede parsear
+            // Usar foreach en lugar de map para mejor manejo de errores
+            $enviosArray = [];
+            foreach ($envios as $envio) {
+                try {
+                    // Helper para convertir fechas de forma segura
+                    $formatDate = function($date) {
+                        if (!$date) return null;
+                        if (is_string($date)) {
+                            try {
+                                return \Carbon\Carbon::parse($date)->toIso8601String();
+                            } catch (\Exception $e) {
+                                return $date; // Devolver como string si no se puede parsear
+                            }
                         }
-                    }
-                    if ($date instanceof \Carbon\Carbon || $date instanceof \DateTime) {
-                        return $date->toIso8601String();
-                    }
-                    return null;
-                };
-                
-                return [
-                    'id' => $envio->id,
-                    'codigo' => $envio->codigo,
-                    'estado' => $envio->estado,
-                    'fecha_creacion' => $formatDate($envio->fecha_creacion),
-                    'fecha_estimada_entrega' => $envio->fecha_estimada_entrega ? (is_string($envio->fecha_estimada_entrega) ? $envio->fecha_estimada_entrega : $envio->fecha_estimada_entrega->format('Y-m-d')) : null,
-                    'hora_estimada' => $envio->hora_estimada,
-                    'fecha_asignacion' => $formatDate($envio->fecha_asignacion),
-                    'fecha_aceptacion' => $formatDate($envio->fecha_aceptacion),
-                    'total_cantidad' => $envio->total_cantidad,
-                    'total_peso' => (float) $envio->total_peso,
-                    'total_precio' => (float) $envio->total_precio,
-                    'almacen_nombre' => $envio->almacen_nombre,
-                    'direccion_completa' => $envio->direccion_completa,
-                    'latitud' => $envio->latitud ? (float) $envio->latitud : null,
-                    'longitud' => $envio->longitud ? (float) $envio->longitud : null,
-                    'origen_lat' => $envio->origen_lat ? (float) $envio->origen_lat : null,
-                    'origen_lng' => $envio->origen_lng ? (float) $envio->origen_lng : null,
-                    'origen_direccion' => $envio->origen_direccion,
-                    'vehiculo_id' => $envio->vehiculo_id,
-                    'vehiculo_placa' => $envio->vehiculo_placa,
-                    'es_asignacion_multiple' => $envio->es_asignacion_multiple ?? false,
-                    'tipo_asignacion' => $envio->tipo_asignacion ?? 'normal',
-                    'total_envios_asignacion' => $envio->total_envios_asignacion ?? 1,
-                    'ruta_id' => $envio->ruta_id ?? null,
-                    'ruta_codigo' => $envio->ruta_codigo ?? null,
-                    'ruta_estado' => $envio->ruta_estado ?? null,
-                    'total_envios_ruta' => $envio->total_envios_ruta ?? 0,
-                    'total_paradas' => $envio->total_paradas ?? 0,
-                    // Agregar URLs de acciones para la app móvil
-                    'url_aceptar' => "{$apiBaseUrl}/envios/{$envio->id}/aceptar",
-                    'url_rechazar' => "{$apiBaseUrl}/envios/{$envio->id}/rechazar",
-                    'url_iniciar' => "{$apiBaseUrl}/envios/{$envio->id}/iniciar",
-                    'url_entregado' => "{$apiBaseUrl}/envios/{$envio->id}/entregado",
-                ];
-            })->toArray();
+                        if ($date instanceof \Carbon\Carbon || $date instanceof \DateTime) {
+                            return $date->toIso8601String();
+                        }
+                        return null;
+                    };
+                    
+                    $envioData = [
+                        'id' => $envio->id,
+                        'codigo' => $envio->codigo ?? '',
+                        'estado' => $envio->estado ?? 'pendiente',
+                        'fecha_creacion' => $formatDate($envio->fecha_creacion ?? null),
+                        'fecha_estimada_entrega' => $envio->fecha_estimada_entrega ? (is_string($envio->fecha_estimada_entrega) ? $envio->fecha_estimada_entrega : $envio->fecha_estimada_entrega->format('Y-m-d')) : null,
+                        'hora_estimada' => $envio->hora_estimada ?? null,
+                        'fecha_asignacion' => $formatDate($envio->fecha_asignacion ?? null),
+                        'fecha_aceptacion' => $formatDate($envio->fecha_aceptacion ?? null),
+                        'total_cantidad' => $envio->total_cantidad ?? 0,
+                        'total_peso' => isset($envio->total_peso) ? (float) $envio->total_peso : 0.0,
+                        'total_precio' => isset($envio->total_precio) ? (float) $envio->total_precio : 0.0,
+                        'almacen_nombre' => $envio->almacen_nombre ?? '',
+                        'direccion_completa' => $envio->direccion_completa ?? '',
+                        'latitud' => isset($envio->latitud) ? (float) $envio->latitud : null,
+                        'longitud' => isset($envio->longitud) ? (float) $envio->longitud : null,
+                        'origen_lat' => isset($envio->origen_lat) ? (float) $envio->origen_lat : null,
+                        'origen_lng' => isset($envio->origen_lng) ? (float) $envio->origen_lng : null,
+                        'origen_direccion' => $envio->origen_direccion ?? '',
+                        'vehiculo_id' => $envio->vehiculo_id ?? null,
+                        'vehiculo_placa' => $envio->vehiculo_placa ?? '',
+                        'es_asignacion_multiple' => $envio->es_asignacion_multiple ?? false,
+                        'tipo_asignacion' => $envio->tipo_asignacion ?? 'normal',
+                        'total_envios_asignacion' => $envio->total_envios_asignacion ?? 1,
+                        'ruta_id' => $envio->ruta_id ?? null,
+                        'ruta_codigo' => $envio->ruta_codigo ?? null,
+                        'ruta_estado' => $envio->ruta_estado ?? null,
+                        'total_envios_ruta' => $envio->total_envios_ruta ?? 0,
+                        'total_paradas' => $envio->total_paradas ?? 0,
+                        // Agregar URLs de acciones para la app móvil
+                        'url_aceptar' => "{$apiBaseUrl}/envios/{$envio->id}/aceptar",
+                        'url_rechazar' => "{$apiBaseUrl}/envios/{$envio->id}/rechazar",
+                        'url_iniciar' => "{$apiBaseUrl}/envios/{$envio->id}/iniciar",
+                        'url_entregado' => "{$apiBaseUrl}/envios/{$envio->id}/entregado",
+                    ];
+                    
+                    $enviosArray[] = $envioData;
+                } catch (\Exception $e) {
+                    // Si hay error al procesar un envío, loguear y continuar con los demás
+                    \Log::warning("Error al procesar envío {$envio->id}: " . $e->getMessage());
+                    continue;
+                }
+            }
 
             \Log::info("✅ Encontrados {$envios->count()} envíos para transportista {$transportistaId}");
             

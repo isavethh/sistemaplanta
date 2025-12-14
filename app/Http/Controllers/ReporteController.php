@@ -174,7 +174,114 @@ class ReporteController extends Controller
         // Obtener planta origen
         $planta = DB::table('almacenes')->where('es_planta', true)->first();
 
-        $pdf = Pdf::loadView('reportes.pdf.nota-entrega', compact('envio', 'productos', 'planta'));
+        // Obtener checklist de compromiso (salida) desde Node.js
+        $checklistSalida = null;
+        $evidenciasChecklist = [];
+        $firmaTransportista = null;
+        try {
+            $nodeApiUrl = env('NODE_API_URL', 'http://localhost:3000');
+            
+            // PRIMERO: Buscar checklist por envio_id directamente (envíos normales)
+            $response = \Http::timeout(5)->get("{$nodeApiUrl}/api/rutas-entrega/checklists", [
+                'envio_id' => $envioId,
+                'tipo' => 'salida'
+            ]);
+            
+            if ($response->successful()) {
+                $checklists = $response->json();
+                $checklistSalida = collect($checklists['checklists'] ?? [])->first();
+            }
+            
+            // Si no se encontró, buscar si el envío tiene una ruta asociada (rutas múltiples)
+            if (!$checklistSalida) {
+                $rutaEntrega = DB::table('rutas_entrega')
+                    ->whereJsonContains('envio_ids', (string)$envioId)
+                    ->orWhere('envio_ids', 'LIKE', '%"' . $envioId . '"%')
+                    ->first();
+                
+                if ($rutaEntrega) {
+                    // Obtener checklist desde Node.js por ruta
+                    $response = \Http::timeout(5)->get("{$nodeApiUrl}/api/rutas-entrega/{$rutaEntrega->id}/checklists");
+                    
+                    if ($response->successful()) {
+                        $checklists = $response->json();
+                        // Buscar checklist de salida
+                        $checklistSalida = collect($checklists['checklists'] ?? [])
+                            ->where('tipo', 'salida')
+                            ->first();
+                    }
+                }
+            }
+            
+            // Procesar checklist si se encontró
+            if ($checklistSalida && isset($checklistSalida['datos'])) {
+                $datosChecklist = is_string($checklistSalida['datos']) 
+                    ? json_decode($checklistSalida['datos'], true) 
+                    : $checklistSalida['datos'];
+                
+                // Obtener firma del checklist
+                $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                
+                // Verificar items no marcados
+                $itemsNoMarcados = [];
+                $templateItems = [
+                    'documentos_carga' => 'Documentos de carga completos',
+                    'guias_remision' => 'Guías de remisión disponibles',
+                    'carga_verificada' => 'Carga verificada y contada',
+                    'carga_asegurada' => 'Carga asegurada correctamente',
+                    'embalaje_correcto' => 'Embalaje en buen estado',
+                    'combustible_ok' => 'Combustible suficiente',
+                    'llantas_ok' => 'Llantas en buen estado',
+                    'luces_ok' => 'Luces funcionando',
+                    'frenos_ok' => 'Frenos funcionando',
+                    'documentos_vehiculo' => 'Documentos del vehículo',
+                    'licencia_conductor' => 'Licencia de conducir vigente',
+                    'epp_completo' => 'EPP completo (si aplica)'
+                ];
+                
+                foreach ($templateItems as $itemId => $itemLabel) {
+                    if (!isset($datosChecklist[$itemId]) || !$datosChecklist[$itemId]) {
+                        $itemsNoMarcados[] = $itemLabel;
+                    }
+                }
+                
+                // Obtener evidencias (fotos) para items no marcados
+                if (!empty($itemsNoMarcados)) {
+                    try {
+                        // Intentar obtener evidencias por envio_id (envíos normales)
+                        $evidenciasResponse = \Http::timeout(5)->get(
+                            "{$nodeApiUrl}/api/rutas-entrega/evidencias",
+                            ['envio_id' => $envioId, 'tipo' => 'checklist_salida']
+                        );
+                        
+                        if ($evidenciasResponse->successful()) {
+                            $evidenciasData = $evidenciasResponse->json();
+                            $evidenciasChecklist = $evidenciasData['evidencias'] ?? [];
+                        }
+                        
+                        // Si no se encontraron por envio_id, intentar por ruta_parada_id (rutas múltiples)
+                        if (empty($evidenciasChecklist) && isset($checklistSalida['ruta_parada_id'])) {
+                            $evidenciasResponse = \Http::timeout(5)->get(
+                                "{$nodeApiUrl}/api/rutas-entrega/evidencias",
+                                ['parada_id' => $checklistSalida['ruta_parada_id'], 'tipo' => 'checklist_salida']
+                            );
+                            if ($evidenciasResponse->successful()) {
+                                $evidenciasData = $evidenciasResponse->json();
+                                $evidenciasChecklist = $evidenciasData['evidencias'] ?? [];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning("Error obteniendo evidencias: " . $e->getMessage());
+                    }
+                }
+                
+                $checklistSalida['items_no_marcados'] = $itemsNoMarcados;
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Error obteniendo checklist: " . $e->getMessage());
+        }
+
+        $pdf = Pdf::loadView('reportes.pdf.nota-entrega', compact('envio', 'productos', 'planta', 'checklistSalida', 'evidenciasChecklist', 'firmaTransportista'));
         $pdf->setPaper('a4', 'portrait');
         
         return $pdf->download('nota-entrega-' . $envio->codigo . '.pdf');
@@ -202,7 +309,114 @@ class ReporteController extends Controller
         $productos = DB::table('envio_productos')->where('envio_id', $envioId)->get();
         $planta = DB::table('almacenes')->where('es_planta', true)->first();
 
-        return view('reportes.nota-entrega-vista', compact('envio', 'productos', 'planta'));
+        // Obtener checklist de compromiso (salida) desde Node.js
+        $checklistSalida = null;
+        $evidenciasChecklist = [];
+        $firmaTransportista = null;
+        try {
+            $nodeApiUrl = env('NODE_API_URL', 'http://localhost:3000');
+            
+            // PRIMERO: Buscar checklist por envio_id directamente (envíos normales)
+            $response = \Http::timeout(5)->get("{$nodeApiUrl}/api/rutas-entrega/checklists", [
+                'envio_id' => $envioId,
+                'tipo' => 'salida'
+            ]);
+            
+            if ($response->successful()) {
+                $checklists = $response->json();
+                $checklistSalida = collect($checklists['checklists'] ?? [])->first();
+            }
+            
+            // Si no se encontró, buscar si el envío tiene una ruta asociada (rutas múltiples)
+            if (!$checklistSalida) {
+                $rutaEntrega = DB::table('rutas_entrega')
+                    ->whereJsonContains('envio_ids', (string)$envioId)
+                    ->orWhere('envio_ids', 'LIKE', '%"' . $envioId . '"%')
+                    ->first();
+                
+                if ($rutaEntrega) {
+                    // Obtener checklist desde Node.js por ruta
+                    $response = \Http::timeout(5)->get("{$nodeApiUrl}/api/rutas-entrega/{$rutaEntrega->id}/checklists");
+                    
+                    if ($response->successful()) {
+                        $checklists = $response->json();
+                        // Buscar checklist de salida
+                        $checklistSalida = collect($checklists['checklists'] ?? [])
+                            ->where('tipo', 'salida')
+                            ->first();
+                    }
+                }
+            }
+            
+            // Procesar checklist si se encontró
+            if ($checklistSalida && isset($checklistSalida['datos'])) {
+                $datosChecklist = is_string($checklistSalida['datos']) 
+                    ? json_decode($checklistSalida['datos'], true) 
+                    : $checklistSalida['datos'];
+                
+                // Obtener firma del checklist
+                $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                
+                // Verificar items no marcados
+                $itemsNoMarcados = [];
+                $templateItems = [
+                    'documentos_carga' => 'Documentos de carga completos',
+                    'guias_remision' => 'Guías de remisión disponibles',
+                    'carga_verificada' => 'Carga verificada y contada',
+                    'carga_asegurada' => 'Carga asegurada correctamente',
+                    'embalaje_correcto' => 'Embalaje en buen estado',
+                    'combustible_ok' => 'Combustible suficiente',
+                    'llantas_ok' => 'Llantas en buen estado',
+                    'luces_ok' => 'Luces funcionando',
+                    'frenos_ok' => 'Frenos funcionando',
+                    'documentos_vehiculo' => 'Documentos del vehículo',
+                    'licencia_conductor' => 'Licencia de conducir vigente',
+                    'epp_completo' => 'EPP completo (si aplica)'
+                ];
+                
+                foreach ($templateItems as $itemId => $itemLabel) {
+                    if (!isset($datosChecklist[$itemId]) || !$datosChecklist[$itemId]) {
+                        $itemsNoMarcados[] = $itemLabel;
+                    }
+                }
+                
+                // Obtener evidencias (fotos) para items no marcados
+                if (!empty($itemsNoMarcados)) {
+                    try {
+                        // Intentar obtener evidencias por envio_id (envíos normales)
+                        $evidenciasResponse = \Http::timeout(5)->get(
+                            "{$nodeApiUrl}/api/rutas-entrega/evidencias",
+                            ['envio_id' => $envioId, 'tipo' => 'checklist_salida']
+                        );
+                        
+                        if ($evidenciasResponse->successful()) {
+                            $evidenciasData = $evidenciasResponse->json();
+                            $evidenciasChecklist = $evidenciasData['evidencias'] ?? [];
+                        }
+                        
+                        // Si no se encontraron por envio_id, intentar por ruta_parada_id (rutas múltiples)
+                        if (empty($evidenciasChecklist) && isset($checklistSalida['ruta_parada_id'])) {
+                            $evidenciasResponse = \Http::timeout(5)->get(
+                                "{$nodeApiUrl}/api/rutas-entrega/evidencias",
+                                ['parada_id' => $checklistSalida['ruta_parada_id'], 'tipo' => 'checklist_salida']
+                            );
+                            if ($evidenciasResponse->successful()) {
+                                $evidenciasData = $evidenciasResponse->json();
+                                $evidenciasChecklist = $evidenciasData['evidencias'] ?? [];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning("Error obteniendo evidencias: " . $e->getMessage());
+                    }
+                }
+                
+                $checklistSalida['items_no_marcados'] = $itemsNoMarcados;
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Error obteniendo checklist: " . $e->getMessage());
+        }
+
+        return view('reportes.nota-entrega-vista', compact('envio', 'productos', 'planta', 'checklistSalida', 'evidenciasChecklist', 'firmaTransportista'));
     }
 
     // ========================================================================
@@ -1594,6 +1808,31 @@ class ReporteController extends Controller
         // Obtener incidentes del envío
         $incidentes = DB::table('incidentes')->where('envio_id', $id)->orderBy('created_at')->get();
 
+        // Obtener fechas detalladas
+        $fechaCreacion = $envio->fecha_creacion ?? $envio->created_at;
+        $fechaAsignacion = $envio->fecha_asignacion ?? ($envio->asignacion->fecha_asignacion ?? null);
+        $fechaAceptacion = $envio->asignacion->fecha_aceptacion ?? null;
+        $fechaInicioTransito = $envio->fecha_inicio_transito;
+        $fechaEntrega = $envio->fecha_entrega;
+
+        // Obtener firma del checklist desde Node.js
+        $firmaTransportista = null;
+        try {
+            $nodeApiUrl = env('NODE_API_URL', 'http://localhost:3000');
+            $response = \Http::timeout(5)->get("{$nodeApiUrl}/api/rutas-entrega/checklists", [
+                'envio_id' => $id,
+                'tipo' => 'salida'
+            ]);
+            
+            if ($response->successful()) {
+                $checklists = $response->json();
+                $checklistSalida = collect($checklists['checklists'] ?? [])->first();
+                $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Error obteniendo firma para trazabilidad: " . $e->getMessage());
+        }
+
         // Calcular tiempo total
         $tiempoTotal = null;
         if ($envio->fecha_entrega && $envio->fecha_creacion) {
@@ -1619,7 +1858,9 @@ class ReporteController extends Controller
         }
 
         return view('reportes.trazabilidad-vista', compact(
-            'envio', 'planta', 'incidentes', 'tiempoTotal', 'tiempoTransito'
+            'envio', 'planta', 'incidentes', 'tiempoTotal', 'tiempoTransito',
+            'fechaCreacion', 'fechaAsignacion', 'fechaAceptacion', 'fechaInicioTransito', 'fechaEntrega',
+            'firmaTransportista'
         ));
     }
 
@@ -1641,6 +1882,31 @@ class ReporteController extends Controller
         
         // Obtener incidentes del envío
         $incidentes = DB::table('incidentes')->where('envio_id', $id)->orderBy('created_at')->get();
+
+        // Obtener fechas detalladas
+        $fechaCreacion = $envio->fecha_creacion ?? $envio->created_at;
+        $fechaAsignacion = $envio->fecha_asignacion ?? ($envio->asignacion->fecha_asignacion ?? null);
+        $fechaAceptacion = $envio->asignacion->fecha_aceptacion ?? null;
+        $fechaInicioTransito = $envio->fecha_inicio_transito;
+        $fechaEntrega = $envio->fecha_entrega;
+
+        // Obtener firma del checklist desde Node.js
+        $firmaTransportista = null;
+        try {
+            $nodeApiUrl = env('NODE_API_URL', 'http://localhost:3000');
+            $response = \Http::timeout(5)->get("{$nodeApiUrl}/api/rutas-entrega/checklists", [
+                'envio_id' => $id,
+                'tipo' => 'salida'
+            ]);
+            
+            if ($response->successful()) {
+                $checklists = $response->json();
+                $checklistSalida = collect($checklists['checklists'] ?? [])->first();
+                $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Error obteniendo firma para trazabilidad: " . $e->getMessage());
+        }
 
         // Calcular tiempo total
         $tiempoTotal = null;
@@ -1667,7 +1933,9 @@ class ReporteController extends Controller
         }
 
         $pdf = Pdf::loadView('reportes.pdf.trazabilidad', compact(
-            'envio', 'planta', 'incidentes', 'tiempoTotal', 'tiempoTransito'
+            'envio', 'planta', 'incidentes', 'tiempoTotal', 'tiempoTransito',
+            'fechaCreacion', 'fechaAsignacion', 'fechaAceptacion', 'fechaInicioTransito', 'fechaEntrega',
+            'firmaTransportista'
         ));
         
         $pdf->setPaper('a4', 'portrait');

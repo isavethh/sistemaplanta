@@ -197,11 +197,31 @@
             <strong>Destino:</strong> {{ $envio->almacenDestino->nombre ?? 'N/A' }}
         </div>
         <div class="info-row">
-            <strong>Fecha Creacion:</strong> {{ \Carbon\Carbon::parse($envio->fecha_creacion)->format('d/m/Y H:i:s') }}
+            <strong>Día que llegó el pedido a plantaCruds:</strong> 
+            {{ $fechaCreacion ? \Carbon\Carbon::parse($fechaCreacion)->format('d/m/Y H:i:s') : 'N/A' }}
         </div>
-        @if($envio->fecha_entrega)
+        @if($fechaAsignacion)
         <div class="info-row">
-            <strong>Fecha Entrega:</strong> {{ \Carbon\Carbon::parse($envio->fecha_entrega)->format('d/m/Y H:i:s') }}
+            <strong>Día que se asignó el transportista:</strong> 
+            {{ \Carbon\Carbon::parse($fechaAsignacion)->format('d/m/Y H:i:s') }}
+        </div>
+        @endif
+        @if($fechaAceptacion)
+        <div class="info-row">
+            <strong>Día que el transportista confirmó el envío:</strong> 
+            {{ \Carbon\Carbon::parse($fechaAceptacion)->format('d/m/Y H:i:s') }}
+        </div>
+        @endif
+        @if($fechaInicioTransito)
+        <div class="info-row">
+            <strong>Día que recogió el envío:</strong> 
+            {{ \Carbon\Carbon::parse($fechaInicioTransito)->format('d/m/Y H:i:s') }}
+        </div>
+        @endif
+        @if($fechaEntrega)
+        <div class="info-row">
+            <strong>Hora exacta de entrega al almacén:</strong> 
+            {{ \Carbon\Carbon::parse($fechaEntrega)->format('d/m/Y H:i:s') }}
         </div>
         @endif
         <div class="info-row">
@@ -348,10 +368,16 @@
             </div>
         </div>
         <div class="firma-box">
-            <img src="{{ public_path('images/firma-generica.svg') }}" alt="Firma" style="width: 120px; margin: 10px auto;">
+            @if($firmaTransportista)
+                <img src="data:image/png;base64,{{ $firmaTransportista }}" alt="Firma Transportista" style="width: 120px; max-height: 80px; margin: 10px auto; border: 1px solid #ddd; border-radius: 4px;">
+            @else
+                <div style="width: 120px; height: 80px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; margin: 10px auto;">
+                    <span style="color: #999; font-size: 8px;">Sin firma</span>
+                </div>
+            @endif
             <div class="firma-line">
-                <strong>FIRMA SUPERVISOR</strong><br>
-                <small>Gerente de Operaciones</small>
+                <strong>FIRMA TRANSPORTISTA</strong><br>
+                <small>{{ $envio->transportista_nombre ?? 'N/A' }}</small>
             </div>
         </div>
     </div>

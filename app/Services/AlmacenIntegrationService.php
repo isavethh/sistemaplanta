@@ -378,5 +378,109 @@ class AlmacenIntegrationService
             return false;
         }
     }
+
+    /**
+     * Notificar entrega de envío y enviar documentos al almacén
+     * 
+     * @param Envio $envio
+     * @param array $documentos Array con 'propuesta_vehiculos', 'nota_entrega', 'trazabilidad_completa' (base64)
+     * @return bool
+     */
+    public function notifyEntrega(Envio $envio, array $documentos): bool
+    {
+        try {
+            // Cargar relaciones necesarias
+            $envio->load(['asignacion.transportista', 'almacenDestino']);
+
+            // Extraer información del pedido original
+            $pedidoAlmacenId = $this->extractPedidoAlmacenId($envio);
+            $webhookUrl = $this->extractWebhookUrl($envio);
+
+            if (!$pedidoAlmacenId && !$webhookUrl) {
+                Log::info('Envío no tiene relación con pedido de almacenes, no se notifica entrega', [
+                    'envio_id' => $envio->id,
+                    'codigo' => $envio->codigo,
+                ]);
+                return false;
+            }
+
+            // Preparar datos de entrega
+            $data = [
+                'pedido_id' => $pedidoAlmacenId,
+                'envio_id' => $envio->id,
+                'envio_codigo' => $envio->codigo,
+                'fecha_entrega' => $envio->fecha_entrega?->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s'),
+                'transportista_nombre' => $envio->asignacion->transportista->name ?? 'N/A',
+                'documentos' => [
+                    'propuesta_vehiculos' => $documentos['propuesta_vehiculos'] ?? null,
+                    'nota_entrega' => $documentos['nota_entrega'] ?? null,
+                    'trazabilidad_completa' => $documentos['trazabilidad_completa'] ?? null,
+                ],
+            ];
+
+            // Si hay webhook_url, usarlo directamente
+            if ($webhookUrl) {
+                Log::info('Enviando documentos de entrega a almacenes vía webhook', [
+                    'webhook_url' => $webhookUrl,
+                    'envio_id' => $envio->id,
+                ]);
+
+                $response = Http::timeout(30)->post($webhookUrl, $data);
+
+                if ($response->successful()) {
+                    Log::info('✅ Documentos de entrega enviados exitosamente vía webhook', [
+                        'envio_id' => $envio->id,
+                        'codigo' => $envio->codigo,
+                    ]);
+                    return true;
+                } else {
+                    Log::error('❌ Error enviando documentos de entrega vía webhook', [
+                        'envio_id' => $envio->id,
+                        'status' => $response->status(),
+                        'response' => $response->body(),
+                    ]);
+                    return false;
+                }
+            }
+
+            // Si no hay webhook, usar endpoint estándar
+            if ($pedidoAlmacenId) {
+                $endpoint = "{$this->apiUrl}/pedidos/{$pedidoAlmacenId}/documentos-entrega";
+                
+                Log::info('Enviando documentos de entrega a almacenes', [
+                    'endpoint' => $endpoint,
+                    'envio_id' => $envio->id,
+                    'pedido_id' => $pedidoAlmacenId,
+                ]);
+
+                $response = Http::timeout(30)->post($endpoint, $data);
+
+                if ($response->successful()) {
+                    Log::info('✅ Documentos de entrega enviados exitosamente', [
+                        'envio_id' => $envio->id,
+                        'codigo' => $envio->codigo,
+                    ]);
+                    return true;
+                } else {
+                    Log::error('❌ Error enviando documentos de entrega', [
+                        'envio_id' => $envio->id,
+                        'status' => $response->status(),
+                        'response' => $response->body(),
+                    ]);
+                    return false;
+                }
+            }
+
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error('Error al notificar entrega a almacenes', [
+                'envio_id' => $envio->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return false;
+        }
+    }
 }
 
