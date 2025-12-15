@@ -1,4 +1,7 @@
 @extends('adminlte::page')
+@php
+    use Illuminate\Support\Facades\Storage;
+@endphp
 @section('title', 'Detalle Incidente #' . $incidente->id)
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
@@ -77,15 +80,15 @@
                     </div>
                 </div>
 
-                <!-- Descripción del Almacén -->
+                <!-- Descripción del Incidente -->
                 <div class="row mb-3">
-                    <div class="col-md-4"><strong><i class="fas fa-comment"></i> Descripción del Almacén:</strong></div>
+                    <div class="col-md-4"><strong><i class="fas fa-comment"></i> Descripción:</strong></div>
                     <div class="col-md-8">
-                        <div class="alert alert-warning border" style="background: #fff3cd; border-left: 4px solid #ffc107 !important;">
+                        <div class="alert alert-warning border" style="background: #fff3cd; border-left: 4px solid #ffc107 !important; min-height: 50px; display: block;">
                             <i class="fas fa-quote-left text-muted"></i>
-                            <strong style="font-size: 1.1em;">
-                                {{ $incidente->descripcion ?? 'Sin descripción proporcionada' }}
-                            </strong>
+                            <span style="font-size: 1.1em; white-space: pre-wrap; word-wrap: break-word; display: inline-block; width: 100%;">
+                                {{ !empty($incidente->descripcion) ? $incidente->descripcion : 'Sin descripción proporcionada' }}
+                            </span>
                             <i class="fas fa-quote-right text-muted"></i>
                         </div>
                     </div>
@@ -170,13 +173,26 @@
                 <h5 class="card-title text-white mb-0"><i class="fas fa-camera"></i> Foto de Evidencia</h5>
             </div>
             <div class="card-body text-center">
-                <a href="http://192.168.0.129:8001{{ $incidente->foto_url }}" target="_blank">
-                    <img src="http://192.168.0.129:8001{{ $incidente->foto_url }}" 
+                @php
+                    $fotoUrl = Storage::url($incidente->foto_url);
+                @endphp
+                <a href="{{ $fotoUrl }}" target="_blank">
+                    <img src="{{ $fotoUrl }}" 
                          class="img-fluid img-thumbnail" 
-                         style="max-height: 300px;"
-                         alt="Evidencia del incidente">
+                         style="max-height: 400px; width: auto; object-fit: contain;"
+                         alt="Evidencia del incidente"
+                         onerror="this.onerror=null; this.src='{{ asset('img/no-image.png') }}'; this.style.display='none'; this.parentElement.innerHTML='<p class=\'text-muted\'><i class=\'fas fa-exclamation-triangle\'></i> No se pudo cargar la imagen</p>';">
                 </a>
                 <p class="text-muted mt-2"><small>Click para ver en tamaño completo</small></p>
+            </div>
+        </div>
+        @else
+        <div class="card shadow mb-3">
+            <div class="card-header bg-info">
+                <h5 class="card-title text-white mb-0"><i class="fas fa-camera"></i> Foto de Evidencia</h5>
+            </div>
+            <div class="card-body text-center">
+                <p class="text-muted"><i class="fas fa-image"></i> No hay foto disponible</p>
             </div>
         </div>
         @endif

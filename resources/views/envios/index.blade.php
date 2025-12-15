@@ -85,6 +85,12 @@
                         @endif
                     </td>
                     <td>
+                        @php
+                            $tieneIncidente = \DB::table('incidentes')
+                                ->where('envio_id', $envio->id)
+                                ->where('accion', 'cancelar')
+                                ->exists();
+                        @endphp
                         @if($envio->estado == 'pendiente')
                             <span class="badge badge-warning"><i class="fas fa-clock"></i> Pendiente</span>
                         @elseif($envio->estado == 'asignado')
@@ -93,6 +99,13 @@
                             <span class="badge badge-info"><i class="fas fa-truck"></i> En Tránsito</span>
                         @elseif($envio->estado == 'entregado')
                             <span class="badge badge-success"><i class="fas fa-check-circle"></i> Entregado</span>
+                        @elseif($envio->estado == 'cancelado')
+                            <span class="badge badge-danger">
+                                <i class="fas fa-times-circle"></i> Cancelado
+                                @if($tieneIncidente)
+                                    <i class="fas fa-exclamation-triangle ml-1" title="Cancelado por incidente"></i>
+                                @endif
+                            </span>
                         @else
                             <span class="badge badge-secondary">{{ ucfirst($envio->estado) }}</span>
                         @endif

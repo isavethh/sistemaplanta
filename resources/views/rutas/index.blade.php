@@ -452,7 +452,7 @@ async function actualizarEnvios() {
         
         const data = await response.json();
         
-        renderizarListaEnvios(data.en_transito || [], data.esperando || []);
+        renderizarListaEnvios(data.en_transito || [], data.esperando || [], data.cancelados || []);
         
         // Actualizar mapa con envíos (esperar a que termine)
         await actualizarMapaConEnvios(data.en_transito || []);
@@ -489,7 +489,7 @@ async function obtenerSeguimientoEnvio(envioId) {
     }
 }
 
-function renderizarListaEnvios(enTransito, esperando) {
+function renderizarListaEnvios(enTransito, esperando, cancelados) {
     const container = document.getElementById('lista-envios');
     let html = '';
     
@@ -544,6 +544,45 @@ function renderizarListaEnvios(enTransito, esperando) {
                     <p class="mb-1 mt-1"><strong>${envio.codigo}</strong></p>
                     <p class="mb-0 small text-muted">📦 ${envio.almacen_nombre || 'N/A'}</p>
                     <small class="text-muted"><i class="fas fa-info-circle"></i> Esperando inicio del transportista</small>
+                </div>
+            `;
+        });
+    }
+    
+    // Envíos cancelados por incidente
+    if (cancelados && cancelados.length > 0) {
+        html += `<h6 class="text-danger mt-3"><i class="fas fa-exclamation-triangle"></i> Cancelados por Incidente (${cancelados.length})</h6>`;
+        
+        cancelados.forEach(envio => {
+            const fechaCancelacion = envio.fecha_cancelacion ? new Date(envio.fecha_cancelacion).toLocaleString('es-ES', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            }) : 'N/A';
+            
+            html += `
+                <div class="envio-card mb-2 p-2 border border-danger rounded bg-light">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <span class="badge badge-danger mb-1">
+                                <i class="fas fa-times-circle"></i> CANCELADO
+                                ${envio.cancelado_por_incidente ? '<i class="fas fa-exclamation-triangle ml-1" title="Cancelado por incidente"></i>' : ''}
+                            </span>
+                            <p class="mb-1 mt-1"><strong>${envio.codigo}</strong></p>
+                            <p class="mb-0 small text-muted">📦 ${envio.almacen_nombre || 'N/A'}</p>
+                            ${envio.transportista_nombre ? `<p class="mb-0 small text-muted">👤 ${envio.transportista_nombre}</p>` : ''}
+                            <small class="text-danger">
+                                <i class="fas fa-calendar-times"></i> Cancelado: ${fechaCancelacion}
+                            </small>
+                        </div>
+                        ${envio.incidente_id ? `
+                            <a href="/incidentes/${envio.incidente_id}" class="btn btn-sm btn-danger ml-2" title="Ver detalles del incidente">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </a>
+                        ` : ''}
+                    </div>
                 </div>
             `;
         });

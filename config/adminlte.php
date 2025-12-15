@@ -343,6 +343,20 @@ return [
             'icon_color' => 'warning',
             'role' => 'admin'
         ],
+        [
+            'text' => 'Incidentes',
+            'route' => 'incidentes.index',
+            'icon' => 'fas fa-exclamation-triangle',
+            'icon_color' => 'danger',
+            'role' => 'admin',
+            'badge' => [
+                'text' => function() {
+                    $count = \DB::table('incidentes')->where('estado', 'pendiente')->count();
+                    return $count > 0 ? $count : null;
+                },
+                'color' => 'danger',
+            ],
+        ],
         
         ['header' => '📊 REPORTES Y ANÁLISIS', 'role' => 'admin'],
         

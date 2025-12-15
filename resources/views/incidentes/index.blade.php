@@ -1,4 +1,7 @@
 @extends('adminlte::page')
+@php
+    use Illuminate\Support\Facades\Storage;
+@endphp
 @section('title', 'Incidentes')
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
@@ -193,6 +196,11 @@
                         <a href="{{ route('envios.show', $incidente->envio_id) }}">
                             <i class="fas fa-box"></i> {{ $incidente->envio_codigo ?? 'N/A' }}
                         </a>
+                        @if(isset($incidente->envio_estado) && $incidente->envio_estado == 'cancelado' && $incidente->accion == 'cancelar')
+                            <br><small class="badge badge-danger">
+                                <i class="fas fa-times-circle"></i> Envío Cancelado
+                            </small>
+                        @endif
                     </td>
                     <td>{{ $incidente->almacen_nombre ?? 'N/A' }}</td>
                     <td>
@@ -232,9 +240,20 @@
                             </small>
                         @endif
                     </td>
+                    <td>
+                        @if($incidente->accion == 'cancelar')
+                            <span class="badge badge-danger">
+                                <i class="fas fa-times-circle"></i> Cancelar Envío
+                            </span>
+                        @else
+                            <span class="badge badge-warning">
+                                <i class="fas fa-arrow-right"></i> Continuar
+                            </span>
+                        @endif
+                    </td>
                     <td class="text-center">
                         @if($incidente->foto_url)
-                            <a href="http://192.168.0.129:8001{{ $incidente->foto_url }}" target="_blank" class="btn btn-sm btn-info">
+                            <a href="{{ Storage::url($incidente->foto_url) }}" target="_blank" class="btn btn-sm btn-info">
                                 <i class="fas fa-image"></i>
                             </a>
                         @else

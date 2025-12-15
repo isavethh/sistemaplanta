@@ -13,12 +13,19 @@ class IncidenteController extends Controller
      */
     public function index(Request $request)
     {
+        // Marcar todos los incidentes pendientes como notificados cuando el admin los ve
+        DB::table('incidentes')
+            ->where('estado', 'pendiente')
+            ->where('notificado_admin', false)
+            ->update(['notificado_admin' => true]);
+        
         $query = DB::table('incidentes as i')
             ->leftJoin('envios as e', 'i.envio_id', '=', 'e.id')
             ->leftJoin('almacenes as a', 'e.almacen_destino_id', '=', 'a.id')
             ->select(
                 'i.*',
                 'e.codigo as envio_codigo',
+                'e.estado as envio_estado',
                 'a.nombre as almacen_nombre',
                 DB::raw('COALESCE(i.solicitar_ayuda, false) as solicitar_ayuda')
             )
@@ -84,6 +91,7 @@ class IncidenteController extends Controller
                 'i.fecha_reporte',
                 'i.fecha_resolucion',
                 'i.notas_resolucion',
+                'i.accion',
                 'i.created_at',
                 'i.updated_at',
                 'e.codigo as envio_codigo',

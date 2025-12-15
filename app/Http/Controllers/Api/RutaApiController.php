@@ -14,7 +14,7 @@ class RutaApiController extends Controller
      */
     public function enviosActivos()
     {
-        // Envíos en tránsito
+        // Envíos en tránsito (solo los que empiezan con "P")
         $enTransito = DB::select("
             SELECT 
                 e.id,
@@ -33,10 +33,11 @@ class RutaApiController extends Controller
             LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
             LEFT JOIN users u ON v.transportista_id = u.id
             WHERE e.estado = 'en_transito'
+                AND e.codigo LIKE 'P%'
             ORDER BY e.fecha_inicio_transito DESC
         ");
         
-        // Envíos esperando inicio (asignados o aceptados)
+        // Envíos esperando inicio (asignados o aceptados) - solo los que empiezan con "P"
         $esperando = DB::select("
             SELECT 
                 e.id,
@@ -52,13 +53,43 @@ class RutaApiController extends Controller
             LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
             LEFT JOIN users u ON v.transportista_id = u.id
             WHERE e.estado IN ('asignado', 'aceptado')
+                AND e.codigo LIKE 'P%'
             ORDER BY e.created_at DESC
+        ");
+        
+        // Envíos cancelados por incidente (últimos 7 días) - solo los que empiezan con "P"
+        $cancelados = DB::select("
+            SELECT 
+                e.id,
+                e.codigo,
+                e.estado,
+                e.updated_at as fecha_cancelacion,
+                a.nombre as almacen_nombre,
+                a.latitud as destino_lat,
+                a.longitud as destino_lng,
+                a.direccion_completa,
+                u.name as transportista_nombre,
+                v.placa as vehiculo_placa,
+                CASE WHEN i.id IS NOT NULL THEN true ELSE false END as cancelado_por_incidente,
+                i.id as incidente_id
+            FROM envios e
+            LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+            LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+            LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
+            LEFT JOIN users u ON v.transportista_id = u.id
+            LEFT JOIN incidentes i ON e.id = i.envio_id AND i.accion = 'cancelar'
+            WHERE e.estado = 'cancelado' 
+                AND e.codigo LIKE 'P%'
+                AND e.updated_at >= NOW() - INTERVAL '7 days'
+            ORDER BY e.updated_at DESC
+            LIMIT 50
         ");
         
         return response()->json([
             'success' => true,
             'en_transito' => $enTransito,
             'esperando' => $esperando,
+            'cancelados' => $cancelados,
             'timestamp' => now()->toIso8601String()
         ]);
     }
@@ -151,13 +182,25 @@ class RutaApiController extends Controller
 
         $ids = $request->input('ids', []);
         
+        \Log::info('📦 [enviosPorIds] Consultando envíos', [
+            'ids_recibidos' => $ids,
+            'total_ids' => count($ids),
+        ]);
+        
         if (empty($ids)) {
+            \Log::info('📦 [enviosPorIds] Sin IDs, retornando vacío');
             return response()->json([
                 'success' => true,
                 'en_transito' => [],
                 'esperando' => [],
                 'entregados' => [],
+                'cancelados' => [],
                 'timestamp' => now()->toIso8601String()
+            ], 200, [
+                'Content-Type' => 'application/json',
+                'Access-Control-Allow-Origin' => '*',
+                'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, Accept, Authorization',
             ]);
         }
 
@@ -229,12 +272,48 @@ class RutaApiController extends Controller
             ORDER BY e.updated_at DESC
         ", $ids);
         
+        // Envíos cancelados
+        $cancelados = DB::select("
+            SELECT 
+                e.id,
+                e.codigo,
+                e.estado,
+                e.fecha_inicio_transito,
+                e.updated_at as fecha_cancelacion,
+                a.nombre as almacen_nombre,
+                a.latitud as destino_lat,
+                a.longitud as destino_lng,
+                a.direccion_completa,
+                u.name as transportista_nombre,
+                v.placa as vehiculo_placa
+            FROM envios e
+            LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+            LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+            LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
+            LEFT JOIN users u ON v.transportista_id = u.id
+            WHERE e.estado = 'cancelado' AND e.id IN ($placeholders)
+            ORDER BY e.updated_at DESC
+        ", $ids);
+        
+        \Log::info('📦 [enviosPorIds] Resultados', [
+            'en_transito_count' => count($enTransito),
+            'esperando_count' => count($esperando),
+            'entregados_count' => count($entregados),
+            'cancelados_count' => count($cancelados),
+        ]);
+        
         return response()->json([
             'success' => true,
             'en_transito' => $enTransito,
             'esperando' => $esperando,
             'entregados' => $entregados,
+            'cancelados' => $cancelados,
             'timestamp' => now()->toIso8601String()
+        ], 200, [
+            'Content-Type' => 'application/json',
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Accept, Authorization',
         ]);
     }
 }

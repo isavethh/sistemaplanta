@@ -134,6 +134,9 @@ Route::prefix('envios')->group(function () {
     Route::get('/{id}/seguimiento', [\App\Http\Controllers\Api\EnvioController::class, 'getSeguimiento']);
     Route::get('/{id}/documento', [\App\Http\Controllers\Api\DocumentoController::class, 'generarDocumento']);
     
+    // Ruta para reportar incidentes
+    Route::post('/{envioId}/incidentes', [\App\Http\Controllers\Api\IncidenteController::class, 'reportar']);
+    
     // Rutas para propuesta de vehículos (integración con Trazabilidad)
     Route::get('/{id}/propuesta-vehiculos-pdf', [EnvioApiController::class, 'propuestaVehiculosPdf']);
     Route::post('/{id}/aprobar-rechazar', [EnvioApiController::class, 'aprobarRechazarTrazabilidad']);
