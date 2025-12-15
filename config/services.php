@@ -49,7 +49,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Esta es la URL base que la app móvil usará para conectarse a la API.
-    | IMPORTANTE: Debe ser la IP de la red local (ej: http://192.168.0.129:8001)
+    | IMPORTANTE: Debe ser la IP de la red local (ej: http://10.26.10.192:8001)
     | NO usar localhost ya que la app móvil no puede acceder a localhost.
     | 
     | Para encontrar tu IP local, ejecuta: ipconfig (Windows) o ifconfig (Linux/Mac)

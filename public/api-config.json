@@ -1,5 +1,5 @@
 {
-  "api_base_url": "http://192.168.0.129:8001/api",
+  "api_base_url": "http://10.26.10.192:8001/api",
   "endpoints": {
     "transportistas_login": "/public/transportistas-login",
     "login_transportista": "/public/login-transportista",
