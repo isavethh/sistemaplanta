@@ -17,6 +17,7 @@ class AlmacenIntegrationService
 
     /**
      * Enviar información de asignación de envío a sistema-almacen-PSIII
+     * Incluye la propuesta de vehículos generada automáticamente
      * 
      * @param Envio $envio
      * @return bool
@@ -66,6 +67,29 @@ class AlmacenIntegrationService
                 return false;
             }
 
+            // Generar propuesta de vehículos (se genera automáticamente al asignar)
+            $propuestaVehiculosPdf = null;
+            try {
+                $propuestaService = new \App\Services\PropuestaVehiculosService();
+                $propuesta = $propuestaService->calcularPropuestaVehiculos($envio);
+                
+                if (!empty($propuesta['vehiculos_propuestos'])) {
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('envios.pdf.propuesta-vehiculos', compact('propuesta'));
+                    $propuestaVehiculosPdf = base64_encode($pdf->output());
+                    
+                    Log::info('Propuesta de vehículos generada para asignación', [
+                        'envio_id' => $envio->id,
+                        'vehiculos_count' => count($propuesta['vehiculos_propuestos']),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error generando propuesta de vehículos para asignación', [
+                    'envio_id' => $envio->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // Continuar sin la propuesta, no es crítico
+            }
+
             // Preparar datos de asignación
             $data = [
                 'pedido_id' => $pedidoAlmacenId,
@@ -90,6 +114,10 @@ class AlmacenIntegrationService
                     'nombre' => $envio->almacenDestino->nombre ?? null,
                     'direccion' => $envio->almacenDestino->direccion ?? null,
                 ],
+                // Incluir propuesta de vehículos si se generó
+                'documentos' => $propuestaVehiculosPdf ? [
+                    'propuesta_vehiculos' => $propuestaVehiculosPdf,
+                ] : null,
             ];
 
             // Si hay webhook_url, usarlo directamente
@@ -191,6 +219,53 @@ class AlmacenIntegrationService
             } catch (\Exception $e) {
                 Log::debug("No se pudo buscar pedido por código: " . $e->getMessage());
             }
+        }
+        
+        // NUEVO: Buscar por código de envío en la API de almacenes
+        // Si el envío tiene un código, podemos intentar buscar pedidos que tengan ese código en sus observaciones
+        if ($envio->codigo) {
+            try {
+                // Intentar buscar pedidos que tengan este código de envío
+                $response = Http::timeout(5)->get("{$this->apiUrl}/pedidos/buscar-por-envio", [
+                    'envio_codigo' => $envio->codigo,
+                    'envio_id' => $envio->id,
+                ]);
+                
+                if ($response->successful() && $response->json('success')) {
+                    $pedidoId = $response->json('data.id');
+                    if ($pedidoId) {
+                        Log::info('Pedido encontrado por código de envío', [
+                            'envio_id' => $envio->id,
+                            'envio_codigo' => $envio->codigo,
+                            'pedido_id' => $pedidoId,
+                        ]);
+                        return $pedidoId;
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::debug("No se pudo buscar pedido por código de envío: " . $e->getMessage());
+            }
+        }
+        
+        // NUEVO: Buscar en pedido_entregas si ya existe un registro
+        // Esto es útil si el envío ya fue procesado antes
+        try {
+            $response = Http::timeout(5)->get("{$this->apiUrl}/pedidos/buscar-por-envio-id", [
+                'envio_id' => $envio->id,
+            ]);
+            
+            if ($response->successful() && $response->json('success')) {
+                $pedidoId = $response->json('data.pedido_id');
+                if ($pedidoId) {
+                    Log::info('Pedido encontrado en pedido_entregas', [
+                        'envio_id' => $envio->id,
+                        'pedido_id' => $pedidoId,
+                    ]);
+                    return $pedidoId;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::debug("No se pudo buscar pedido en pedido_entregas: " . $e->getMessage());
         }
 
         return null;

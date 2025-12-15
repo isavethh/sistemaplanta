@@ -424,6 +424,9 @@ Route::prefix('rutas')->group(function () {
     // Obtener envíos activos filtrados por almacén
     Route::get('/envios-activos-almacen/{almacenId}', [RutaApiController::class, 'enviosActivosPorAlmacen']);
     
+    // Obtener información de envíos por IDs (incluyendo entregados)
+    Route::post('/envios-por-ids', [RutaApiController::class, 'enviosPorIds']);
+    
     // Obtener seguimiento de un envío específico
     Route::get('/seguimiento/{id}', [RutaApiController::class, 'seguimiento']);
 });
