@@ -24,10 +24,13 @@ class DatabaseSeeder extends Seeder
         // 3. Crear usuarios del sistema (Mario, Carlos, Jorge, etc.)
         $this->call(CrearUsuariosPorRolSeeder::class);
         
-        // 4. Crear tamaños de vehículos si no existen
+        // 4. Crear usuarios de propietario y operador (nuevos roles)
+        $this->call(CrearUsuariosPropietarioOperadorSeeder::class);
+        
+        // 5. Crear tamaños de vehículos si no existen
         $this->call(TamanoVehiculoSeeder::class);
         
-        // 5. Crear tipos de empaque si no existen
+        // 6. Crear tipos de empaque si no existen
         $this->call(TiposEmpaqueSeeder::class);
     }
 }
