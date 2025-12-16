@@ -298,15 +298,23 @@
                     <i class="fas fa-map-marker-alt"></i> Ver Tracking
                 </a>
 
-                <hr>
-
-                <form action="{{ route('envios.destroy', $envio) }}" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger btn-block" onclick="return confirm('¿Estás seguro de eliminar este envío?')">
-                        <i class="fas fa-trash"></i> Eliminar Envío
-                    </button>
-                </form>
+                @if(auth()->user()->hasRole('admin'))
+                    <hr>
+                    @if(in_array($envio->estado, ['pendiente', 'cancelado', 'rechazado']))
+                        <form action="{{ route('envios.destroy', $envio) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este envío? Esta acción no se puede deshacer.')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-block">
+                                <i class="fas fa-trash"></i> Eliminar Envío
+                            </button>
+                        </form>
+                    @else
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle"></i> 
+                            Este envío no puede ser eliminado porque está en estado: <strong>{{ ucfirst(str_replace('_', ' ', $envio->estado)) }}</strong>
+                        </div>
+                    @endif
+                @endif
             </div>
         </div>
 

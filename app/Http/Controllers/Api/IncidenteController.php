@@ -135,10 +135,24 @@ class IncidenteController extends Controller
                 'notificado_admin' => false, // Se marcará como notificado cuando el admin lo vea
             ]);
 
-            // Si la acción es cancelar, marcar el envío como cancelado
+            // Si la acción es cancelar, marcar el envío como cancelado y generar PDF
             if ($validated['accion'] === 'cancelar') {
                 $envio->estado = 'cancelado';
                 $envio->observaciones = ($envio->observaciones ?? '') . "\n\n[INCIDENTE] Cancelado por incidente: " . $validated['descripcion'];
+                
+                // Generar PDF de cancelación
+                try {
+                    $cancelacionPdfPath = $this->generarPdfCancelacion($envio, $incidente, $validated);
+                    if ($cancelacionPdfPath) {
+                        $envio->cancelacion_pdf_path = $cancelacionPdfPath;
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Error generando PDF de cancelación (no crítico)', [
+                        'envio_id' => $envioId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+                
                 $envio->save();
             } else {
                 // Si continúa, solo agregar nota en observaciones
@@ -339,6 +353,50 @@ class IncidenteController extends Controller
                 'error' => $e->getMessage(),
             ]);
             return false;
+        }
+    }
+
+    /**
+     * Generar PDF de cancelación del envío
+     */
+    private function generarPdfCancelacion(Envio $envio, Incidente $incidente, array $datos): ?string
+    {
+        try {
+            $envio->load(['almacenDestino', 'asignacion.transportista', 'pedidoAlmacen']);
+            
+            // Obtener planta
+            $planta = \App\Models\Almacen::where('es_planta', true)->first();
+            
+            // Generar PDF usando una vista simple
+            $html = view('reportes.pdf.cancelacion-envio', [
+                'envio' => $envio,
+                'incidente' => $incidente,
+                'planta' => $planta,
+                'datos' => $datos,
+            ])->render();
+            
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+            $pdf->setPaper('a4', 'portrait');
+            
+            // Guardar PDF
+            $nombreArchivo = 'cancelacion-envio-' . ($envio->codigo ?? $envio->id) . '-' . time() . '.pdf';
+            $directorio = 'cancelaciones';
+            $rutaCompleta = "{$directorio}/{$nombreArchivo}";
+            
+            Storage::disk('public')->put($rutaCompleta, $pdf->output());
+            
+            Log::info('PDF de cancelación generado', [
+                'envio_id' => $envio->id,
+                'ruta' => $rutaCompleta,
+            ]);
+            
+            return $rutaCompleta;
+        } catch (\Exception $e) {
+            Log::error('Error generando PDF de cancelación', [
+                'envio_id' => $envio->id,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
         }
     }
 }

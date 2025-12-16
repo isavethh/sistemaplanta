@@ -125,16 +125,20 @@
                                     </button>
                                 </form>
                             @endif
-                            @if($envio->estado == 'pendiente')
-                                <a href="{{ route('envios.edit', $envio) }}" class="btn btn-warning" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('envios.destroy', $envio) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Estás seguro de eliminar este envío?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-danger" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                            @if(auth()->user()->hasRole('admin'))
+                                @if($envio->estado == 'pendiente')
+                                    <a href="{{ route('envios.edit', $envio) }}" class="btn btn-warning" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                @endif
+                                @if(in_array($envio->estado, ['pendiente', 'cancelado', 'rechazado']))
+                                    <form action="{{ route('envios.destroy', $envio) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Estás seguro de eliminar este envío? Esta acción no se puede deshacer.')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-danger" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                @endif
                             @endif
                         </div>
                     </td>

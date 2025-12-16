@@ -230,8 +230,21 @@ class EnvioController extends Controller
             abort(403, 'Solo los administradores pueden eliminar envíos.');
         }
         
+        // Verificar que el envío esté en un estado que permita eliminación
+        $estadosPermitidos = ['pendiente', 'cancelado', 'rechazado'];
+        if (!in_array($envio->estado, $estadosPermitidos)) {
+            return redirect()->route('envios.index')
+                ->with('error', 'No se puede eliminar un envío en estado: ' . ucfirst(str_replace('_', ' ', $envio->estado)) . '. Solo se pueden eliminar envíos pendientes, cancelados o rechazados.');
+        }
+        
         try {
             \DB::beginTransaction();
+            
+            // Eliminar incidentes asociados
+            \DB::table('incidentes')->where('envio_id', $envio->id)->delete();
+            
+            // Eliminar historial de envío
+            \DB::table('historial_envios')->where('envio_id', $envio->id)->delete();
             
             // Eliminar notas de venta asociadas
             \DB::table('notas_venta')->where('envio_id', $envio->id)->delete();
@@ -245,14 +258,29 @@ class EnvioController extends Controller
             // Eliminar productos del envío (por si acaso no tiene cascade)
             \DB::table('envio_productos')->where('envio_id', $envio->id)->delete();
             
+            // Eliminar propuestas de vehículos asociadas
+            \DB::table('propuesta_vehiculos')->where('envio_id', $envio->id)->delete();
+            
             // Finalmente eliminar el envío
             $envio->delete();
             
             \DB::commit();
             
-            return redirect()->route('envios.index')->with('success', 'Envío eliminado exitosamente');
+            \Log::info('Envío eliminado por administrador', [
+                'envio_id' => $envio->id,
+                'codigo' => $envio->codigo,
+                'admin_id' => $user->id,
+                'admin_name' => $user->name,
+            ]);
+            
+            return redirect()->route('envios.index')->with('success', 'Envío ' . ($envio->codigo ?? 'N/A') . ' eliminado exitosamente');
         } catch (\Exception $e) {
             \DB::rollBack();
+            \Log::error('Error al eliminar envío', [
+                'envio_id' => $envio->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return redirect()->route('envios.index')->with('error', 'Error al eliminar el envío: ' . $e->getMessage());
         }
     }

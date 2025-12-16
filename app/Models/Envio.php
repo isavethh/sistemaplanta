@@ -57,6 +57,36 @@ class Envio extends Model
         'disconformidad_trazabilidad' => 'boolean',
     ];
 
+    /**
+     * Boot del modelo - generar código automáticamente si no existe
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($envio) {
+            // Si no tiene código, generarlo automáticamente
+            if (empty($envio->codigo)) {
+                $envio->codigo = static::generarCodigo();
+            }
+        });
+
+        static::saving(function ($envio) {
+            // Si no tiene código al guardar, generarlo
+            if (empty($envio->codigo)) {
+                $envio->codigo = static::generarCodigo();
+            }
+        });
+    }
+
+    /**
+     * Generar código único para el envío
+     */
+    public static function generarCodigo(): string
+    {
+        return 'ENV-' . date('ymd') . '-' . strtoupper(substr(uniqid(), -6));
+    }
+
     // Relaciones
     public function cliente()
     {

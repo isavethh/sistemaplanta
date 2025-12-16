@@ -20,6 +20,12 @@ class DocumentoController extends Controller
         try {
             $envio = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
                 ->findOrFail($id);
+            
+            // Asegurar que el envío tenga código
+            if (empty($envio->codigo)) {
+                $envio->codigo = \App\Models\Envio::generarCodigo();
+                $envio->save();
+            }
 
             // Verificar si tiene propuesta aprobada por Trazabilidad
             // Primero verificar si viene de Trazabilidad
