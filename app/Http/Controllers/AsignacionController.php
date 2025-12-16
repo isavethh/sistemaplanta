@@ -136,6 +136,7 @@ class AsignacionController extends Controller
             }
 
             // Crear asignación (solo guardar vehiculo_id, el transportista se obtiene a través del vehículo)
+            // IMPORTANTE: NO establecer ruta_entrega_id - esto es una asignación individual, no multienvio
             $asignacion = EnvioAsignacion::create([
                 'envio_id' => $request->envio_id,
                 'vehiculo_id' => $request->vehiculo_id,
@@ -143,9 +144,11 @@ class AsignacionController extends Controller
             ]);
 
             // Actualizar estado del envío y fecha de asignación
+            // Asegurar que ruta_entrega_id sea NULL (asignación individual, NO multienvio)
             $envio->update([
                 'estado' => 'asignado',
                 'fecha_asignacion' => now(),
+                'ruta_entrega_id' => null, // Asignación individual - NO es multienvio
                 'updated_at' => now(),
             ]);
 
