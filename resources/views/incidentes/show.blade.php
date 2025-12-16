@@ -49,6 +49,10 @@
                         <span class="badge badge-danger p-3" style="font-size: 1.2em;">
                             <i class="fas fa-clock fa-lg"></i> PENDIENTE
                         </span>
+                    @elseif($incidente->estado == 'en_revision')
+                        <span class="badge badge-info p-3" style="font-size: 1.2em;">
+                            <i class="fas fa-search fa-lg"></i> EN REVISIÓN
+                        </span>
                     @elseif($incidente->estado == 'en_proceso')
                         <span class="badge badge-warning p-3" style="font-size: 1.2em;">
                             <i class="fas fa-spinner fa-spin fa-lg"></i> EN PROCESO
@@ -56,6 +60,10 @@
                     @elseif($incidente->estado == 'resuelto')
                         <span class="badge badge-success p-3" style="font-size: 1.2em;">
                             <i class="fas fa-check-circle fa-lg"></i> RESUELTO
+                        </span>
+                    @else
+                        <span class="badge badge-secondary p-3" style="font-size: 1.2em;">
+                            {{ strtoupper($incidente->estado) }}
                         </span>
                     @endif
                 </div>
@@ -71,11 +79,19 @@
                                 'producto_faltante' => 'Producto Faltante',
                                 'producto_equivocado' => 'Producto Equivocado',
                                 'empaque_malo' => 'Empaque en Mal Estado',
+                                'accidente_vehiculo' => 'Accidente de Vehículo',
+                                'averia_vehiculo' => 'Avería de Vehículo',
+                                'robo' => 'Robo',
+                                'perdida_mercancia' => 'Pérdida de Mercancía',
+                                'daño_mercancia' => 'Daño de Mercancía',
+                                'retraso' => 'Retraso en Entrega',
+                                'problema_ruta' => 'Problema en Ruta',
+                                'problema_cliente' => 'Problema con Cliente',
                                 'otro' => 'Otro Problema',
                             ];
                         @endphp
                         <span class="badge badge-danger p-2">
-                            {{ $tiposTexto[$incidente->tipo_incidente] ?? $incidente->tipo_incidente }}
+                            {{ $tiposTexto[$incidente->tipo_incidente] ?? ucfirst(str_replace('_', ' ', $incidente->tipo_incidente)) }}
                         </span>
                     </div>
                 </div>
@@ -129,12 +145,20 @@
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Código:</strong> 
-                            <a href="{{ route('envios.show', $incidente->envio_id) }}">{{ $incidente->envio_codigo }}</a>
+                            <a href="{{ route('envios.show', $incidente->envio_id) }}">{{ $incidente->envio_codigo ?? 'N/A' }}</a>
                         </p>
-                        <p><strong>Almacén:</strong> {{ $incidente->almacen_nombre }}</p>
+                        <p><strong>Almacén:</strong> {{ $incidente->almacen_nombre ?? 'N/A' }}</p>
                     </div>
                     <div class="col-md-6">
                         <p><strong>Dirección:</strong> {{ $incidente->almacen_direccion ?? 'N/A' }}</p>
+                        @if(isset($transportista))
+                        <p><strong>Transportista:</strong> 
+                            {{ $transportista->name ?? 'N/A' }}
+                            @if(isset($transportista->telefono))
+                                <br><small class="text-muted"><i class="fas fa-phone"></i> {{ $transportista->telefono }}</small>
+                            @endif
+                        </p>
+                        @endif
                     </div>
                 </div>
 
@@ -175,6 +199,17 @@
             <div class="card-body">
                 @if($incidente->estado != 'resuelto')
                     @if($incidente->estado == 'pendiente')
+                    <form action="{{ route('incidentes.cambiarEstado', $incidente->id) }}" method="POST" class="mb-2">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="estado" value="en_revision">
+                        <button type="submit" class="btn btn-info btn-block">
+                            <i class="fas fa-search"></i> Marcar En Revisión
+                        </button>
+                    </form>
+                    @endif
+
+                    @if($incidente->estado == 'en_revision' || $incidente->estado == 'pendiente')
                     <form action="{{ route('incidentes.cambiarEstado', $incidente->id) }}" method="POST" class="mb-2">
                         @csrf
                         @method('PUT')

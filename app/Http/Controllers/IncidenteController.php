@@ -52,19 +52,18 @@ class IncidenteController extends Controller
             });
         }
 
-        $incidentes = $query->paginate(15);
-
-        // Filtro por solicitud de ayuda
+        // Filtro por solicitud de ayuda (debe ir ANTES de paginar)
         if ($request->filled('solicitar_ayuda')) {
             $query->where('i.solicitar_ayuda', true);
         }
-        
+
         $incidentes = $query->paginate(15);
         
         // Estadísticas
         $estadisticas = [
             'total' => DB::table('incidentes')->count(),
             'pendientes' => DB::table('incidentes')->where('estado', 'pendiente')->count(),
+            'en_revision' => DB::table('incidentes')->where('estado', 'en_revision')->count(),
             'en_proceso' => DB::table('incidentes')->where('estado', 'en_proceso')->count(),
             'resueltos' => DB::table('incidentes')->where('estado', 'resuelto')->count(),
             'solicitan_ayuda' => DB::table('incidentes')->where('solicitar_ayuda', true)->where('estado', '!=', 'resuelto')->count(),
@@ -84,6 +83,7 @@ class IncidenteController extends Controller
             ->select(
                 'i.id',
                 'i.envio_id',
+                'i.transportista_id',
                 'i.tipo_incidente',
                 'i.descripcion',
                 'i.foto_url',
@@ -111,7 +111,16 @@ class IncidenteController extends Controller
             ->where('envio_id', $incidente->envio_id)
             ->get();
 
-        return view('incidentes.show', compact('incidente', 'productos'));
+        // Obtener información del transportista si existe
+        $transportista = null;
+        if ($incidente->transportista_id) {
+            $transportista = DB::table('users')
+                ->where('id', $incidente->transportista_id)
+                ->select('id', 'name', 'email', 'telefono')
+                ->first();
+        }
+
+        return view('incidentes.show', compact('incidente', 'productos', 'transportista'));
     }
 
     /**
@@ -120,7 +129,7 @@ class IncidenteController extends Controller
     public function cambiarEstado(Request $request, $id)
     {
         $request->validate([
-            'estado' => 'required|in:pendiente,en_proceso,resuelto',
+            'estado' => 'required|in:pendiente,en_revision,en_proceso,resuelto',
             'notas' => 'nullable|string|max:1000'
         ]);
 
@@ -140,8 +149,10 @@ class IncidenteController extends Controller
 
         $mensaje = match($request->estado) {
             'pendiente' => 'Incidente marcado como pendiente',
+            'en_revision' => 'Incidente marcado como en revisión',
             'en_proceso' => 'Incidente marcado como en proceso',
             'resuelto' => 'Incidente marcado como resuelto',
+            default => 'Estado actualizado',
         };
 
         return redirect()->back()->with('success', $mensaje);

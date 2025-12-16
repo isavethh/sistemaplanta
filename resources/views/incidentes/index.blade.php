@@ -129,6 +129,7 @@
                 <select name="estado" class="form-control form-control-sm">
                     <option value="">Todos</option>
                     <option value="pendiente" {{ request('estado') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
+                    <option value="en_revision" {{ request('estado') == 'en_revision' ? 'selected' : '' }}>En Revisión</option>
                     <option value="en_proceso" {{ request('estado') == 'en_proceso' ? 'selected' : '' }}>En Proceso</option>
                     <option value="resuelto" {{ request('estado') == 'resuelto' ? 'selected' : '' }}>Resuelto</option>
                 </select>
@@ -182,6 +183,7 @@
                     <th>Almacén</th>
                     <th>Tipo</th>
                     <th>Descripción</th>
+                    <th>Acción</th>
                     <th>Estado</th>
                     <th>Fecha</th>
                     <th width="150">Acciones</th>
@@ -250,16 +252,17 @@
                             </span>
                         @endif
                     </td>
-                    <td class="text-center">
-                        <span class="text-muted">-</span>
-                    </td>
                     <td>
                         @if($incidente->estado == 'pendiente')
                             <span class="badge badge-danger"><i class="fas fa-clock"></i> Pendiente</span>
+                        @elseif($incidente->estado == 'en_revision')
+                            <span class="badge badge-info"><i class="fas fa-search"></i> En Revisión</span>
                         @elseif($incidente->estado == 'en_proceso')
                             <span class="badge badge-warning"><i class="fas fa-spinner fa-spin"></i> En Proceso</span>
                         @elseif($incidente->estado == 'resuelto')
                             <span class="badge badge-success"><i class="fas fa-check"></i> Resuelto</span>
+                        @else
+                            <span class="badge badge-secondary">{{ ucfirst($incidente->estado) }}</span>
                         @endif
                     </td>
                     <td>
