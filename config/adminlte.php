@@ -369,13 +369,13 @@ return [
             'role' => 'admin'
         ],
         
-        // Monitorización en Tiempo Real
+        // Monitorización en Tiempo Real (admin y propietario)
         [
             'text' => 'Monitorización en Tiempo Real',
             'url' => 'rutas',
             'icon' => 'fas fa-route',
             'icon_color' => 'info',
-            'role' => 'admin'
+            'role' => ['admin', 'propietario']
         ],
 
         // Propuestas de Vehículos
@@ -520,13 +520,6 @@ return [
             'icon_color' => 'primary',
             'role' => 'propietario',
             'url' => 'envios?tipo=recibidos',
-        ],
-        [
-            'text' => 'Seguimiento en Tiempo Real',
-            'url' => 'almacenes/monitoreo',
-            'icon' => 'fas fa-map-marked-alt',
-            'icon_color' => 'info',
-            'role' => 'propietario'
         ],
         [
             'text' => 'Historial de Envíos',

@@ -93,7 +93,8 @@ Route::middleware(['auth'])->group(function () {
 // ============================================================================
 Route::middleware(['auth'])->group(function () {
     // Rutas adicionales de Almacenes (DEBEN ir ANTES del resource para evitar conflictos)
-    Route::get('almacenes/monitoreo', [App\Http\Controllers\AlmacenController::class, 'monitoreo'])->name('almacenes.monitoreo');
+    // Monitoreo de almacenes - Usa la misma vista que rutas (sin filtros)
+    Route::get('almacenes/monitoreo', [App\Http\Controllers\RutaTiempoRealController::class, 'index'])->name('almacenes.monitoreo');
     
     // Almacenes - CRUD Completo (habilitado para propietarios)
     Route::resource('almacenes', App\Http\Controllers\AlmacenController::class);
