@@ -94,16 +94,33 @@ class IncidenteController extends Controller
                     $fotoContent = base64_decode($base64Image, true);
                     
                     if ($fotoContent !== false && strlen($fotoContent) > 0) {
+                        // Asegurar que el directorio existe
+                        Storage::disk('public')->makeDirectory($directorio, 0755, true);
+                        
                         // Usar storage/app/public para que sea accesible vía web
                         $rutaCompleta = "{$directorio}/{$nombreArchivo}";
-                        Storage::disk('public')->put($rutaCompleta, $fotoContent);
-                        // Guardar solo la ruta relativa, sin "storage/"
-                        $fotoUrl = $rutaCompleta;
-                        Log::info('✅ Foto de incidente guardada', [
-                            'envio_id' => $envioId,
-                            'ruta' => $fotoUrl,
-                            'tamaño' => strlen($fotoContent),
-                        ]);
+                        $guardado = Storage::disk('public')->put($rutaCompleta, $fotoContent);
+                        
+                        if ($guardado) {
+                            // Establecer permisos del archivo (solo en sistemas Unix/Linux)
+                            if (file_exists(Storage::disk('public')->path($rutaCompleta))) {
+                                @chmod(Storage::disk('public')->path($rutaCompleta), 0644);
+                            }
+                            // Guardar solo la ruta relativa, sin "storage/"
+                            $fotoUrl = $rutaCompleta;
+                            Log::info('✅ Foto de incidente guardada', [
+                                'envio_id' => $envioId,
+                                'ruta' => $fotoUrl,
+                                'ruta_completa' => Storage::disk('public')->path($rutaCompleta),
+                                'url_publica' => asset('storage/' . $fotoUrl),
+                                'tamaño' => strlen($fotoContent),
+                            ]);
+                        } else {
+                            Log::warning('Error: No se pudo guardar la foto de incidente', [
+                                'envio_id' => $envioId,
+                                'ruta_intentada' => $rutaCompleta,
+                            ]);
+                        }
                     } else {
                         Log::warning('Error decodificando foto de incidente (base64 inválido)', [
                             'envio_id' => $envioId,
@@ -432,7 +449,7 @@ class IncidenteController extends Controller
                 'transportista_nombre' => $incidente->transportista->name ?? null,
                 'tipo_incidente' => $incidente->tipo_incidente,
                 'descripcion' => $incidente->descripcion,
-                'foto_url' => $incidente->foto_url ? Storage::url($incidente->foto_url) : null,
+                'foto_url' => $incidente->foto_url ? asset('storage/' . $incidente->foto_url) : null,
                 'accion' => $incidente->accion,
                 'estado' => $incidente->estado,
                 'ubicacion_lat' => $incidente->ubicacion_lat,
