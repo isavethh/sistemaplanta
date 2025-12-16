@@ -118,6 +118,7 @@ class AsignacionMultipleController extends Controller
             
             $pesoTotal = 0;
             $fechasDistintas = [];
+            $almacenesDistintos = [];
             
             foreach ($envios as $envio) {
                 $pesoTotal += floatval($envio->total_peso ?? 0);
@@ -129,12 +130,26 @@ class AsignacionMultipleController extends Controller
                         $fechasDistintas[] = $fecha;
                     }
                 }
+                
+                // Verificar que todos sean al mismo almacén
+                if ($envio->almacen_destino_id) {
+                    if (!in_array($envio->almacen_destino_id, $almacenesDistintos)) {
+                        $almacenesDistintos[] = $envio->almacen_destino_id;
+                    }
+                }
             }
             
             // VALIDACIÓN: Todos deben ser del mismo día
             if (count($fechasDistintas) > 1) {
                 DB::rollBack();
                 return back()->with('error', '❌ ERROR: Solo se pueden asignar envíos del MISMO DÍA. Fechas encontradas: ' . implode(', ', $fechasDistintas));
+            }
+            
+            // VALIDACIÓN: Todos deben ser al mismo almacén
+            if (count($almacenesDistintos) > 1) {
+                DB::rollBack();
+                $almacenesNombres = \App\Models\Almacen::whereIn('id', $almacenesDistintos)->pluck('nombre')->toArray();
+                return back()->with('error', '❌ ERROR: Solo se pueden asignar envíos al MISMO ALMACÉN en el mismo día. Almacenes encontrados: ' . implode(', ', $almacenesNombres));
             }
             
             // VALIDACIÓN: No exceder capacidad del vehículo
