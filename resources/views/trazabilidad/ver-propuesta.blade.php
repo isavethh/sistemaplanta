@@ -476,6 +476,7 @@
                     <button type="submit" class="btn btn-danger">Rechazar Propuesta</button>
                 </div>
             </form>
+            @endif
         </div>
     </div>
 </div>
