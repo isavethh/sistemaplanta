@@ -2058,6 +2058,59 @@ class ReporteController extends Controller
             ? $envio->asignacion->transportista->name 
             : ($envio->transportista_nombre ?? 'N/A');
 
+        // Convertir firma base64 a archivo temporal si existe (para mejor compatibilidad con DomPDF)
+        $firmaPath = null;
+        if ($firmaTransportista) {
+            try {
+                // $firmaTransportista puede venir en dos formatos:
+                // 1. Base64 limpio (sin prefijo) - cuando viene del envío
+                // 2. Base64 con prefijo data:image - cuando viene de Node.js
+                // 3. Base64 limpio - cuando viene de Node.js sin prefijo
+                
+                $firmaBase64Limpia = $firmaTransportista;
+                
+                // Si tiene prefijo data:image, extraer solo la parte base64
+                if (strpos($firmaTransportista, 'data:image') === 0) {
+                    $firmaBase64Limpia = preg_replace('#^data:image/[^;]+;base64,#', '', $firmaTransportista);
+                }
+                
+                // Decodificar base64
+                $firmaBinaria = base64_decode($firmaBase64Limpia, true);
+                
+                if ($firmaBinaria !== false && strlen($firmaBinaria) > 0) {
+                    // Crear archivo temporal
+                    $firmaPath = storage_path('app/temp/firma_' . $envio->id . '_' . time() . '.png');
+                    
+                    // Asegurar que el directorio existe
+                    $tempDir = storage_path('app/temp');
+                    if (!file_exists($tempDir)) {
+                        mkdir($tempDir, 0755, true);
+                    }
+                    
+                    // Guardar imagen
+                    file_put_contents($firmaPath, $firmaBinaria);
+                    
+                    \Log::info("Firma convertida a archivo temporal", [
+                        'envio_id' => $envio->id,
+                        'firma_path' => $firmaPath,
+                        'tamaño' => filesize($firmaPath)
+                    ]);
+                } else {
+                    \Log::warning("Firma base64 no pudo ser decodificada", [
+                        'envio_id' => $envio->id,
+                        'firma_length' => strlen($firmaBase64Limpia)
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Error convirtiendo firma a archivo temporal: " . $e->getMessage(), [
+                    'envio_id' => $envio->id,
+                    'error' => $e->getTraceAsString()
+                ]);
+                // Si falla, usar base64 directamente
+                $firmaPath = null;
+            }
+        }
+
         // Calcular tiempo total
         $tiempoTotal = null;
         if ($envio->fecha_entrega && $envio->fecha_creacion) {
