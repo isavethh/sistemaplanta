@@ -360,9 +360,26 @@ class EnvioApiController extends Controller
                     $propuesta = $propuestaService->calcularPropuestaVehiculos($envio);
                     $propuestaGenerada = true;
                     
-                    Log::info('✅ [EnvioApiController] Propuesta de vehículos generada', [
+                    // Guardar la propuesta en la base de datos
+                    \App\Models\PropuestaVehiculo::updateOrCreate(
+                        [
+                            'envio_id' => $envio->id,
+                        ],
+                        [
+                            'codigo_envio' => $envio->codigo,
+                            'propuesta_data' => $propuesta,
+                            'estado' => 'pendiente',
+                            'observaciones_trazabilidad' => null,
+                            'aprobado_por' => null,
+                            'fecha_propuesta' => now(),
+                            'fecha_decision' => null,
+                        ]
+                    );
+                    
+                    Log::info('✅ [EnvioApiController] Propuesta de vehículos generada y guardada', [
                         'envio_id' => $envio->id,
-                        'vehiculos_count' => count($propuesta['vehiculos_propuestos']),
+                        'codigo_envio' => $envio->codigo,
+                        'vehiculos_count' => count($propuesta['vehiculos_propuestos'] ?? []),
                     ]);
                 } catch (\Exception $propuestaException) {
                     Log::warning('⚠️ [EnvioApiController] Error al generar propuesta de vehículos: ' . $propuestaException->getMessage());
