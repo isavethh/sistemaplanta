@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
 use App\Models\Incidente;
+use App\Models\PropuestaVehiculo;
 
 class Envio extends Model
 {
@@ -123,6 +124,11 @@ class Envio extends Model
     public function incidentes()
     {
         return $this->hasMany(Incidente::class);
+    }
+
+    public function propuestaVehiculo()
+    {
+        return $this->hasOne(PropuestaVehiculo::class);
     }
     
     // Helper para obtener la planta (origen)
