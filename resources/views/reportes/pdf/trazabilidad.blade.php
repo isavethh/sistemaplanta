@@ -149,61 +149,63 @@
             font-size: 9px;
         }
         .firma-section {
-            margin-top: 40px;
+            margin-top: 30px;
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between;
             align-items: flex-start;
-            gap: 40px;
-            padding: 20px 0;
+            gap: 20px;
+            padding: 15px 10px;
             border-top: 2px solid #4CAF50;
             page-break-inside: avoid;
+            width: 100%;
         }
         .firma-box {
             text-align: center;
             flex: 1;
-            min-width: 200px;
-            max-width: 45%;
+            min-width: 0;
+            max-width: 48%;
         }
         .firma-line {
-            border-top: 3px solid #333;
-            margin-top: 15px;
-            padding-top: 8px;
+            border-top: 2px solid #333;
+            margin-top: 10px;
+            padding-top: 5px;
             display: inline-block;
-            min-width: 180px;
+            width: 100%;
+            max-width: 140px;
         }
         .firma-stamp {
-            width: 120px;
-            height: 120px;
-            margin: 0 auto 15px;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 10px;
             display: block;
         }
         .firma-imagen-container {
-            margin: 0 auto 15px;
+            margin: 0 auto 10px;
             display: block;
         }
         .firma-imagen-container img {
-            width: 150px;
-            max-height: 100px;
+            width: 120px;
+            max-height: 70px;
             border: 2px solid #4CAF50;
-            border-radius: 8px;
-            padding: 10px;
+            border-radius: 6px;
+            padding: 8px;
             background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
         .firma-placeholder-box {
-            width: 150px;
-            height: 100px;
+            width: 120px;
+            height: 70px;
             border: 2px dashed #ccc;
-            border-radius: 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 15px;
+            margin: 0 auto 10px;
             background: #f9f9f9;
         }
         .firma-placeholder-text {
             color: #999;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: bold;
         }
         .page-break {
