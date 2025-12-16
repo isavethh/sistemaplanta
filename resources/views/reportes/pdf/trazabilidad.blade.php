@@ -440,7 +440,11 @@
             <!-- Firma del Transportista -->
             <div class="firma-box">
                 <div class="firma-content">
-                    @if($firmaTransportista)
+                    @if($firmaPath && file_exists($firmaPath))
+                        <div class="firma-imagen-container">
+                            <img src="{{ $firmaPath }}" alt="Firma Transportista">
+                        </div>
+                    @elseif($firmaTransportista)
                         <div class="firma-imagen-container">
                             <img src="data:image/png;base64,{{ $firmaTransportista }}" alt="Firma Transportista">
                         </div>

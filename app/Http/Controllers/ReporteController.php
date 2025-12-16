@@ -2085,12 +2085,20 @@ class ReporteController extends Controller
         $pdf = Pdf::loadView('reportes.pdf.trazabilidad', compact(
             'envio', 'planta', 'incidentes', 'tiempoTotal', 'tiempoTransito',
             'fechaCreacion', 'fechaAsignacion', 'fechaAceptacion', 'fechaInicioTransito', 'fechaEntrega',
-            'firmaTransportista', 'transportistaNombre'
+            'firmaTransportista', 'firmaPath', 'transportistaNombre'
         ));
         
         $pdf->setPaper('a4', 'portrait');
         
-        return $pdf->download('trazabilidad-' . $envio->codigo . '.pdf');
+        // Limpiar archivo temporal después de generar el PDF
+        $response = $pdf->download('trazabilidad-' . $envio->codigo . '.pdf');
+        
+        // Eliminar archivo temporal si existe
+        if ($firmaPath && file_exists($firmaPath)) {
+            @unlink($firmaPath);
+        }
+        
+        return $response;
     }
 }
 
