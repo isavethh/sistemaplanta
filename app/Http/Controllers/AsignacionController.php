@@ -33,30 +33,17 @@ class AsignacionController extends Controller
             ->orderBy('fecha_rechazo', 'desc')
             ->get();
 
-        // Obtener transportistas disponibles (que no tengan envíos activos)
-        // Un transportista está disponible si:
-        // 1. Tiene disponible = true
-        // 2. No tiene envíos en estados activos (asignado, aceptado, en_transito)
+        // Obtener transportistas disponibles
+        // Permitir transportistas que ya tengan envíos, la validación de múltiples asignaciones
+        // (solo mismo día) se hace en el método asignar()
         $transportistas = User::transportistas()
             ->where('disponible', true)
-            ->whereDoesntHave('vehiculo.asignaciones', function($query) {
-                $query->whereHas('envio', function($q) {
-                    $q->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);
-                });
-            })
             ->get();
 
-        // Obtener vehículos disponibles (que no estén asignados a envíos activos)
-        // Un vehículo está disponible si:
-        // 1. Tiene disponible = true y estado = 'activo'
-        // 2. No tiene asignaciones a envíos en estados activos
-        $vehiculos = Vehiculo::disponibles()
-            ->whereDoesntHave('asignaciones', function($query) {
-                $query->whereHas('envio', function($q) {
-                    $q->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);
-                });
-            })
-            ->get();
+        // Obtener vehículos disponibles
+        // Permitir vehículos que ya tengan envíos, la validación de múltiples asignaciones
+        // (solo mismo día) se hace en el método asignar()
+        $vehiculos = Vehiculo::disponibles()->get();
 
         return view('asignaciones.index', compact('enviosPendientes', 'enviosAsignados', 'enviosRechazados', 'transportistas', 'vehiculos'));
     }
