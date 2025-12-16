@@ -108,7 +108,7 @@ class User extends Authenticatable
         return $query->where('disponible', true);
     }
 
-    // Helpers - Solo 3 roles: admin, almacen, transportista
+    // Helpers - Roles: admin, almacen, transportista, propietario, operador
     public function esAdmin()
     {
         return $this->hasRole('admin');
@@ -124,10 +124,26 @@ class User extends Authenticatable
         return $this->hasRole('transportista');
     }
 
+    public function esPropietario()
+    {
+        return $this->hasRole('propietario');
+    }
+
+    public function esOperador()
+    {
+        return $this->hasRole('operador');
+    }
+
     // Alias para compatibilidad
     public function esAdministrador()
     {
         return $this->esAdmin();
+    }
+
+    // Relación con pedidos como propietario
+    public function pedidosAlmacen()
+    {
+        return $this->hasMany(\App\Models\PedidoAlmacen::class, 'usuario_propietario_id');
     }
 
     public function puedeConducir($licenciaRequerida)

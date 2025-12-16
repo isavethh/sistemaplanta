@@ -9,54 +9,148 @@ class AlmacenController extends Controller
 {
     public function index()
     {
-        $almacenes = Almacen::with('usuarioAlmacen')->get();
+        $user = auth()->user();
+        
+        // Si es propietario, mostrar solo sus almacenes
+        if ($user->esPropietario()) {
+            $almacenes = Almacen::with('usuarioAlmacen')
+                ->where('usuario_almacen_id', $user->id)
+                ->where('es_planta', false)
+                ->get();
+        } else {
+            // Admin u otros roles ven todos los almacenes
+            $almacenes = Almacen::with('usuarioAlmacen')->get();
+        }
+        
         return view('almacenes.index', compact('almacenes'));
     }
 
     public function create()
     {
-        return view('almacenes.create');
+        $user = auth()->user();
+        
+        // Si es propietario, pre-llenar datos
+        $almacen = new Almacen();
+        if ($user->esPropietario()) {
+            $almacen->latitud = -17.8146; // Santa Cruz por defecto
+            $almacen->longitud = -63.1561;
+            $almacen->activo = true;
+        }
+        
+        return view('almacenes.create', compact('almacen'));
     }
 
     public function store(Request $request)
     {
+        $user = auth()->user();
+        
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
-            'latitud' => 'required|numeric',
-            'longitud' => 'required|numeric',
+            'latitud' => 'nullable|numeric',
+            'longitud' => 'nullable|numeric',
             'direccion_completa' => 'nullable|string',
         ]);
 
-        $validated['activo'] = $request->has('activo');
-        $validated['es_planta'] = $request->has('es_planta');
+        // Si es propietario, asignar automáticamente
+        if ($user->esPropietario()) {
+            $validated['usuario_almacen_id'] = $user->id;
+            $validated['es_planta'] = false;
+            // Si no viene latitud/longitud, usar coordenadas por defecto de Santa Cruz
+            $validated['latitud'] = $validated['latitud'] ?? -17.8146;
+            $validated['longitud'] = $validated['longitud'] ?? -63.1561;
+        } else {
+            $validated['activo'] = $request->has('activo');
+            $validated['es_planta'] = $request->has('es_planta');
+        }
+        
+        $validated['activo'] = $validated['activo'] ?? true;
         
         Almacen::create($validated);
         return redirect()->route('almacenes.index')->with('success', 'Almacén creado exitosamente.');
     }
 
-    public function edit(Almacen $almacen)
+    public function show($id)
     {
+        $user = auth()->user();
+        
+        $almacen = Almacen::with('usuarioAlmacen')->findOrFail($id);
+        
+        // Si es propietario, verificar que solo pueda ver sus propios almacenes
+        if ($user->esPropietario()) {
+            if ($almacen->usuario_almacen_id != $user->id) {
+                abort(403, 'No tienes permiso para ver este almacén.');
+            }
+        }
+        
+        return view('almacenes.show', compact('almacen'));
+    }
+
+    public function edit($id)
+    {
+        $user = auth()->user();
+        
+        $almacen = Almacen::findOrFail($id);
+        
+        // Si es propietario, verificar que solo pueda editar sus propios almacenes
+        if ($user->esPropietario()) {
+            if ($almacen->usuario_almacen_id != $user->id) {
+                abort(403, 'No tienes permiso para editar este almacén.');
+            }
+        }
+        
         return view('almacenes.edit', compact('almacen'));
     }
 
-    public function update(Request $request, Almacen $almacen)
+    public function update(Request $request, $id)
     {
+        $user = auth()->user();
+        
+        $almacen = Almacen::findOrFail($id);
+        
+        // Si es propietario, verificar que solo pueda editar sus propios almacenes
+        if ($user->esPropietario()) {
+            if ($almacen->usuario_almacen_id != $user->id) {
+                abort(403, 'No tienes permiso para editar este almacén.');
+            }
+        }
+        
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
-            'latitud' => 'required|numeric',
-            'longitud' => 'required|numeric',
+            'latitud' => 'nullable|numeric',
+            'longitud' => 'nullable|numeric',
             'direccion_completa' => 'nullable|string',
         ]);
 
-        $validated['activo'] = $request->has('activo');
-        $validated['es_planta'] = $request->has('es_planta');
+        // Si es propietario, no permitir cambiar es_planta
+        if (!$user->esPropietario()) {
+            $validated['activo'] = $request->has('activo');
+            $validated['es_planta'] = $request->has('es_planta');
+        } else {
+            // Mantener valores originales para propietarios
+            $validated['activo'] = $almacen->activo;
+            $validated['es_planta'] = false;
+            // Si no viene latitud/longitud, usar valores por defecto
+            $validated['latitud'] = $validated['latitud'] ?? -17.8146;
+            $validated['longitud'] = $validated['longitud'] ?? -63.1561;
+        }
         
         $almacen->update($validated);
         return redirect()->route('almacenes.index')->with('success', 'Almacén actualizado exitosamente.');
     }
 
-    public function destroy(Almacen $almacen)
+    public function destroy($id)
     {
+        $user = auth()->user();
+        
+        $almacen = Almacen::findOrFail($id);
+        
+        // Si es propietario, verificar que solo pueda eliminar sus propios almacenes
+        if ($user->esPropietario()) {
+            if ($almacen->usuario_almacen_id != $user->id) {
+                abort(403, 'No tienes permiso para eliminar este almacén.');
+            }
+        }
+        
         try {
             // Verificar si tiene envíos asociados
             $tieneEnvios = \DB::table('envios')->where('almacen_destino_id', $almacen->id)->exists();
@@ -66,12 +160,12 @@ class AlmacenController extends Controller
                     ->with('error', 'No se puede eliminar el almacén porque tiene envíos asociados.');
             }
             
-            // Verificar si tiene usuario asociado
-            $tieneUsuario = \DB::table('users')->where('almacen_id', $almacen->id)->exists();
+            // Verificar si tiene pedidos asociados
+            $tienePedidos = \DB::table('pedidos_almacen')->where('almacen_id', $almacen->id)->exists();
             
-            if ($tieneUsuario) {
+            if ($tienePedidos) {
                 return redirect()->route('almacenes.index')
-                    ->with('error', 'No se puede eliminar el almacén porque tiene usuarios asociados.');
+                    ->with('error', 'No se puede eliminar el almacén porque tiene pedidos asociados.');
             }
             
             $almacen->delete();
@@ -82,12 +176,14 @@ class AlmacenController extends Controller
         }
     }
 
-    public function inventario(Almacen $almacen)
+    public function inventario($id)
     {
         $user = auth()->user();
         
-        // Si el usuario es almacen, verificar que solo pueda ver su propio almacén
-        if ($user->hasRole('almacen') || $user->esAlmacen()) {
+        $almacen = Almacen::findOrFail($id);
+        
+        // Si el usuario es almacen o propietario, verificar que solo pueda ver su propio almacén
+        if ($user->hasRole('almacen') || $user->esAlmacen() || $user->esPropietario()) {
             $almacenUsuario = Almacen::where('usuario_almacen_id', $user->id)
                 ->where('id', $almacen->id)
                 ->first();
@@ -106,8 +202,8 @@ class AlmacenController extends Controller
         $user = auth()->user();
         $almacenUsuario = null;
         
-        // Si el usuario es almacen, obtener su almacén asignado
-        if ($user->hasRole('almacen')) {
+        // Si el usuario es almacen o propietario, obtener su(s) almacén(es) asignado(s)
+        if ($user->hasRole('almacen') || $user->esPropietario()) {
             $almacenUsuario = Almacen::where('usuario_almacen_id', $user->id)
                 ->where('es_planta', false)
                 ->where('activo', true)
@@ -120,6 +216,8 @@ class AlmacenController extends Controller
         } elseif (!$user->hasRole('admin')) {
             abort(403, 'No tienes permiso para acceder a esta página.');
         }
+        
+        // Si es admin, puede ver todos los almacenes (almacenUsuario será null)
         
         return view('almacenes.monitoreo', [
             'almacenUsuario' => $almacenUsuario,

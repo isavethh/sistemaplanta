@@ -27,6 +27,16 @@ class Envio extends Model
         'fecha_inicio_transito',
         'fecha_entrega',
         'ruta_entrega_id',
+        'pedido_almacen_id',
+        'propuesta_pdf_path',
+        'propuesta_enviada_at',
+        'propuesta_aceptada_at',
+        'cancelacion_aprobada_almacen',
+        'cancelacion_aprobada_trazabilidad',
+        'cancelacion_aprobada_at',
+        'cancelacion_pdf_path',
+        'disconformidad_almacen',
+        'disconformidad_trazabilidad',
     ];
 
     protected $casts = [
@@ -38,6 +48,13 @@ class Envio extends Model
         'fecha_asignacion' => 'datetime',
         'fecha_inicio_transito' => 'datetime',
         'fecha_entrega' => 'datetime',
+        'propuesta_enviada_at' => 'datetime',
+        'propuesta_aceptada_at' => 'datetime',
+        'cancelacion_aprobada_almacen' => 'boolean',
+        'cancelacion_aprobada_trazabilidad' => 'boolean',
+        'cancelacion_aprobada_at' => 'datetime',
+        'disconformidad_almacen' => 'boolean',
+        'disconformidad_trazabilidad' => 'boolean',
     ];
 
     // Relaciones
@@ -64,6 +81,11 @@ class Envio extends Model
     public function historial()
     {
         return $this->hasMany(HistorialEnvio::class)->orderBy('fecha_hora');
+    }
+
+    public function pedidoAlmacen()
+    {
+        return $this->belongsTo(PedidoAlmacen::class, 'pedido_almacen_id');
     }
     
     // Helper para obtener la planta (origen)

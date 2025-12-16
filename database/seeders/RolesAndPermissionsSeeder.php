@@ -129,9 +129,24 @@ class RolesAndPermissionsSeeder extends Seeder
         Permission::firstOrCreate(['name' => 'configuracion.ver', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'configuracion.editar', 'guard_name' => 'web']);
 
+        // Módulo: Pedidos Almacén (Propietario)
+        Permission::firstOrCreate(['name' => 'pedidos-almacen.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'pedidos-almacen.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'pedidos-almacen.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'pedidos-almacen.eliminar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'pedidos-almacen.seguimiento', 'guard_name' => 'web']);
+
+        // Módulo: Trazabilidad (Operador)
+        Permission::firstOrCreate(['name' => 'trazabilidad.pedidos-pendientes', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'trazabilidad.aceptar-pedido', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'trazabilidad.rechazar-pedido', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'trazabilidad.propuestas-envios', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'trazabilidad.aprobar-propuesta', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'trazabilidad.rechazar-propuesta', 'guard_name' => 'web']);
+
         // ==========================================
         // CREAR ROLES Y ASIGNAR PERMISOS
-        // Solo 3 roles: admin, almacen, transportista
+        // Roles: admin, almacen, transportista, propietario, operador
         // ==========================================
 
         // 1. ADMIN - Control total del sistema
@@ -177,12 +192,51 @@ class RolesAndPermissionsSeeder extends Seeder
             'monitoreo.ver-propio', 'monitoreo.simular',
         ]);
 
+        // 4. PROPIETARIO - Gestión de almacenes y pedidos
+        $propietario = Role::firstOrCreate(['name' => 'propietario', 'guard_name' => 'web']);
+        $propietario->givePermissionTo([
+            'dashboard.ver',
+            // Almacenes (sus propios almacenes)
+            'almacenes.ver', 'almacenes.crear', 'almacenes.editar',
+            // Pedidos Almacén (completo)
+            'pedidos-almacen.ver', 'pedidos-almacen.crear', 'pedidos-almacen.editar',
+            'pedidos-almacen.eliminar', 'pedidos-almacen.seguimiento',
+            // Envíos (ver seguimiento de sus pedidos)
+            'envios.ver', 'envios.tracking',
+            // Productos (ver para seleccionar)
+            'productos.ver',
+            // Incidentes (ver y reportar)
+            'incidentes.ver', 'incidentes.crear', 'incidentes.reportar',
+            // Documentos
+            'documentos.ver',
+        ]);
+
+        // 5. OPERADOR - Gestión de trazabilidad y propuestas
+        $operador = Role::firstOrCreate(['name' => 'operador', 'guard_name' => 'web']);
+        $operador->givePermissionTo([
+            'dashboard.ver',
+            // Trazabilidad (completo)
+            'trazabilidad.pedidos-pendientes', 'trazabilidad.aceptar-pedido',
+            'trazabilidad.rechazar-pedido', 'trazabilidad.propuestas-envios',
+            'trazabilidad.aprobar-propuesta', 'trazabilidad.rechazar-propuesta',
+            // Envíos (ver y aprobar)
+            'envios.ver', 'envios.tracking', 'envios.aprobar',
+            // Productos (ver)
+            'productos.ver',
+            // Documentos
+            'documentos.ver',
+            // Reportes
+            'reportes.ver',
+        ]);
+
         $this->command->info('✅ Roles y permisos creados exitosamente!');
         $this->command->info('');
-        $this->command->info('📋 Roles creados (3 roles):');
+        $this->command->info('📋 Roles creados (5 roles):');
         $this->command->info('  1. Admin (control total)');
         $this->command->info('  2. Almacen (inventario y recepción)');
         $this->command->info('  3. Transportista (envíos asignados)');
+        $this->command->info('  4. Propietario (almacenes y pedidos)');
+        $this->command->info('  5. Operador (trazabilidad y propuestas)');
         $this->command->info('');
         $this->command->info('📝 Total de permisos: ' . Permission::count());
     }

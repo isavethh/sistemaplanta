@@ -434,6 +434,161 @@ return [
         ['header' => '📦 MIS RECEPCIONES', 'role' => 'almacen'],
         ['text' => 'Inventario', 'url' => 'inventarios', 'icon' => 'fas fa-boxes', 'icon_color' => 'info', 'role' => 'almacen'],
         ['text' => 'Monitorización en Tiempo Real', 'url' => 'almacenes/monitoreo', 'icon' => 'fas fa-route', 'icon_color' => 'primary', 'role' => 'almacen'],
+
+        // =============================================
+        // MENÚ PARA PROPIETARIO (ALMACENES)
+        // =============================================
+        ['header' => '🏪 GESTIÓN DE ALMACENES', 'role' => 'propietario'],
+        [
+            'text' => 'Mis Almacenes',
+            'url' => 'almacenes',
+            'icon' => 'fas fa-warehouse',
+            'icon_color' => 'info',
+            'role' => 'propietario'
+        ],
+        [
+            'text' => 'Crear Almacén',
+            'route' => 'almacenes.create',
+            'icon' => 'fas fa-plus',
+            'icon_color' => 'success',
+            'role' => 'propietario'
+        ],
+        [
+            'text' => 'Inventario de Almacenes',
+            'url' => 'inventarios',
+            'icon' => 'fas fa-boxes',
+            'icon_color' => 'warning',
+            'role' => 'propietario'
+        ],
+        
+        ['header' => '📋 GESTIÓN DE PEDIDOS', 'role' => 'propietario'],
+        [
+            'text' => 'Crear Pedido',
+            'route' => 'pedidos-almacen.create',
+            'icon' => 'fas fa-plus-circle',
+            'icon_color' => 'success',
+            'role' => 'propietario'
+        ],
+        [
+            'text' => 'Mis Pedidos',
+            'route' => 'pedidos-almacen.index',
+            'icon' => 'fas fa-list',
+            'icon_color' => 'primary',
+            'role' => 'propietario',
+            'badge' => [
+                'text' => function() {
+                    $count = \App\Models\PedidoAlmacen::where('usuario_propietario_id', auth()->id())
+                        ->whereIn('estado', ['enviado_trazabilidad', 'propuesta_enviada'])
+                        ->count();
+                    return $count > 0 ? $count : null;
+                },
+                'color' => 'warning',
+            ],
+        ],
+        [
+            'text' => 'Pedidos Pendientes',
+            'route' => 'pedidos-almacen.index',
+            'icon' => 'fas fa-clock',
+            'icon_color' => 'warning',
+            'role' => 'propietario',
+            'url' => 'pedidos-almacen?estado=enviado_trazabilidad',
+        ],
+        [
+            'text' => 'Pedidos Aceptados',
+            'route' => 'pedidos-almacen.index',
+            'icon' => 'fas fa-check-circle',
+            'icon_color' => 'success',
+            'role' => 'propietario',
+            'url' => 'pedidos-almacen?estado=propuesta_aceptada',
+        ],
+        [
+            'text' => 'Pedidos Entregados',
+            'route' => 'pedidos-almacen.index',
+            'icon' => 'fas fa-check-double',
+            'icon_color' => 'info',
+            'role' => 'propietario',
+            'url' => 'pedidos-almacen?estado=entregado',
+        ],
+        
+        ['header' => '📦 RECEPCIÓN Y ENVÍOS', 'role' => 'propietario'],
+        [
+            'text' => 'Envíos Recibidos',
+            'route' => 'envios.index',
+            'icon' => 'fas fa-truck-loading',
+            'icon_color' => 'primary',
+            'role' => 'propietario',
+            'url' => 'envios?tipo=recibidos',
+        ],
+        [
+            'text' => 'Seguimiento en Tiempo Real',
+            'url' => 'almacenes/monitoreo',
+            'icon' => 'fas fa-map-marked-alt',
+            'icon_color' => 'info',
+            'role' => 'propietario'
+        ],
+        [
+            'text' => 'Historial de Envíos',
+            'route' => 'envios.index',
+            'icon' => 'fas fa-history',
+            'icon_color' => 'secondary',
+            'role' => 'propietario'
+        ],
+        
+        ['header' => '📊 REPORTES Y ANÁLISIS', 'role' => 'propietario'],
+        [
+            'text' => 'Productos Disponibles',
+            'url' => 'productos',
+            'icon' => 'fas fa-shopping-bag',
+            'icon_color' => 'info',
+            'role' => 'propietario'
+        ],
+        [
+            'text' => 'Estadísticas de Pedidos',
+            'url' => 'reportes',
+            'icon' => 'fas fa-chart-bar',
+            'icon_color' => 'success',
+            'role' => 'propietario'
+        ],
+        [
+            'text' => 'Reportes de Inventario',
+            'url' => 'reportes/operaciones',
+            'icon' => 'fas fa-file-alt',
+            'icon_color' => 'primary',
+            'role' => 'propietario'
+        ],
+
+        // =============================================
+        // MENÚ PARA OPERADOR (TRAZABILIDAD)
+        // =============================================
+        ['header' => '🏭 PLANTA', 'role' => 'operador'],
+        [
+            'text' => 'Pedidos Pendientes',
+            'route' => 'trazabilidad.pedidos-pendientes',
+            'icon' => 'fas fa-clock',
+            'icon_color' => 'warning',
+            'role' => 'operador',
+            'badge' => [
+                'text' => function() {
+                    $count = \App\Models\PedidoAlmacen::where('estado', 'enviado_trazabilidad')->count();
+                    return $count > 0 ? $count : null;
+                },
+                'color' => 'warning',
+            ],
+        ],
+        [
+            'text' => 'PlanTrack',
+            'route' => 'trazabilidad.propuestas-envios',
+            'icon' => 'fas fa-clipboard-check',
+            'icon_color' => 'success',
+            'role' => 'operador'
+        ],
+        [
+            'text' => 'Pedidos Aceptados',
+            'route' => 'trazabilidad.pedidos-aceptados',
+            'icon' => 'fas fa-check-circle',
+            'icon_color' => 'info',
+            'role' => 'operador'
+        ],
     ],
 
     /*

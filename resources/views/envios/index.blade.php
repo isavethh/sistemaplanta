@@ -93,6 +93,8 @@
                         @endphp
                         @if($envio->estado == 'pendiente')
                             <span class="badge badge-warning"><i class="fas fa-clock"></i> Pendiente</span>
+                        @elseif($envio->estado == 'pendiente_aprobacion_trazabilidad')
+                            <span class="badge badge-purple"><i class="fas fa-hourglass-half"></i> Pendiente Aprobación Trazabilidad</span>
                         @elseif($envio->estado == 'asignado')
                             <span class="badge badge-primary"><i class="fas fa-user-check"></i> Asignado</span>
                         @elseif($envio->estado == 'en_transito')
@@ -115,6 +117,14 @@
                             <a href="{{ route('envios.show', $envio) }}" class="btn btn-info" title="Ver Detalle">
                                 <i class="fas fa-eye"></i>
                             </a>
+                            @if($envio->estado == 'pendiente_aprobacion_trazabilidad' && auth()->user()->hasRole('admin'))
+                                <form action="{{ route('envios.aprobarTrazabilidad', $envio) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Está seguro de aprobar este envío de Trazabilidad? Una vez aprobado, podrá ser asignado a un transportista.')">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success" title="Aprobar Envío">
+                                        <i class="fas fa-check"></i> Aprobar
+                                    </button>
+                                </form>
+                            @endif
                             @if($envio->estado == 'pendiente')
                                 <a href="{{ route('envios.edit', $envio) }}" class="btn btn-warning" title="Editar">
                                     <i class="fas fa-edit"></i>
@@ -219,6 +229,11 @@
             background-color: #d4edda;
             transform: scale(1);
         }
+    }
+    
+    .badge-purple {
+        background-color: #6f42c1 !important;
+        color: white !important;
     }
     
     .table-success {

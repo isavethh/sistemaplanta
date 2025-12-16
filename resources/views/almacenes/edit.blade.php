@@ -10,7 +10,7 @@
         <h3 class="card-title"><i class="fas fa-warehouse"></i> Modificar Información del Almacén</h3>
     </div>
     <div class="card-body">
-        <form action="{{ route('almacenes.update', $almacen) }}" method="POST">
+        <form action="{{ route('almacenes.update', $almacen->id) }}" method="POST">
             @csrf 
             @method('PUT')
             
@@ -24,19 +24,45 @@
             </div>
 
             <div class="form-group">
-                <label for="direccion_id"><i class="fas fa-map-marker-alt"></i> Dirección *</label>
-                <select name="direccion_id" id="direccion_id" class="form-control @error('direccion_id') is-invalid @enderror" required>
-                    <option value="">Seleccione una dirección</option>
-                    @foreach($direcciones as $direccion)
-                        <option value="{{ $direccion->id }}" {{ old('direccion_id', $almacen->direccion_id) == $direccion->id ? 'selected' : '' }}>
-                            {{ $direccion->descripcion }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('direccion_id')
+                <label for="direccion_completa"><i class="fas fa-map-marker-alt"></i> Dirección Completa</label>
+                <input type="text" name="direccion_completa" id="direccion_completa" class="form-control @error('direccion_completa') is-invalid @enderror" 
+                       value="{{ old('direccion_completa', $almacen->direccion_completa) }}" placeholder="Ingrese la dirección completa del almacén">
+                @error('direccion_completa')
                     <span class="invalid-feedback">{{ $message }}</span>
                 @enderror
             </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="latitud"><i class="fas fa-map-pin"></i> Latitud</label>
+                        <input type="number" step="any" name="latitud" id="latitud" class="form-control @error('latitud') is-invalid @enderror" 
+                               value="{{ old('latitud', $almacen->latitud) }}" placeholder="-17.8146">
+                        @error('latitud')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="longitud"><i class="fas fa-map-pin"></i> Longitud</label>
+                        <input type="number" step="any" name="longitud" id="longitud" class="form-control @error('longitud') is-invalid @enderror" 
+                               value="{{ old('longitud', $almacen->longitud) }}" placeholder="-63.1561">
+                        @error('longitud')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            @if(!auth()->user()->esPropietario())
+            <div class="form-group">
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" name="activo" id="activo" class="custom-control-input" {{ old('activo', $almacen->activo) ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="activo">Almacén Activo</label>
+                </div>
+            </div>
+            @endif
 
             <hr>
             <div class="form-group">

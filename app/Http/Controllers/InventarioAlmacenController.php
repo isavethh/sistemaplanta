@@ -17,9 +17,9 @@ class InventarioAlmacenController extends Controller
         $almacenes = collect([]);
         $mostrarSelector = false;
         
-        // Si el usuario es almacen, solo puede ver su propio almacén
-        if ($user->hasRole('almacen') || $user->esAlmacen()) {
-            // Buscar el almacén donde este usuario es el encargado
+        // Si el usuario es almacen o propietario, solo puede ver su(s) propio(s) almacén(es)
+        if ($user->hasRole('almacen') || $user->esAlmacen() || $user->esPropietario()) {
+            // Buscar el almacén donde este usuario es el encargado/propietario
             $almacenUsuario = Almacen::where('usuario_almacen_id', $user->id)
                 ->where('es_planta', false)
                 ->where('activo', true)
@@ -27,11 +27,27 @@ class InventarioAlmacenController extends Controller
             
             if ($almacenUsuario) {
                 $almacenSeleccionado = $almacenUsuario->id;
-                $mostrarSelector = false; // No mostrar selector para usuarios almacen
+                $mostrarSelector = false; // No mostrar selector para usuarios almacen/propietario
             } else {
-                // Si no tiene almacén asignado, mostrar mensaje
-                return redirect()->route('inventarios.index')
-                    ->with('error', 'No tienes un almacén asignado. Contacta al administrador.');
+                // Si es propietario y tiene múltiples almacenes, mostrar selector
+                if ($user->esPropietario()) {
+                    $almacenes = Almacen::where('usuario_almacen_id', $user->id)
+                        ->where('es_planta', false)
+                        ->where('activo', true)
+                        ->get();
+                    
+                    if ($almacenes->count() > 0) {
+                        $almacenSeleccionado = $request->get('almacen_id', $almacenes->first()->id);
+                        $mostrarSelector = $almacenes->count() > 1; // Mostrar selector solo si hay múltiples almacenes
+                    } else {
+                        return redirect()->route('almacenes.index')
+                            ->with('error', 'No tienes almacenes asignados. Crea un almacén primero.');
+                    }
+                } else {
+                    // Si no tiene almacén asignado, mostrar mensaje
+                    return redirect()->route('almacenes.index')
+                        ->with('error', 'No tienes un almacén asignado. Contacta al administrador.');
+                }
             }
         } 
         // Si el usuario es admin, puede ver todos los almacenes
@@ -132,8 +148,8 @@ class InventarioAlmacenController extends Controller
     {
         $user = auth()->user();
         
-        // Si el usuario es almacen, verificar que solo pueda ver su propio almacén
-        if ($user->hasRole('almacen') || $user->esAlmacen()) {
+        // Si el usuario es almacen o propietario, verificar que solo pueda ver su propio almacén
+        if ($user->hasRole('almacen') || $user->esAlmacen() || $user->esPropietario()) {
             $almacenUsuario = Almacen::where('usuario_almacen_id', $user->id)
                 ->where('id', $almacen->id)
                 ->first();

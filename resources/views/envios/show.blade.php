@@ -38,9 +38,35 @@
                         <span class="badge badge-warning p-3" style="font-size: 1.2em;">
                             <i class="fas fa-clock fa-lg"></i> PENDIENTE
                         </span>
+                    @elseif($envio->estado == 'pendiente_aprobacion_trazabilidad')
+                        <span class="badge badge-purple p-3" style="font-size: 1.2em;">
+                            <i class="fas fa-hourglass-half fa-lg"></i> PENDIENTE APROBACIÓN TRAZABILIDAD
+                        </span>
+                        <div class="alert alert-warning mt-3" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Acción Requerida</h5>
+                            <p class="mb-0">Este envío fue creado desde Trazabilidad y requiere aprobación antes de poder ser asignado a un transportista.</p>
+                        </div>
+                        @if(auth()->user()->hasRole('admin'))
+                        <div class="mt-3">
+                            <form action="{{ route('envios.aprobarTrazabilidad', $envio) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Está seguro de aprobar este envío de Trazabilidad? Una vez aprobado, podrá ser asignado a un transportista.')">
+                                @csrf
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-check"></i> Aprobar Envío
+                                </button>
+                            </form>
+                        </div>
+                        @else
+                        <div class="alert alert-info mt-3" role="alert">
+                            <i class="fas fa-info-circle"></i> Solo los administradores pueden aprobar este envío.
+                        </div>
+                        @endif
                     @elseif($envio->estado == 'aprobado')
                         <span class="badge badge-primary p-3" style="font-size: 1.2em;">
                             <i class="fas fa-check fa-lg"></i> APROBADO
+                        </span>
+                    @elseif($envio->estado == 'asignado')
+                        <span class="badge badge-primary p-3" style="font-size: 1.2em;">
+                            <i class="fas fa-user-check fa-lg"></i> ASIGNADO
                         </span>
                     @elseif($envio->estado == 'en_transito')
                         <span class="badge badge-info p-3" style="font-size: 1.2em;">
@@ -49,6 +75,10 @@
                     @elseif($envio->estado == 'entregado')
                         <span class="badge badge-success p-3" style="font-size: 1.2em;">
                             <i class="fas fa-check-circle fa-lg"></i> ENTREGADO
+                        </span>
+                    @elseif($envio->estado == 'cancelado')
+                        <span class="badge badge-danger p-3" style="font-size: 1.2em;">
+                            <i class="fas fa-times-circle fa-lg"></i> CANCELADO
                         </span>
                     @else
                         <span class="badge badge-secondary p-3" style="font-size: 1.2em;">
@@ -67,6 +97,18 @@
                     <div class="col-md-4"><strong><i class="fas fa-calendar"></i> Fecha Creación:</strong></div>
                     <div class="col-md-8">{{ $envio->created_at->format('d/m/Y H:i:s') }}</div>
                 </div>
+
+                @if($envio->pedidoAlmacen)
+                <div class="row mb-3">
+                    <div class="col-md-4"><strong><i class="fas fa-shopping-cart"></i> Pedido Origen:</strong></div>
+                    <div class="col-md-8">
+                        <a href="{{ route('pedidos-almacen.show', $envio->pedidoAlmacen->id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-external-link-alt"></i> {{ $envio->pedidoAlmacen->codigo }}
+                        </a>
+                        <small class="text-muted ml-2">({{ $envio->pedidoAlmacen->almacen->nombre ?? 'N/A' }})</small>
+                    </div>
+                </div>
+                @endif
 
                 @if($envio->fecha_entrega)
                 <div class="row mb-3">
@@ -289,6 +331,12 @@
 @endsection
 
 @section('css')
+<style>
+    .badge-purple {
+        background-color: #6f42c1 !important;
+        color: white !important;
+    }
+</style>
 <style>
     .card {
         border-radius: 10px;

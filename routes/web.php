@@ -33,6 +33,10 @@ Route::middleware(['auth'])->group(function () {
             return view('dashboards.transportista');
         } elseif ($user->hasRole('almacen')) {
             return view('dashboards.almacen');
+        } elseif ($user->hasRole('propietario')) {
+            return view('dashboards.propietario');
+        } elseif ($user->hasRole('operador')) {
+            return view('dashboards.operador');
         }
 
         return view('dashboard');
@@ -79,22 +83,24 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ============================================================================
-// MÓDULO: GESTIÓN DE ALMACENES (Ibex CRUD) - OCULTO
-// Los almacenes se gestionan desde sistema-almacen-PSIII, no desde plantaCruds
+// MÓDULO: GESTIÓN DE ALMACENES (Ibex CRUD)
+// Habilitado para propietarios
 // ============================================================================
 Route::middleware(['auth'])->group(function () {
-    // Almacenes - CRUD Completo (OCULTO)
-    // Route::resource('almacenes', App\Http\Controllers\AlmacenController::class);
+    // Rutas adicionales de Almacenes (DEBEN ir ANTES del resource para evitar conflictos)
+    Route::get('almacenes/monitoreo', [App\Http\Controllers\AlmacenController::class, 'monitoreo'])->name('almacenes.monitoreo');
     
-    // Rutas adicionales de Almacenes (OCULTAS)
-    // Route::get('almacenes/{almacen}/inventario', [App\Http\Controllers\AlmacenController::class, 'inventario'])->name('almacenes.inventario');
-    // Route::get('almacenes/monitoreo', [App\Http\Controllers\AlmacenController::class, 'monitoreo'])->name('almacenes.monitoreo');
+    // Almacenes - CRUD Completo (habilitado para propietarios)
+    Route::resource('almacenes', App\Http\Controllers\AlmacenController::class);
     
-    // Inventarios - CRUD Completo (OCULTO)
-    // Route::resource('inventarios', App\Http\Controllers\InventarioAlmacenController::class);
+    // Rutas adicionales de Almacenes (con parámetros, después del resource)
+    Route::get('almacenes/{almacen}/inventario', [App\Http\Controllers\AlmacenController::class, 'inventario'])->name('almacenes.inventario');
     
-    // Rutas adicionales de Inventarios (OCULTAS)
-    // Route::get('inventarios/almacen/{almacen}', [App\Http\Controllers\InventarioAlmacenController::class, 'porAlmacen'])->name('inventarios.porAlmacen');
+    // Inventarios - CRUD Completo
+    Route::resource('inventarios', App\Http\Controllers\InventarioAlmacenController::class);
+    
+    // Rutas adicionales de Inventarios
+    Route::get('inventarios/almacen/{almacen}', [App\Http\Controllers\InventarioAlmacenController::class, 'porAlmacen'])->name('inventarios.porAlmacen');
     
     // Inventario del Transportista
     Route::get('inventarios-transportista', [App\Http\Controllers\InventarioTransportistaController::class, 'index'])->name('inventarios-transportista.index');
@@ -137,6 +143,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('envios/asignacion-multiple', [App\Http\Controllers\EnvioController::class, 'asignacionMultiple'])->name('envios.asignacionMultiple');
     Route::get('envios/{envio}/tracking', [App\Http\Controllers\EnvioController::class, 'tracking'])->name('envios.tracking');
     Route::post('envios/{envio}/actualizar-estado', [App\Http\Controllers\EnvioController::class, 'actualizarEstado'])->name('envios.actualizarEstado');
+    Route::post('envios/{envio}/aprobar-trazabilidad', [App\Http\Controllers\EnvioController::class, 'aprobarEnvioTrazabilidad'])->name('envios.aprobarTrazabilidad');
 });
 
 // ============================================================================
@@ -338,6 +345,31 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/dashboard-estadistico/{id}', [App\Http\Controllers\DashboardController::class, 'estadisticoDestroy'])->name('dashboard.estadistico.destroy');
 });
 
+
+// ============================================================================
+// MÓDULO: PEDIDOS ALMACÉN (PROPIETARIO)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    Route::resource('pedidos-almacen', App\Http\Controllers\PedidoAlmacenController::class);
+    Route::get('pedidos-almacen/{id}/seguimiento', [App\Http\Controllers\PedidoAlmacenController::class, 'seguimiento'])->name('pedidos-almacen.seguimiento');
+});
+
+// ============================================================================
+// MÓDULO: TRAZABILIDAD (OPERADOR)
+// ============================================================================
+Route::middleware(['auth'])->group(function () {
+    Route::prefix('trazabilidad')->name('trazabilidad.')->group(function () {
+        Route::get('/pedidos-pendientes', [App\Http\Controllers\TrazabilidadController::class, 'pedidosPendientes'])->name('pedidos-pendientes');
+        Route::post('/pedidos/{id}/aceptar', [App\Http\Controllers\TrazabilidadController::class, 'aceptarPedido'])->name('pedidos.aceptar');
+        Route::post('/pedidos/{id}/rechazar', [App\Http\Controllers\TrazabilidadController::class, 'rechazarPedido'])->name('pedidos.rechazar');
+        Route::get('/propuestas-envios', [App\Http\Controllers\TrazabilidadController::class, 'propuestasEnvios'])->name('propuestas-envios');
+        Route::get('/propuestas/{id}', [App\Http\Controllers\TrazabilidadController::class, 'verPropuesta'])->name('propuestas.ver');
+        Route::get('/propuestas/{id}/descargar-pdf', [App\Http\Controllers\TrazabilidadController::class, 'descargarPropuestaPdf'])->name('propuestas.descargar-pdf');
+        Route::post('/propuestas/{id}/aprobar', [App\Http\Controllers\TrazabilidadController::class, 'aprobarPropuesta'])->name('propuestas.aprobar');
+        Route::post('/propuestas/{id}/rechazar', [App\Http\Controllers\TrazabilidadController::class, 'rechazarPropuesta'])->name('propuestas.rechazar');
+        Route::get('/pedidos-aceptados', [App\Http\Controllers\TrazabilidadController::class, 'pedidosAceptados'])->name('pedidos-aceptados');
+    });
+});
 
 // ========== HELPDESK WIDGET ==========
 // Ruta generada por: php artisan helpdeskwidget:install

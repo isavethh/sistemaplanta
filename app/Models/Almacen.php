@@ -39,6 +39,11 @@ class Almacen extends Model
         return $this->hasMany(InventarioAlmacen::class);
     }
 
+    public function pedidos()
+    {
+        return $this->hasMany(PedidoAlmacen::class, 'almacen_id');
+    }
+
     // Scopes
     public function scopeActivos($query)
     {

@@ -15,12 +15,26 @@ use Illuminate\Support\Facades\DB;
 
 class EnvioController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         
+        // Si el usuario es propietario, mostrar envíos relacionados con sus pedidos
+        if ($user->esPropietario()) {
+            $query = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo', 'pedidoAlmacen'])
+                ->whereHas('pedidoAlmacen', function($q) use ($user) {
+                    $q->where('usuario_propietario_id', $user->id);
+                });
+            
+            // Filtro para envíos recibidos
+            if ($request->has('tipo') && $request->tipo == 'recibidos') {
+                $query->where('estado', 'entregado');
+            }
+            
+            $envios = $query->orderBy('id', 'desc')->get();
+        }
         // Si el usuario es transportista, mostrar solo sus envíos asignados
-        if ($user->hasRole('transportista')) {
+        else if ($user->hasRole('transportista')) {
             // Obtener envíos asignados directamente al transportista (cualquier vehículo puede ser usado)
             $envios = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
                 ->whereHas('asignacion', function($query) use ($user) {
@@ -165,7 +179,7 @@ class EnvioController extends Controller
         }
         
         $planta = Almacen::where('es_planta', true)->first();
-        $envio->load(['productos', 'almacenDestino', 'asignacion.transportista', 'asignacion.vehiculo']);
+        $envio->load(['productos', 'almacenDestino', 'asignacion.transportista', 'asignacion.vehiculo', 'pedidoAlmacen']);
         return view('envios.show', compact('envio', 'planta'));
     }
 
@@ -265,6 +279,52 @@ class EnvioController extends Controller
     {
         $envio->update(['estado' => $request->estado]);
         return response()->json(['success' => true, 'message' => 'Estado actualizado']);
+    }
+
+    /**
+     * Aprobar envío desde Trazabilidad
+     * Cambia el estado de pendiente_aprobacion_trazabilidad a pendiente para que pueda ser asignado
+     */
+    public function aprobarEnvioTrazabilidad(Request $request, Envio $envio)
+    {
+        $user = Auth::user();
+        
+        // Solo admin puede aprobar envíos de trazabilidad
+        if (!$user->hasRole('admin')) {
+            abort(403, 'Solo los administradores pueden aprobar envíos de trazabilidad.');
+        }
+
+        // Verificar que el envío esté en el estado correcto
+        if ($envio->estado !== 'pendiente_aprobacion_trazabilidad') {
+            return back()->with('error', "El envío no está en estado 'pendiente_aprobacion_trazabilidad'. Estado actual: {$envio->estado}");
+        }
+
+        DB::beginTransaction();
+        try {
+            // Cambiar estado a pendiente para que pueda ser asignado
+            $envio->update([
+                'estado' => 'pendiente',
+            ]);
+
+            DB::commit();
+
+            \Log::info('Envío aprobado desde Trazabilidad', [
+                'envio_id' => $envio->id,
+                'codigo' => $envio->codigo,
+                'usuario' => $user->name,
+            ]);
+
+            return redirect()->route('envios.index')
+                ->with('success', "Envío {$envio->codigo} aprobado exitosamente. Ahora puede ser asignado a un transportista.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error aprobando envío de trazabilidad', [
+                'envio_id' => $envio->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Error al aprobar el envío: ' . $e->getMessage());
+        }
     }
 
 }

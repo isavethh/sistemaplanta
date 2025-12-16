@@ -16,6 +16,7 @@ class RoleFilter implements FilterInterface
      */
     public function transform($item)
     {
+        // Verificar si el item está restringido (aplica tanto a headers como a items normales)
         if ($this->isRestricted($item)) {
             $item['restricted'] = true;
         }
@@ -37,24 +38,26 @@ class RoleFilter implements FilterInterface
 
         $user = Auth::user();
 
-        // Super users should see everything. Use the Spanish role name
-        // 'administrador' (not 'admin') as requested.
-        if ($user->hasRole('super-admin') || $user->hasRole('administrador')) {
+        // Super users should see everything (admin, administrador, super-admin)
+        if ($user->hasRole('super-admin') || $user->hasRole('administrador') || $user->hasRole('admin')) {
             return false;
         }
 
+        // Si el item no tiene restricción de rol, mostrarlo
         if (empty($item['role'])) {
             return false;
         }
 
         $roles = is_array($item['role']) ? $item['role'] : [$item['role']];
 
+        // Verificar si el usuario tiene alguno de los roles requeridos
         foreach ($roles as $role) {
             if ($user->hasRole($role)) {
-                return false;
+                return false; // No restringir si tiene el rol
             }
         }
 
+        // Si no tiene ninguno de los roles requeridos, restringir
         return true;
     }
 }
