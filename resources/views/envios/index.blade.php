@@ -118,7 +118,7 @@
                                 <i class="fas fa-eye"></i>
                             </a>
                             @if($envio->estado == 'entregado')
-                                <a href="{{ route('trazabilidad.pdf', $envio->id) }}" class="btn btn-danger" title="Ver PDF Trazabilidad" target="_blank">
+                                <a href="{{ route('reportes.trazabilidad.pdf', $envio->id) }}" class="btn btn-danger" title="Ver PDF Trazabilidad" target="_blank">
                                     <i class="fas fa-file-pdf"></i>
                                 </a>
                             @endif

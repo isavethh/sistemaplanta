@@ -8,7 +8,7 @@
                 <i class="fas fa-route"></i> Trazabilidad Completa
             </a>
             @if($envio->estado == 'entregado')
-                <a href="{{ route('trazabilidad.pdf', $envio->id) }}" class="btn btn-danger" target="_blank">
+                <a href="{{ route('reportes.trazabilidad.pdf', $envio->id) }}" class="btn btn-danger" target="_blank">
                     <i class="fas fa-file-pdf"></i> PDF Trazabilidad
                 </a>
             @endif
@@ -304,7 +304,7 @@
                 </a>
 
                 @if($envio->estado == 'entregado')
-                    <a href="{{ route('trazabilidad.pdf', $envio->id) }}" class="btn btn-danger btn-block" target="_blank">
+                    <a href="{{ route('reportes.trazabilidad.pdf', $envio->id) }}" class="btn btn-danger btn-block" target="_blank">
                         <i class="fas fa-file-pdf"></i> Ver PDF Trazabilidad
                     </a>
                 @endif
