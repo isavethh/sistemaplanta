@@ -129,14 +129,39 @@ class EnvioController extends Controller
             $request = request();
             $firmaBase64 = $request->input('firma_base64');
             
+            // Log para debugging
+            Log::info('Intentando guardar firma del transportista', [
+                'envio_id' => $envio->id,
+                'envio_codigo' => $envio->codigo,
+                'tiene_firma_base64' => !empty($firmaBase64),
+                'firma_length' => $firmaBase64 ? strlen($firmaBase64) : 0,
+                'request_all' => $request->all()
+            ]);
+            
             if ($firmaBase64) {
+                // Verificar si es base64 válido
+                $firmaLimpia = $firmaBase64;
+                if (strpos($firmaBase64, 'data:image') === 0) {
+                    // Ya tiene el prefijo data:image, guardarlo tal cual
+                    $firmaLimpia = $firmaBase64;
+                } elseif (preg_match('/^[A-Za-z0-9+\/]+=*$/', $firmaBase64) && strlen($firmaBase64) > 100) {
+                    // Es base64 puro, agregar prefijo
+                    $firmaLimpia = 'data:image/png;base64,' . $firmaBase64;
+                }
+                
                 // Guardar firma base64 directamente
-                $envio->firma_transportista = $firmaBase64;
-                Log::info('Firma base64 recibida y guardada', [
+                $envio->firma_transportista = $firmaLimpia;
+                Log::info('✅ Firma base64 recibida y guardada', [
                     'envio_id' => $envio->id,
-                    'firma_length' => strlen($firmaBase64)
+                    'envio_codigo' => $envio->codigo,
+                    'firma_length' => strlen($firmaLimpia),
+                    'tiene_prefijo' => strpos($firmaLimpia, 'data:image') === 0
                 ]);
             } elseif ($envio->asignacion && $envio->asignacion->transportista) {
+                Log::warning('⚠️ No se recibió firma base64, generando firma de texto como fallback', [
+                    'envio_id' => $envio->id,
+                    'envio_codigo' => $envio->codigo
+                ]);
                 // Generar firma de texto como fallback
                 $transportista = $envio->asignacion->transportista;
                 $firma = "FIRMA DIGITAL DE ACEPTACIÓN\n\n";
