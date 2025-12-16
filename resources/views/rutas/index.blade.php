@@ -125,6 +125,7 @@ let rutasOSRM = {}; // Cache de rutas OSRM
 let posicionesWebSocket = {}; // Posiciones en tiempo real del WebSocket
 let ultimaActualizacionWS = {}; // Timestamp de última actualización por WebSocket
 let ultimoProgresoWS = {}; // Último progreso recibido por WebSocket (para evitar saltos hacia atrás)
+let mapeoEnvioIdCodigo = {}; // Mapeo entre ID numérico y código del envío {id: codigo, codigo: id}
 
 // Obtener ruta real usando OSRM (Open Source Routing Machine) - API gratuita
 async function obtenerRutaOSRM(origen, destino) {
@@ -319,26 +320,57 @@ function inicializarWebSocket() {
             console.log('📍 Posición actualizada recibida:', data);
             const { envioId, envioCodigo, posicion, progreso } = data;
             
-            // Usar envioId o envioCodigo para identificar el envío
-            const idEnvio = envioId || envioCodigo;
+            // Normalizar el ID del envío: convertir a string para comparación consistente
+            let idEnvio = envioId || envioCodigo;
             
             if (!idEnvio) {
                 console.error('⚠️ No se recibió envioId ni envioCodigo en posicion-actualizada');
                 return;
             }
             
-            // Si no existe el marcador, intentar crearlo
-            if (!marcadores[idEnvio] || !marcadores[idEnvio].vehiculo) {
-                console.log(`⚠️ Marcador no existe para envío ${idEnvio}, intentando crear...`);
-                // Buscar el envío en la lista para obtener sus datos
+            // Convertir a string para consistencia
+            idEnvio = String(idEnvio);
+            
+            // Si recibimos un ID numérico, buscar el código correspondiente
+            let codigoEnvio = idEnvio;
+            if (mapeoEnvioIdCodigo[idEnvio]) {
+                codigoEnvio = mapeoEnvioIdCodigo[idEnvio];
+                console.log(`🔄 Mapeo encontrado: ID ${idEnvio} -> Código ${codigoEnvio}`);
+            } else {
+                // Intentar encontrar el código en la lista de envíos
                 const envioData = buscarEnvioPorId(idEnvio);
-                if (envioData && posicion) {
-                    crearMarcadorDesdeSimulacion(idEnvio, envioData, posicion);
+                if (envioData && envioData.codigo) {
+                    codigoEnvio = envioData.codigo;
+                    mapeoEnvioIdCodigo[idEnvio] = codigoEnvio;
+                    mapeoEnvioIdCodigo[codigoEnvio] = idEnvio;
+                    console.log(`📝 Nuevo mapeo creado: ID ${idEnvio} <-> Código ${codigoEnvio}`);
+                }
+            }
+            
+            // Intentar usar el código primero, luego el ID
+            let idMarcador = codigoEnvio !== idEnvio ? codigoEnvio : idEnvio;
+            
+            // Si no existe el marcador con el código, intentar con el ID
+            if (!marcadores[idMarcador] || !marcadores[idMarcador].vehiculo) {
+                // Intentar con el ID numérico
+                if (marcadores[idEnvio] && marcadores[idEnvio].vehiculo) {
+                    idMarcador = idEnvio;
+                } else {
+                    console.log(`⚠️ Marcador no existe para envío ${idEnvio} (código: ${codigoEnvio}), intentando crear...`);
+                    // Buscar el envío en la lista para obtener sus datos
+                    const envioData = buscarEnvioPorId(idEnvio) || buscarEnvioPorCodigo(codigoEnvio);
+                    if (envioData && posicion) {
+                        crearMarcadorDesdeSimulacion(idMarcador, envioData, posicion);
+                    } else {
+                        // Si no encontramos datos, usar el ID recibido directamente
+                        console.warn(`⚠️ No se encontraron datos del envío, usando ID ${idEnvio} directamente`);
+                        idMarcador = idEnvio;
+                    }
                 }
             }
             
             // Actualizar posición del camión en el mapa instantáneamente
-            actualizarPosicionCamion(idEnvio, posicion, progreso);
+            actualizarPosicionCamion(idMarcador, posicion, progreso);
         });
 
         // Escuchar cuando un envío se completa
@@ -394,66 +426,85 @@ function actualizarPosicionCamion(envioId, posicion, progreso) {
         progreso = 0; // Usar 0 como fallback
     }
     
+    // Normalizar envioId a string
+    envioId = String(envioId);
+    
+    // Buscar el marcador: primero con el ID recibido, luego con el código mapeado
+    let idMarcador = envioId;
+    if (!marcadores[idMarcador] || !marcadores[idMarcador].vehiculo) {
+        // Intentar con el código mapeado
+        const codigoMapeado = mapeoEnvioIdCodigo[envioId];
+        if (codigoMapeado && marcadores[codigoMapeado] && marcadores[codigoMapeado].vehiculo) {
+            idMarcador = codigoMapeado;
+            console.log(`🔄 Usando código mapeado ${codigoMapeado} para ID ${envioId}`);
+        }
+    }
+    
     // Protección contra saltos hacia atrás (evitar teletransportes) - solo si hay progreso previo
-    if (ultimoProgresoWS[envioId] !== undefined && progreso < ultimoProgresoWS[envioId] - 0.05) {
-        console.warn(`⚠️ Ignorando posición fuera de orden para envío ${envioId}: progreso ${progreso} < ${ultimoProgresoWS[envioId]}`);
+    if (ultimoProgresoWS[idMarcador] !== undefined && progreso < ultimoProgresoWS[idMarcador] - 0.05) {
+        console.warn(`⚠️ Ignorando posición fuera de orden para envío ${idMarcador}: progreso ${progreso} < ${ultimoProgresoWS[idMarcador]}`);
         return;
     }
     
     const nuevaPosicion = [parseFloat(lat), parseFloat(lng)];
     
-    // Inicializar array de posiciones si no existe
-    if (!posicionesWebSocket[envioId]) {
-        posicionesWebSocket[envioId] = [];
+    // Inicializar array de posiciones si no existe (usar el ID del marcador)
+    if (!posicionesWebSocket[idMarcador]) {
+        posicionesWebSocket[idMarcador] = [];
     }
     
     // Evitar duplicados: solo agregar si es diferente a la última posición
-    const ultimaPosicion = posicionesWebSocket[envioId][posicionesWebSocket[envioId].length - 1];
+    const ultimaPosicion = posicionesWebSocket[idMarcador][posicionesWebSocket[idMarcador].length - 1];
     if (!ultimaPosicion || 
         Math.abs(ultimaPosicion[0] - nuevaPosicion[0]) > 0.00001 || 
         Math.abs(ultimaPosicion[1] - nuevaPosicion[1]) > 0.00001) {
-        posicionesWebSocket[envioId].push(nuevaPosicion);
+        posicionesWebSocket[idMarcador].push(nuevaPosicion);
     }
     
-    ultimaActualizacionWS[envioId] = Date.now();
-    ultimoProgresoWS[envioId] = progreso;
+    ultimaActualizacionWS[idMarcador] = Date.now();
+    ultimoProgresoWS[idMarcador] = progreso;
     
     // Si existe el marcador, moverlo INMEDIATAMENTE
-    if (marcadores[envioId] && marcadores[envioId].vehiculo) {
+    if (marcadores[idMarcador] && marcadores[idMarcador].vehiculo) {
         // Mover el camión a la nueva posición con animación suave
-        marcadores[envioId].vehiculo.setLatLng(nuevaPosicion, { animate: true, duration: 0.5 });
+        marcadores[idMarcador].vehiculo.setLatLng(nuevaPosicion, { animate: true, duration: 0.5 });
         
         // Actualizar la ruta recorrida SOLO con puntos del WebSocket (nunca mezclar con OSRM)
-        if (marcadores[envioId].rutaRecorrida && posicionesWebSocket[envioId].length > 0) {
-            marcadores[envioId].rutaRecorrida.setLatLngs(posicionesWebSocket[envioId]);
+        if (marcadores[idMarcador].rutaRecorrida && posicionesWebSocket[idMarcador].length > 0) {
+            marcadores[idMarcador].rutaRecorrida.setLatLngs(posicionesWebSocket[idMarcador]);
         }
         
         // Actualizar popup con información actualizada
         const progresoPercent = Math.round(progreso * 100);
-        marcadores[envioId].vehiculo.setPopupContent(
-            `<b>🚚 Envío ${envioId}</b><br>
+        const codigoDisplay = mapeoEnvioIdCodigo[idMarcador] || idMarcador;
+        marcadores[idMarcador].vehiculo.setPopupContent(
+            `<b>🚚 Envío ${codigoDisplay}</b><br>
              Progreso: ${progresoPercent}%<br>
              Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br>
              <small>🔴 En vivo</small>`
         );
         
         // Abrir popup automáticamente si está seleccionado
-        if (envioSeleccionado == envioId) {
-            marcadores[envioId].vehiculo.openPopup();
+        if (envioSeleccionado == idMarcador || envioSeleccionado == envioId) {
+            marcadores[idMarcador].vehiculo.openPopup();
         }
         
-        console.log(`✅ Marcador actualizado para envío ${envioId} a posición [${lat}, ${lng}] - Progreso: ${progresoPercent}%`);
+        console.log(`✅ Marcador actualizado para envío ${idMarcador} a posición [${lat.toFixed(6)}, ${lng.toFixed(6)}] - Progreso: ${progresoPercent}%`);
     } else {
-        console.warn(`⚠️ No existe marcador para envío ${envioId}, intentando crear...`);
+        console.warn(`⚠️ No existe marcador para envío ${idMarcador}, intentando crear...`);
         // Intentar crear el marcador si no existe
-        const envioData = buscarEnvioPorId(envioId);
+        const envioData = buscarEnvioPorId(envioId) || buscarEnvioPorCodigo(mapeoEnvioIdCodigo[envioId]);
         if (envioData) {
-            crearMarcadorDesdeSimulacion(envioId, envioData, posicion);
+            crearMarcadorDesdeSimulacion(idMarcador, envioData, posicion);
+            // Después de crear, intentar actualizar de nuevo
+            setTimeout(() => actualizarPosicionCamion(envioId, posicion, progreso), 100);
+        } else {
+            console.error(`❌ No se pudo encontrar datos del envío ${envioId} para crear marcador`);
         }
     }
     
-    // Actualizar barra de progreso si está seleccionado
-    if (envioSeleccionado == envioId) {
+    // Actualizar barra de progreso si está seleccionado (usar ambos IDs para comparación)
+    if (envioSeleccionado == idMarcador || envioSeleccionado == envioId) {
         const progresoPercent = Math.round(progreso * 100);
         const progressBar = document.getElementById('progress-bar');
         const progressText = document.getElementById('progreso-texto');
@@ -463,6 +514,17 @@ function actualizarPosicionCamion(envioId, posicion, progreso) {
         }
         if (progressText) {
             progressText.textContent = progresoPercent + '%';
+        }
+    }
+    
+    // También actualizar la barra de progreso en la tarjeta de la lista
+    const progressBarCard = document.getElementById(`progress-${envioId}`);
+    const progressTextCard = document.getElementById(`progress-text-${envioId}`);
+    if (progressBarCard) {
+        const progresoPercent = Math.round(progreso * 100);
+        progressBarCard.style.width = progresoPercent + '%';
+        if (progressTextCard) {
+            progressTextCard.textContent = progresoPercent + '% completado';
         }
     }
     
@@ -486,10 +548,38 @@ function buscarEnvioPorId(envioId) {
     // Buscar en la lista de envíos activos
     const enTransito = document.querySelectorAll('[data-envio-id]');
     for (const card of enTransito) {
-        if (card.dataset.envioId == envioId) {
+        // Comparar tanto como string como número
+        const cardId = String(card.dataset.envioId);
+        const searchId = String(envioId);
+        if (cardId === searchId || card.dataset.envioId == envioId) {
+            const codigo = card.dataset.envioCodigo || envioId;
+            // Guardar mapeo
+            mapeoEnvioIdCodigo[envioId] = codigo;
+            mapeoEnvioIdCodigo[codigo] = envioId;
             return {
                 id: envioId,
-                codigo: card.dataset.envioCodigo || envioId,
+                codigo: codigo,
+                destino_lat: parseFloat(card.dataset.destinoLat) || null,
+                destino_lng: parseFloat(card.dataset.destinoLng) || null,
+            };
+        }
+    }
+    return null;
+}
+
+// Buscar envío por código
+function buscarEnvioPorCodigo(codigo) {
+    // Buscar en la lista de envíos activos
+    const enTransito = document.querySelectorAll('[data-envio-codigo]');
+    for (const card of enTransito) {
+        if (card.dataset.envioCodigo === codigo) {
+            const id = card.dataset.envioId;
+            // Guardar mapeo
+            mapeoEnvioIdCodigo[id] = codigo;
+            mapeoEnvioIdCodigo[codigo] = id;
+            return {
+                id: id,
+                codigo: codigo,
                 destino_lat: parseFloat(card.dataset.destinoLat) || null,
                 destino_lng: parseFloat(card.dataset.destinoLng) || null,
             };
@@ -645,6 +735,10 @@ function renderizarListaEnvios(enTransito, esperando, cancelados) {
             ultimosEnviosIds.add(envio.id);
             
             const progreso = calcularProgreso(envio.id, envio.fecha_inicio_transito);
+            
+            // Guardar mapeo ID <-> Código
+            mapeoEnvioIdCodigo[envio.id] = envio.codigo;
+            mapeoEnvioIdCodigo[envio.codigo] = envio.id;
             
             html += `
                 <div class="envio-card mb-2 p-3 border rounded bg-info text-white ${claseNuevo} ${envioSeleccionado == envio.id ? 'activo' : ''}" 
