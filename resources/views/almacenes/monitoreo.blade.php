@@ -5,8 +5,10 @@
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
         <h1><i class="fas fa-route"></i> Monitorización en Tiempo Real
-            @if($almacenUsuario)
+            @if($almacenUsuario && !$esPropietario)
                 <small class="text-muted">- {{ $almacenUsuario->nombre }}</small>
+            @elseif($esPropietario)
+                <small class="text-muted">- Todos mis Almacenes</small>
             @endif
         </h1>
         <div>
@@ -22,7 +24,7 @@
     <div class="col-md-4">
         <div class="card shadow">
             <div class="card-header bg-gradient-primary d-flex justify-content-between align-items-center">
-                <h3 class="card-title text-white mb-0"><i class="fas fa-list"></i> Envíos hacia mi Almacén</h3>
+                <h3 class="card-title text-white mb-0"><i class="fas fa-list"></i> Envíos hacia {{ $esPropietario ? 'mis Almacenes' : 'mi Almacén' }}</h3>
                 <button class="btn btn-sm btn-light" onclick="actualizarEnvios()" title="Actualizar ahora">
                     <i class="fas fa-sync-alt" id="btn-sync-icon"></i>
                 </button>
@@ -45,7 +47,7 @@
             </div>
             <div class="card-body">
                 <div id="info-panel" class="alert alert-info mb-3">
-                    <i class="fas fa-info-circle"></i> Los envíos en tránsito hacia tu almacén se mostrarán automáticamente cuando el transportista inicie la ruta desde la app
+                    <i class="fas fa-info-circle"></i> Los envíos en tránsito hacia {{ $esPropietario ? 'tus almacenes' : 'tu almacén' }} se mostrarán automáticamente cuando el transportista inicie la ruta desde la app
                 </div>
                 <div id="map" style="height: 500px; border-radius: 8px;"></div>
             </div>
@@ -118,7 +120,9 @@ const INTERVALO_ACTUALIZACION = 10000; // 10 segundos como backup (WebSocket es 
     $socketBaseUrl = str_replace('/api', '', $nodeApiUrl);
 @endphp
 const SOCKET_URL = '{{ $socketBaseUrl }}/tracking'; // WebSocket server (Node.js)
-const ALMACEN_ID = {{ $almacenId ?? 'null' }}; // ID del almacén del usuario
+const ALMACEN_ID = {{ $almacenId ?? 'null' }}; // ID del almacén del usuario (para usuarios almacén)
+const ALMACENES_IDS = @json($almacenesIds ?? []); // IDs de todos los almacenes del propietario
+const ES_PROPIETARIO = {{ $esPropietario ?? false ? 'true' : 'false' }}; // Si es propietario
 
 // Variables globales
 let map;
@@ -614,7 +618,8 @@ async function actualizarEnvios() {
     
     try {
         // Usar endpoint filtrado por almacén
-        const url = ALMACEN_ID ? `/api/rutas/envios-activos-almacen/${ALMACEN_ID}` : '/api/rutas/envios-activos';
+        // Si es propietario, usar endpoint que obtiene envíos de todos sus almacenes
+        const url = ES_PROPIETARIO ? '/api/rutas/envios-activos-propietario' : (ALMACEN_ID ? `/api/rutas/envios-activos-almacen/${ALMACEN_ID}` : '/api/rutas/envios-activos');
         const response = await fetch(url);
         
         if (!response.ok) throw new Error('Error en respuesta');

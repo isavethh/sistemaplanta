@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Almacen;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -195,6 +196,128 @@ class RutaApiController extends Controller
             'success' => true,
             'en_transito' => $enTransito,
             'esperando' => $esperando,
+            'timestamp' => now()->toIso8601String()
+        ]);
+    }
+
+    /**
+     * Obtener envíos activos para todos los almacenes de un propietario
+     * GET /api/rutas/envios-activos-propietario
+     */
+    public function enviosActivosPropietario()
+    {
+        $user = auth()->user();
+        
+        if (!$user || !method_exists($user, 'esPropietario') || !$user->esPropietario()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No autorizado. Solo propietarios pueden acceder a este endpoint.'
+            ], 403);
+        }
+
+        // Obtener IDs de todos los almacenes del propietario
+        $almacenesIds = \App\Models\Almacen::where('usuario_almacen_id', $user->id)
+            ->where('es_planta', false)
+            ->where('activo', true)
+            ->pluck('id')
+            ->toArray();
+
+        if (empty($almacenesIds)) {
+            return response()->json([
+                'success' => true,
+                'en_transito' => [],
+                'esperando' => [],
+                'cancelados' => [],
+                'timestamp' => now()->toIso8601String()
+            ]);
+        }
+
+        // Convertir array de IDs a string para la consulta SQL
+        $placeholders = implode(',', array_fill(0, count($almacenesIds), '?'));
+        
+        // Envíos en tránsito hacia cualquiera de los almacenes del propietario
+        $enTransito = DB::select("
+            SELECT DISTINCT
+                e.id,
+                e.codigo,
+                e.estado,
+                e.fecha_inicio_transito,
+                a.nombre as almacen_nombre,
+                a.latitud as destino_lat,
+                a.longitud as destino_lng,
+                a.direccion_completa,
+                u.name as transportista_nombre,
+                v.placa as vehiculo_placa
+            FROM envios e
+            LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+            LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+            LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
+            LEFT JOIN users u ON v.transportista_id = u.id
+            LEFT JOIN pedidos_almacen pa ON e.pedido_almacen_id = pa.id
+            WHERE e.estado = 'en_transito' 
+                AND e.almacen_destino_id IN ($placeholders)
+                AND pa.usuario_propietario_id = ?
+            ORDER BY e.fecha_inicio_transito DESC
+        ", array_merge($almacenesIds, [$user->id]));
+        
+        // Envíos esperando inicio hacia cualquiera de los almacenes del propietario
+        $esperando = DB::select("
+            SELECT DISTINCT
+                e.id,
+                e.codigo,
+                e.estado,
+                a.nombre as almacen_nombre,
+                a.latitud as destino_lat,
+                a.longitud as destino_lng,
+                u.name as transportista_nombre,
+                ea.fecha_aceptacion
+            FROM envios e
+            LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+            LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+            LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
+            LEFT JOIN users u ON v.transportista_id = u.id
+            LEFT JOIN pedidos_almacen pa ON e.pedido_almacen_id = pa.id
+            WHERE e.estado IN ('asignado', 'aceptado') 
+                AND e.almacen_destino_id IN ($placeholders)
+                AND pa.usuario_propietario_id = ?
+            ORDER BY e.created_at DESC
+        ", array_merge($almacenesIds, [$user->id]));
+
+        // Envíos cancelados (últimos 7 días) hacia cualquiera de los almacenes del propietario
+        $cancelados = DB::select("
+            SELECT DISTINCT
+                e.id,
+                e.codigo,
+                e.estado,
+                e.updated_at as fecha_cancelacion,
+                a.nombre as almacen_nombre,
+                a.latitud as destino_lat,
+                a.longitud as destino_lng,
+                a.direccion_completa,
+                u.name as transportista_nombre,
+                v.placa as vehiculo_placa,
+                CASE WHEN i.id IS NOT NULL THEN true ELSE false END as cancelado_por_incidente,
+                i.id as incidente_id
+            FROM envios e
+            LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+            LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+            LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
+            LEFT JOIN users u ON v.transportista_id = u.id
+            LEFT JOIN incidentes i ON e.id = i.envio_id AND i.accion = 'cancelar'
+            LEFT JOIN pedidos_almacen pa ON e.pedido_almacen_id = pa.id
+            WHERE e.estado = 'cancelado' 
+                AND e.updated_at >= NOW() - INTERVAL '7 days'
+                AND e.almacen_destino_id IN ($placeholders)
+                AND pa.usuario_propietario_id = ?
+            ORDER BY e.updated_at DESC
+            LIMIT 50
+        ", array_merge($almacenesIds, [$user->id]));
+        
+        return response()->json([
+            'success' => true,
+            'en_transito' => $enTransito,
+            'esperando' => $esperando,
+            'cancelados' => $cancelados,
             'timestamp' => now()->toIso8601String()
         ]);
     }

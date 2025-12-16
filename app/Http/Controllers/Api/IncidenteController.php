@@ -102,19 +102,37 @@ class IncidenteController extends Controller
                         $guardado = Storage::disk('public')->put($rutaCompleta, $fotoContent);
                         
                         if ($guardado) {
-                            // Establecer permisos del archivo (solo en sistemas Unix/Linux)
-                            if (file_exists(Storage::disk('public')->path($rutaCompleta))) {
-                                @chmod(Storage::disk('public')->path($rutaCompleta), 0644);
+                            $rutaFisica = Storage::disk('public')->path($rutaCompleta);
+                            
+                            // Verificar que el archivo realmente existe
+                            if (file_exists($rutaFisica)) {
+                                // Establecer permisos del archivo (solo en sistemas Unix/Linux)
+                                @chmod($rutaFisica, 0644);
+                                
+                                // Verificar permisos después de establecerlos
+                                $permisos = fileperms($rutaFisica);
+                                $permisosOctales = substr(sprintf('%o', $permisos), -4);
+                                
+                                // Guardar solo la ruta relativa, sin "storage/"
+                                $fotoUrl = $rutaCompleta;
+                                Log::info('✅ Foto de incidente guardada correctamente', [
+                                    'envio_id' => $envioId,
+                                    'ruta' => $fotoUrl,
+                                    'ruta_completa' => $rutaFisica,
+                                    'url_publica' => asset('storage/' . $fotoUrl),
+                                    'tamaño' => strlen($fotoContent),
+                                    'tamaño_archivo' => filesize($rutaFisica),
+                                    'permisos' => $permisosOctales,
+                                    'existe' => true,
+                                ]);
+                            } else {
+                                Log::error('❌ Error: Archivo no encontrado después de guardar', [
+                                    'envio_id' => $envioId,
+                                    'ruta_intentada' => $rutaCompleta,
+                                    'ruta_fisica' => $rutaFisica,
+                                ]);
+                                $fotoUrl = null; // No guardar URL si el archivo no existe
                             }
-                            // Guardar solo la ruta relativa, sin "storage/"
-                            $fotoUrl = $rutaCompleta;
-                            Log::info('✅ Foto de incidente guardada', [
-                                'envio_id' => $envioId,
-                                'ruta' => $fotoUrl,
-                                'ruta_completa' => Storage::disk('public')->path($rutaCompleta),
-                                'url_publica' => asset('storage/' . $fotoUrl),
-                                'tamaño' => strlen($fotoContent),
-                            ]);
                         } else {
                             Log::warning('Error: No se pudo guardar la foto de incidente', [
                                 'envio_id' => $envioId,
@@ -397,6 +415,21 @@ class IncidenteController extends Controller
                                 ->orderBy('created_at', 'desc')
                                 ->get()
                                 ->map(function($incidente) {
+                                    // Verificar si el archivo existe antes de generar la URL
+                                    $fotoUrl = null;
+                                    if ($incidente->foto_url) {
+                                        $rutaCompleta = Storage::disk('public')->path($incidente->foto_url);
+                                        if (file_exists($rutaCompleta)) {
+                                            $fotoUrl = asset('storage/' . $incidente->foto_url);
+                                        } else {
+                                            Log::warning('⚠️ Archivo de incidente no encontrado', [
+                                                'incidente_id' => $incidente->id,
+                                                'foto_url' => $incidente->foto_url,
+                                                'ruta_esperada' => $rutaCompleta,
+                                            ]);
+                                        }
+                                    }
+                                    
                                     return [
                                         'id' => $incidente->id,
                                         'envio_id' => $incidente->envio_id,
@@ -405,7 +438,7 @@ class IncidenteController extends Controller
                                         'transportista_nombre' => $incidente->transportista->name ?? null,
                                         'tipo_incidente' => $incidente->tipo_incidente,
                                         'descripcion' => $incidente->descripcion,
-                                        'foto_url' => $incidente->foto_url ? asset('storage/' . $incidente->foto_url) : null,
+                                        'foto_url' => $fotoUrl,
                                         'accion' => $incidente->accion,
                                         'estado' => $incidente->estado,
                                         'ubicacion_lat' => $incidente->ubicacion_lat,
@@ -441,6 +474,21 @@ class IncidenteController extends Controller
         try {
             $incidente = Incidente::with(['envio.almacenDestino', 'transportista'])->findOrFail($id);
             
+            // Verificar si el archivo existe antes de generar la URL
+            $fotoUrl = null;
+            if ($incidente->foto_url) {
+                $rutaCompleta = Storage::disk('public')->path($incidente->foto_url);
+                if (file_exists($rutaCompleta)) {
+                    $fotoUrl = asset('storage/' . $incidente->foto_url);
+                } else {
+                    Log::warning('⚠️ Archivo de incidente no encontrado', [
+                        'incidente_id' => $incidente->id,
+                        'foto_url' => $incidente->foto_url,
+                        'ruta_esperada' => $rutaCompleta,
+                    ]);
+                }
+            }
+            
             return response()->json([
                 'id' => $incidente->id,
                 'envio_id' => $incidente->envio_id,
@@ -449,7 +497,7 @@ class IncidenteController extends Controller
                 'transportista_nombre' => $incidente->transportista->name ?? null,
                 'tipo_incidente' => $incidente->tipo_incidente,
                 'descripcion' => $incidente->descripcion,
-                'foto_url' => $incidente->foto_url ? asset('storage/' . $incidente->foto_url) : null,
+                'foto_url' => $fotoUrl,
                 'accion' => $incidente->accion,
                 'estado' => $incidente->estado,
                 'ubicacion_lat' => $incidente->ubicacion_lat,

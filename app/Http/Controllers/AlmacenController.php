@@ -201,9 +201,10 @@ class AlmacenController extends Controller
     {
         $user = auth()->user();
         $almacenUsuario = null;
+        $almacenesIds = [];
         
-        // Si el usuario es almacen o propietario, obtener su(s) almacén(es) asignado(s)
-        if ($user->hasRole('almacen') || $user->esPropietario()) {
+        // Si el usuario es almacen, obtener su almacén asignado
+        if ($user->hasRole('almacen')) {
             $almacenUsuario = Almacen::where('usuario_almacen_id', $user->id)
                 ->where('es_planta', false)
                 ->where('activo', true)
@@ -213,15 +214,36 @@ class AlmacenController extends Controller
                 return redirect()->route('home')
                     ->with('error', 'No tienes un almacén asignado. Contacta al administrador.');
             }
+            $almacenesIds = [$almacenUsuario->id];
+        }
+        // Si el usuario es propietario, obtener TODOS sus almacenes
+        elseif ($user->esPropietario()) {
+            $almacenes = Almacen::where('usuario_almacen_id', $user->id)
+                ->where('es_planta', false)
+                ->where('activo', true)
+                ->get();
+            
+            if ($almacenes->isEmpty()) {
+                return redirect()->route('home')
+                    ->with('error', 'No tienes almacenes asignados. Contacta al administrador.');
+            }
+            
+            $almacenesIds = $almacenes->pluck('id')->toArray();
+            // Si solo tiene un almacén, usar almacenUsuario para compatibilidad con la vista
+            if ($almacenes->count() === 1) {
+                $almacenUsuario = $almacenes->first();
+            }
         } elseif (!$user->hasRole('admin')) {
             abort(403, 'No tienes permiso para acceder a esta página.');
         }
         
-        // Si es admin, puede ver todos los almacenes (almacenUsuario será null)
+        // Si es admin, puede ver todos los almacenes (almacenUsuario será null, almacenesIds vacío)
         
         return view('almacenes.monitoreo', [
             'almacenUsuario' => $almacenUsuario,
-            'almacenId' => $almacenUsuario ? $almacenUsuario->id : null
+            'almacenId' => $almacenUsuario ? $almacenUsuario->id : null,
+            'almacenesIds' => $almacenesIds,
+            'esPropietario' => $user->esPropietario()
         ]);
     }
 }
