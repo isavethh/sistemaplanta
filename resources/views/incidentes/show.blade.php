@@ -166,36 +166,6 @@
 
     <!-- Panel Lateral -->
     <div class="col-md-4">
-        <!-- Foto de Evidencia -->
-        @if($incidente->foto_url)
-        <div class="card shadow mb-3">
-            <div class="card-header bg-info">
-                <h5 class="card-title text-white mb-0"><i class="fas fa-camera"></i> Foto de Evidencia</h5>
-            </div>
-            <div class="card-body text-center">
-                @php
-                    $fotoUrl = Storage::url($incidente->foto_url);
-                @endphp
-                <a href="{{ $fotoUrl }}" target="_blank">
-                    <img src="{{ $fotoUrl }}" 
-                         class="img-fluid img-thumbnail" 
-                         style="max-height: 400px; width: auto; object-fit: contain;"
-                         alt="Evidencia del incidente"
-                         onerror="this.onerror=null; this.src='{{ asset('img/no-image.png') }}'; this.style.display='none'; this.parentElement.innerHTML='<p class=\'text-muted\'><i class=\'fas fa-exclamation-triangle\'></i> No se pudo cargar la imagen</p>';">
-                </a>
-                <p class="text-muted mt-2"><small>Click para ver en tamaño completo</small></p>
-            </div>
-        </div>
-        @else
-        <div class="card shadow mb-3">
-            <div class="card-header bg-info">
-                <h5 class="card-title text-white mb-0"><i class="fas fa-camera"></i> Foto de Evidencia</h5>
-            </div>
-            <div class="card-body text-center">
-                <p class="text-muted"><i class="fas fa-image"></i> No hay foto disponible</p>
-            </div>
-        </div>
-        @endif
 
         <!-- Acciones -->
         <div class="card shadow mb-3">

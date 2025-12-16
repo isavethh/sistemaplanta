@@ -182,7 +182,6 @@
                     <th>Almacén</th>
                     <th>Tipo</th>
                     <th>Descripción</th>
-                    <th>Foto</th>
                     <th>Estado</th>
                     <th>Fecha</th>
                     <th width="150">Acciones</th>
@@ -252,13 +251,7 @@
                         @endif
                     </td>
                     <td class="text-center">
-                        @if($incidente->foto_url)
-                            <a href="{{ Storage::url($incidente->foto_url) }}" target="_blank" class="btn btn-sm btn-info">
-                                <i class="fas fa-image"></i>
-                            </a>
-                        @else
-                            <span class="text-muted">-</span>
-                        @endif
+                        <span class="text-muted">-</span>
                     </td>
                     <td>
                         @if($incidente->estado == 'pendiente')

@@ -239,24 +239,6 @@
                     <p class="mb-2" style="background: #fff; padding: 10px; border-radius: 5px; border-left: 4px solid #dc3545;">
                         {{ $incidente->descripcion ?? 'Sin descripción' }}
                     </p>
-                    @if($incidente->foto_url)
-                    <p class="mb-1">
-                        @php
-                            $fotoUrl = asset('storage/' . $incidente->foto_url);
-                        @endphp
-                        <img src="{{ $fotoUrl }}" alt="Foto de evidencia" class="img-fluid img-thumbnail mb-2" style="max-height: 300px; cursor: pointer;" onclick="window.open('{{ $fotoUrl }}', '_blank')" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <p style="display:none;" class="text-danger">
-                            <i class="fas fa-exclamation-triangle"></i> No se pudo cargar la imagen. 
-                            <a href="{{ $fotoUrl }}" target="_blank" class="btn btn-sm btn-warning">
-                                <i class="fas fa-download"></i> Intentar descargar
-                            </a>
-                        </p>
-                        <br>
-                        <a href="{{ $fotoUrl }}" target="_blank" class="btn btn-sm btn-info mt-2">
-                            <i class="fas fa-camera"></i> Ver Foto Completa
-                        </a>
-                    </p>
-                    @endif
                     <a href="{{ route('incidentes.show', $incidente->id) }}" class="btn btn-sm btn-danger">
                         <i class="fas fa-eye"></i> Ver Incidente Completo
                     </a>
