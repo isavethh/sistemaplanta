@@ -162,7 +162,7 @@ class DocumentoController extends Controller
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documento de Envío - ' . $envio->codigo . '</title>
+    <title>Documento de Envío - ' . ($envio->codigo ?? 'N/A') . '</title>
     <style>
         * {
             margin: 0;
@@ -170,114 +170,282 @@ class DocumentoController extends Controller
             box-sizing: border-box;
         }
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Arial", "Helvetica", sans-serif;
             padding: 20px;
             background: #f5f5f5;
+            line-height: 1.6;
         }
         .container {
             max-width: 800px;
             margin: 0 auto;
             background: white;
-            padding: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
         }
         .header {
             text-align: center;
-            border-bottom: 3px solid #4CAF50;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            border-bottom: 4px solid #4CAF50;
+            padding-bottom: 25px;
+            margin-bottom: 35px;
+            position: relative;
+        }
+        .header::after {
+            content: "";
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: #4CAF50;
         }
         .header h1 {
             color: #4CAF50;
-            font-size: 28px;
-            margin-bottom: 10px;
+            font-size: 32px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
         .codigo {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: bold;
             color: #333;
-            margin: 10px 0;
+            margin: 12px 0;
+            letter-spacing: 1px;
         }
         .estado {
             display: inline-block;
-            padding: 8px 20px;
-            border-radius: 20px;
+            padding: 10px 25px;
+            border-radius: 25px;
             font-weight: bold;
             color: white;
-            background: #2196F3;
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            box-shadow: 0 3px 8px rgba(33, 150, 243, 0.3);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .section {
-            margin: 25px 0;
-            padding: 20px;
-            background: #f9f9f9;
-            border-left: 4px solid #4CAF50;
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(to right, #f9f9f9 0%, #ffffff 100%);
+            border-left: 5px solid #4CAF50;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
         .section-title {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
             color: #333;
-            margin-bottom: 15px;
+            margin-bottom: 18px;
             display: flex;
             align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
         }
         .section-title::before {
             content: "📦";
-            margin-right: 10px;
-            font-size: 24px;
+            margin-right: 12px;
+            font-size: 26px;
         }
         .info-row {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
+            padding: 12px 0;
             border-bottom: 1px solid #e0e0e0;
+            transition: background 0.2s;
+        }
+        .info-row:hover {
+            background: rgba(76, 175, 80, 0.05);
+            padding-left: 10px;
+            padding-right: 10px;
+            margin-left: -10px;
+            margin-right: -10px;
         }
         .info-label {
             font-weight: bold;
-            color: #666;
+            color: #555;
+            font-size: 14px;
         }
         .info-value {
             color: #333;
+            font-size: 14px;
+            text-align: right;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 15px 0;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-radius: 5px;
+            overflow: hidden;
         }
         th, td {
-            padding: 12px;
+            padding: 14px 12px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e0e0e0;
         }
         th {
-            background: #4CAF50;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
             font-weight: bold;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        tr:hover {
-            background: #f5f5f5;
+        tbody tr {
+            transition: background 0.2s;
+        }
+        tbody tr:hover {
+            background: #f0f9f0;
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
         }
         .totales {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e8f5e9;
-            border-radius: 5px;
+            margin-top: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+            border-radius: 8px;
+            border: 2px solid #4CAF50;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
         }
         .total-row {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            font-size: 16px;
+            padding: 10px 0;
+            font-size: 15px;
+            color: #333;
         }
         .total-final {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
             color: #4CAF50;
+            border-top: 3px solid #4CAF50;
+            padding-top: 15px;
+            margin-top: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .firma-sello-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            padding: 40px 20px;
+            gap: 60px;
+            margin-top: 30px;
             border-top: 2px solid #4CAF50;
-            padding-top: 10px;
-            margin-top: 10px;
+            padding-top: 40px;
+        }
+        .firma-box, .sello-box {
+            flex: 1;
+            text-align: center;
+            min-width: 250px;
+        }
+        .firma-imagen {
+            max-width: 240px;
+            max-height: 150px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 15px;
+            background: white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            margin: 0 auto 20px;
+            display: block;
+        }
+        .firma-placeholder {
+            width: 240px;
+            height: 150px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f9f9f9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .firma-placeholder-text {
+            color: #666;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .sello-circular {
+            width: 200px;
+            height: 200px;
+            border: 4px solid #4CAF50;
+            border-radius: 50%;
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #f0f9f0 0%, #ffffff 100%);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.25);
+            position: relative;
+            margin: 0 auto 20px;
+        }
+        .sello-header {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            color: #4CAF50;
+            font-weight: bold;
+            background: white;
+            padding: 3px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .sello-content {
+            text-align: center;
+            padding: 25px 15px;
+        }
+        .sello-star {
+            font-size: 14px;
+            color: #4CAF50;
+            margin-bottom: 8px;
+        }
+        .sello-titulo {
+            font-size: 18px;
+            color: #4CAF50;
+            font-weight: bold;
+            margin-bottom: 10px;
+            line-height: 1.2;
+        }
+        .sello-autorizado {
+            font-size: 13px;
+            color: #4CAF50;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        .sello-year {
+            font-size: 12px;
+            color: #4CAF50;
+        }
+        .firma-line, .sello-line {
+            border-top: 3px solid #333;
+            padding-top: 15px;
+            margin-top: 15px;
+            display: inline-block;
+            min-width: 240px;
+        }
+        .firma-label, .sello-label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .firma-nombre, .sello-nombre {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
         }
         .footer {
-            margin-top: 40px;
+            margin-top: 50px;
             padding-top: 20px;
             border-top: 2px solid #e0e0e0;
             text-align: center;
@@ -287,9 +455,14 @@ class DocumentoController extends Controller
         @media print {
             body {
                 background: white;
+                padding: 10px;
             }
             .container {
                 box-shadow: none;
+                padding: 20px;
+            }
+            .firma-sello-container {
+                page-break-inside: avoid;
             }
         }
     </style>
@@ -398,16 +571,35 @@ class DocumentoController extends Controller
             <p>' . nl2br(htmlspecialchars($envio->observaciones)) . '</p>
         </div>' : '') . '
 
-        <!-- Firma del Transportista -->
-        <div class="section">
-            <div class="section-title">Firma del Transportista</div>
-            <div style="text-align: center; padding: 20px;">
-                ' . ($firmaTransportista ? '<img src="data:image/png;base64,' . $firmaTransportista . '" alt="Firma Transportista" style="max-width: 200px; max-height: 120px; border: 2px solid #ddd; border-radius: 4px; padding: 10px; background: white;">' : '<div style="width: 200px; height: 120px; border: 2px dashed #ccc; display: inline-block; border-radius: 4px; padding: 10px; background: #f9f9f9;">
-                    <span style="color: #999; font-size: 12px; display: block; margin-top: 40px;">Sin firma</span>
-                </div>') . '
-                <div style="margin-top: 15px; border-top: 2px solid #333; padding-top: 10px; display: inline-block; min-width: 200px;">
-                    <strong>FIRMA TRANSPORTISTA</strong><br>
-                    <small>' . ($envio->asignacion && $envio->asignacion->transportista ? $envio->asignacion->transportista->name : 'N/A') . '</small>
+        <!-- Firma y Sello en la misma línea -->
+        <div class="firma-sello-container">
+            <!-- Firma del Transportista -->
+            <div class="firma-box">
+                ' . ($firmaTransportista ? 
+                    '<img src="data:image/png;base64,' . $firmaTransportista . '" alt="Firma Transportista" class="firma-imagen">' 
+                    : '<div class="firma-placeholder">
+                        <div class="firma-placeholder-text">' . ($envio->asignacion && $envio->asignacion->transportista ? htmlspecialchars($envio->asignacion->transportista->name) : 'Sin firma') . '</div>
+                    </div>') . '
+                <div class="firma-line">
+                    <div class="firma-label">FIRMA TRANSPORTISTA</div>
+                    <div class="firma-nombre">' . ($envio->asignacion && $envio->asignacion->transportista ? htmlspecialchars($envio->asignacion->transportista->name) : 'N/A') . '</div>
+                </div>
+            </div>
+            
+            <!-- Sello de Planta Principal -->
+            <div class="sello-box">
+                <div class="sello-circular">
+                    <div class="sello-header">SISTEMA DE GESTIÓN LOGÍSTICA</div>
+                    <div class="sello-content">
+                        <div class="sello-star">⭐</div>
+                        <div class="sello-titulo">PLANTA<br>PRINCIPAL</div>
+                        <div class="sello-autorizado">Autorizado</div>
+                        <div class="sello-year">' . date('Y') . '</div>
+                    </div>
+                </div>
+                <div class="sello-line">
+                    <div class="sello-label">SELLO OFICIAL</div>
+                    <div class="sello-nombre">Planta Principal</div>
                 </div>
             </div>
         </div>
