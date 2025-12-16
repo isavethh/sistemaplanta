@@ -112,7 +112,12 @@
 // Configuración
 const PLANTA_COORDS = [-17.783333, -63.182778];
 const INTERVALO_ACTUALIZACION = 10000; // 10 segundos como backup (WebSocket es principal)
-const SOCKET_URL = 'http://10.26.10.192:3001/tracking'; // WebSocket server (Node.js)
+@php
+    $nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
+    // Remover /api del final si existe, ya que el WebSocket está en la raíz
+    $socketBaseUrl = str_replace('/api', '', $nodeApiUrl);
+@endphp
+const SOCKET_URL = '{{ $socketBaseUrl }}/tracking'; // WebSocket server (Node.js)
 const ALMACEN_ID = {{ $almacenId ?? 'null' }}; // ID del almacén del usuario
 
 // Variables globales
