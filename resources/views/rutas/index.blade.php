@@ -210,20 +210,30 @@ function inicializarWebSocket() {
         // Escuchar cuando se inicia una simulación
         socket.on('simulacion-iniciada', async (data) => {
             console.log('🚀 Simulación iniciada recibida:', data);
-            const { envioId, rutaPuntos } = data;
+            const { envioId, envioCodigo, rutaPuntos, posicionInicial } = data;
+            
+            // Usar envioId o envioCodigo para identificar el envío
+            const idEnvio = envioId || envioCodigo;
+            
+            if (!idEnvio) {
+                console.error('⚠️ No se recibió envioId ni envioCodigo en simulacion-iniciada');
+                return;
+            }
+            
+            console.log(`🚀 Iniciando simulación para envío: ${idEnvio}`);
             
             // IMPORTANTE: Limpiar todos los datos anteriores de este envío
-            posicionesWebSocket[envioId] = [];
-            ultimaActualizacionWS[envioId] = Date.now();
-            ultimoProgresoWS[envioId] = 0; // Reiniciar progreso
+            posicionesWebSocket[idEnvio] = [];
+            ultimaActualizacionWS[idEnvio] = Date.now();
+            ultimoProgresoWS[idEnvio] = 0; // Reiniciar progreso
             
             // Limpiar marcadores anteriores
-            if (marcadores[envioId]) {
-                if (marcadores[envioId].vehiculo) map.removeLayer(marcadores[envioId].vehiculo);
-                if (marcadores[envioId].destino) map.removeLayer(marcadores[envioId].destino);
-                if (marcadores[envioId].ruta) map.removeLayer(marcadores[envioId].ruta);
-                if (marcadores[envioId].rutaRecorrida) map.removeLayer(marcadores[envioId].rutaRecorrida);
-                delete marcadores[envioId];
+            if (marcadores[idEnvio]) {
+                if (marcadores[idEnvio].vehiculo) map.removeLayer(marcadores[idEnvio].vehiculo);
+                if (marcadores[idEnvio].destino) map.removeLayer(marcadores[idEnvio].destino);
+                if (marcadores[idEnvio].ruta) map.removeLayer(marcadores[idEnvio].ruta);
+                if (marcadores[idEnvio].rutaRecorrida) map.removeLayer(marcadores[idEnvio].rutaRecorrida);
+                delete marcadores[idEnvio];
             }
             
             // Guardar la ruta completa de la app móvil (Google Directions)
@@ -235,60 +245,70 @@ function inicializarWebSocket() {
                     return [lat, lng];
                 }).filter(p => p[0] && p[1]); // Filtrar puntos inválidos
                 
-                rutasCompletas[envioId] = rutaLeaflet;
+                rutasCompletas[idEnvio] = rutaLeaflet;
                 
                 console.log(`📍 Ruta recibida de la app: ${rutaLeaflet.length} puntos`);
                 
-                // Inicializar con el primer punto
+                // Inicializar con el primer punto o posición inicial
+                let puntoInicial;
+                if (posicionInicial) {
+                    puntoInicial = [posicionInicial.latitude || posicionInicial.lat, posicionInicial.longitude || posicionInicial.lng];
+                } else if (rutaLeaflet.length > 0) {
+                    puntoInicial = rutaLeaflet[0];
+                } else {
+                    puntoInicial = PLANTA_COORDS;
+                }
+                
+                posicionesWebSocket[idEnvio] = [puntoInicial];
+                
+                // Crear marcadores inmediatamente con la ruta de la app
+                const ultimoPunto = rutaLeaflet.length > 0 ? rutaLeaflet[rutaLeaflet.length - 1] : puntoInicial;
+                
+                // Marcador del destino
+                const marcadorDestino = L.marker(ultimoPunto, { icon: iconos.destino })
+                    .addTo(map)
+                    .bindPopup(`<b>📦 Destino</b><br>Envío ${idEnvio}`);
+                
+                // Marcador del vehículo en la posición inicial
+                const marcadorVehiculo = L.marker(puntoInicial, { icon: iconos.vehiculo })
+                    .addTo(map)
+                    .bindPopup(`<b>🚚 Envío ${idEnvio}</b><br>Iniciando ruta...<br><small>🔴 En vivo</small>`);
+                
+                // Dibujar ruta COMPLETA en azul punteado (ruta de Google)
+                const lineaRutaCompleta = rutaLeaflet.length > 0 ? L.polyline(rutaLeaflet, {
+                    color: '#2196F3',
+                    weight: 5,
+                    opacity: 0.5,
+                    dashArray: '10, 10'
+                }).addTo(map) : null;
+                
+                // Ruta recorrida (empezando con el punto inicial)
+                const lineaRutaRecorrida = L.polyline([puntoInicial], {
+                    color: '#4CAF50',
+                    weight: 6,
+                    opacity: 0.9
+                }).addTo(map);
+                
+                marcadores[idEnvio] = { 
+                    vehiculo: marcadorVehiculo, 
+                    destino: marcadorDestino,
+                    ruta: lineaRutaCompleta,
+                    rutaRecorrida: lineaRutaRecorrida
+                };
+                
+                // Ajustar mapa para mostrar la ruta
                 if (rutaLeaflet.length > 0) {
-                    posicionesWebSocket[envioId] = [rutaLeaflet[0]];
-                    
-                    // Crear marcadores inmediatamente con la ruta de la app
-                    const primerPunto = rutaLeaflet[0];
-                    const ultimoPunto = rutaLeaflet[rutaLeaflet.length - 1];
-                    
-                    // Marcador del destino
-                    const marcadorDestino = L.marker(ultimoPunto, { icon: iconos.destino })
-                        .addTo(map)
-                        .bindPopup(`<b>📦 Destino</b><br>Envío ${envioId}`);
-                    
-                    // Marcador del vehículo
-                    const marcadorVehiculo = L.marker(primerPunto, { icon: iconos.vehiculo })
-                        .addTo(map)
-                        .bindPopup(`<b>🚚 Envío ${envioId}</b><br>Iniciando ruta...`);
-                    
-                    // Dibujar ruta COMPLETA en azul punteado (ruta de Google)
-                    const lineaRutaCompleta = L.polyline(rutaLeaflet, {
-                        color: '#2196F3',
-                        weight: 5,
-                        opacity: 0.5,
-                        dashArray: '10, 10'
-                    }).addTo(map);
-                    
-                    // Ruta recorrida (empezando vacía)
-                    const lineaRutaRecorrida = L.polyline([primerPunto], {
-                        color: '#4CAF50',
-                        weight: 6,
-                        opacity: 0.9
-                    }).addTo(map);
-                    
-                    marcadores[envioId] = { 
-                        vehiculo: marcadorVehiculo, 
-                        destino: marcadorDestino,
-                        ruta: lineaRutaCompleta,
-                        rutaRecorrida: lineaRutaRecorrida
-                    };
-                    
-                    // Ajustar mapa para mostrar la ruta
                     map.fitBounds(L.latLngBounds(rutaLeaflet), { padding: [50, 50] });
+                } else {
+                    map.setView(puntoInicial, 14);
                 }
             }
             
             // Unirse a la room de este envío para recibir actualizaciones
-            socket.emit('join', `envio-${envioId}`);
+            socket.emit('join', `envio-${idEnvio}`);
             
             // Mostrar notificación
-            mostrarNotificacion(`🚚 Envío ${envioId} ha iniciado la ruta`);
+            mostrarNotificacion(`🚚 Envío ${idEnvio} ha iniciado la ruta`);
             
             // Actualizar lista de envíos
             actualizarEnvios();
@@ -296,11 +316,29 @@ function inicializarWebSocket() {
 
         // Escuchar actualizaciones de posición en tiempo real
         socket.on('posicion-actualizada', (data) => {
-            console.log('📍 Posición actualizada:', data);
-            const { envioId, posicion, progreso } = data;
+            console.log('📍 Posición actualizada recibida:', data);
+            const { envioId, envioCodigo, posicion, progreso } = data;
+            
+            // Usar envioId o envioCodigo para identificar el envío
+            const idEnvio = envioId || envioCodigo;
+            
+            if (!idEnvio) {
+                console.error('⚠️ No se recibió envioId ni envioCodigo en posicion-actualizada');
+                return;
+            }
+            
+            // Si no existe el marcador, intentar crearlo
+            if (!marcadores[idEnvio] || !marcadores[idEnvio].vehiculo) {
+                console.log(`⚠️ Marcador no existe para envío ${idEnvio}, intentando crear...`);
+                // Buscar el envío en la lista para obtener sus datos
+                const envioData = buscarEnvioPorId(idEnvio);
+                if (envioData && posicion) {
+                    crearMarcadorDesdeSimulacion(idEnvio, envioData, posicion);
+                }
+            }
             
             // Actualizar posición del camión en el mapa instantáneamente
-            actualizarPosicionCamion(envioId, posicion, progreso);
+            actualizarPosicionCamion(idEnvio, posicion, progreso);
         });
 
         // Escuchar cuando un envío se completa
@@ -340,18 +378,29 @@ function inicializarWebSocket() {
 
 // Actualizar posición del camión en tiempo real (WebSocket)
 function actualizarPosicionCamion(envioId, posicion, progreso) {
-    const lat = posicion.latitude || posicion.lat;
-    const lng = posicion.longitude || posicion.lng;
+    console.log(`📍 Actualizando posición envío ${envioId}:`, { posicion, progreso });
     
-    if (!lat || !lng) return;
+    const lat = posicion?.latitude || posicion?.lat;
+    const lng = posicion?.longitude || posicion?.lng;
     
-    // Protección contra saltos hacia atrás (evitar teletransportes)
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        console.warn(`⚠️ Posición inválida para envío ${envioId}:`, posicion);
+        return;
+    }
+    
+    // Validar progreso
+    if (progreso === undefined || progreso === null || isNaN(progreso)) {
+        console.warn(`⚠️ Progreso inválido para envío ${envioId}:`, progreso);
+        progreso = 0; // Usar 0 como fallback
+    }
+    
+    // Protección contra saltos hacia atrás (evitar teletransportes) - solo si hay progreso previo
     if (ultimoProgresoWS[envioId] !== undefined && progreso < ultimoProgresoWS[envioId] - 0.05) {
         console.warn(`⚠️ Ignorando posición fuera de orden para envío ${envioId}: progreso ${progreso} < ${ultimoProgresoWS[envioId]}`);
         return;
     }
     
-    const nuevaPosicion = [lat, lng];
+    const nuevaPosicion = [parseFloat(lat), parseFloat(lng)];
     
     // Inicializar array de posiciones si no existe
     if (!posicionesWebSocket[envioId]) {
@@ -369,40 +418,131 @@ function actualizarPosicionCamion(envioId, posicion, progreso) {
     ultimaActualizacionWS[envioId] = Date.now();
     ultimoProgresoWS[envioId] = progreso;
     
-    // Si existe el marcador, moverlo
+    // Si existe el marcador, moverlo INMEDIATAMENTE
     if (marcadores[envioId] && marcadores[envioId].vehiculo) {
-        // Mover el camión a la nueva posición
-        marcadores[envioId].vehiculo.setLatLng(nuevaPosicion);
+        // Mover el camión a la nueva posición con animación suave
+        marcadores[envioId].vehiculo.setLatLng(nuevaPosicion, { animate: true, duration: 0.5 });
         
         // Actualizar la ruta recorrida SOLO con puntos del WebSocket (nunca mezclar con OSRM)
         if (marcadores[envioId].rutaRecorrida && posicionesWebSocket[envioId].length > 0) {
             marcadores[envioId].rutaRecorrida.setLatLngs(posicionesWebSocket[envioId]);
         }
         
-        // Actualizar popup
+        // Actualizar popup con información actualizada
+        const progresoPercent = Math.round(progreso * 100);
         marcadores[envioId].vehiculo.setPopupContent(
             `<b>🚚 Envío ${envioId}</b><br>
-             Progreso: ${Math.round(progreso * 100)}%<br>
+             Progreso: ${progresoPercent}%<br>
+             Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br>
              <small>🔴 En vivo</small>`
         );
+        
+        // Abrir popup automáticamente si está seleccionado
+        if (envioSeleccionado == envioId) {
+            marcadores[envioId].vehiculo.openPopup();
+        }
+        
+        console.log(`✅ Marcador actualizado para envío ${envioId} a posición [${lat}, ${lng}] - Progreso: ${progresoPercent}%`);
+    } else {
+        console.warn(`⚠️ No existe marcador para envío ${envioId}, intentando crear...`);
+        // Intentar crear el marcador si no existe
+        const envioData = buscarEnvioPorId(envioId);
+        if (envioData) {
+            crearMarcadorDesdeSimulacion(envioId, envioData, posicion);
+        }
     }
     
     // Actualizar barra de progreso si está seleccionado
     if (envioSeleccionado == envioId) {
         const progresoPercent = Math.round(progreso * 100);
-        document.getElementById('progress-bar').style.width = progresoPercent + '%';
-        document.getElementById('progress-bar').textContent = progresoPercent + '%';
-        document.getElementById('progreso-texto').textContent = progresoPercent + '%';
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progreso-texto');
+        if (progressBar) {
+            progressBar.style.width = progresoPercent + '%';
+            progressBar.textContent = progresoPercent + '%';
+        }
+        if (progressText) {
+            progressText.textContent = progresoPercent + '%';
+        }
     }
     
     // Actualizar timestamp
     const ahora = new Date();
-    document.getElementById('ultimo-update').textContent = 
-        'Última actualización: ' + ahora.toLocaleTimeString() + ' (en vivo)';
+    const ultimoUpdate = document.getElementById('ultimo-update');
+    if (ultimoUpdate) {
+        ultimoUpdate.textContent = 'Última actualización: ' + ahora.toLocaleTimeString() + ' (en vivo)';
+    }
     
     // Indicar conexión en vivo
-    document.getElementById('estado-conexion').className = 'badge badge-danger';
-    document.getElementById('estado-conexion').innerHTML = '<i class="fas fa-circle"></i> EN VIVO';
+    const estadoConexion = document.getElementById('estado-conexion');
+    if (estadoConexion) {
+        estadoConexion.className = 'badge badge-danger';
+        estadoConexion.innerHTML = '<i class="fas fa-circle"></i> EN VIVO';
+    }
+}
+
+// Buscar envío por ID o código
+function buscarEnvioPorId(envioId) {
+    // Buscar en la lista de envíos activos
+    const enTransito = document.querySelectorAll('[data-envio-id]');
+    for (const card of enTransito) {
+        if (card.dataset.envioId == envioId) {
+            return {
+                id: envioId,
+                codigo: card.dataset.envioCodigo || envioId,
+                destino_lat: parseFloat(card.dataset.destinoLat) || null,
+                destino_lng: parseFloat(card.dataset.destinoLng) || null,
+            };
+        }
+    }
+    return null;
+}
+
+// Crear marcador desde simulación si no existe
+function crearMarcadorDesdeSimulacion(envioId, envioData, posicionInicial) {
+    const lat = posicionInicial?.latitude || posicionInicial?.lat;
+    const lng = posicionInicial?.longitude || posicionInicial?.lng;
+    
+    if (!lat || !lng) {
+        console.warn(`⚠️ No se puede crear marcador sin posición inicial para envío ${envioId}`);
+        return;
+    }
+    
+    const puntoInicial = [parseFloat(lat), parseFloat(lng)];
+    const destino = envioData.destino_lat && envioData.destino_lng 
+        ? [envioData.destino_lat, envioData.destino_lng]
+        : puntoInicial;
+    
+    // Inicializar posiciones
+    if (!posicionesWebSocket[envioId]) {
+        posicionesWebSocket[envioId] = [puntoInicial];
+    }
+    
+    // Crear marcador del vehículo
+    const marcadorVehiculo = L.marker(puntoInicial, { icon: iconos.vehiculo })
+        .addTo(map)
+        .bindPopup(`<b>🚚 Envío ${envioData.codigo || envioId}</b><br>Iniciando ruta...<br><small>🔴 En vivo</small>`);
+    
+    // Crear marcador del destino
+    const marcadorDestino = L.marker(destino, { icon: iconos.destino })
+        .addTo(map)
+        .bindPopup(`<b>📦 Destino</b><br>Envío ${envioData.codigo || envioId}`);
+    
+    // Ruta recorrida (empezando con el punto inicial)
+    const lineaRutaRecorrida = L.polyline([puntoInicial], {
+        color: '#4CAF50',
+        weight: 6,
+        opacity: 0.9
+    }).addTo(map);
+    
+    marcadores[envioId] = { 
+        vehiculo: marcadorVehiculo, 
+        destino: marcadorDestino,
+        ruta: null,
+        rutaRecorrida: lineaRutaRecorrida
+    };
+    
+    console.log(`✅ Marcador creado para envío ${envioId} en posición [${lat}, ${lng}]`);
 }
 
 // Mostrar notificación
@@ -508,6 +648,11 @@ function renderizarListaEnvios(enTransito, esperando, cancelados) {
             
             html += `
                 <div class="envio-card mb-2 p-3 border rounded bg-info text-white ${claseNuevo} ${envioSeleccionado == envio.id ? 'activo' : ''}" 
+                     data-envio-id="${envio.id}"
+                     data-envio-codigo="${envio.codigo}"
+                     data-destino-lat="${envio.destino_lat || -17.78}"
+                     data-destino-lng="${envio.destino_lng || -63.18}"
+                     data-fecha-inicio="${envio.fecha_inicio_transito || ''}"
                      onclick="seleccionarEnvio(${envio.id}, '${envio.codigo}', ${envio.destino_lat || -17.78}, ${envio.destino_lng || -63.18}, this)">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
@@ -517,9 +662,9 @@ function renderizarListaEnvios(enTransito, esperando, cancelados) {
                             <p class="mb-1 small">📍 Destino: ${envio.direccion_completa || 'N/A'}</p>
                             ${envio.transportista_nombre ? `<p class="mb-0 small">👤 ${envio.transportista_nombre}</p>` : ''}
                             <div class="progress mt-2" style="height: 8px;">
-                                <div class="progress-bar bg-warning" style="width: ${Math.round(progreso * 100)}%"></div>
+                                <div id="progress-${envio.id}" class="progress-bar bg-warning" style="width: ${Math.round(progreso * 100)}%"></div>
                             </div>
-                            <small>${Math.round(progreso * 100)}% completado</small>
+                            <small id="progress-text-${envio.id}">${Math.round(progreso * 100)}% completado</small>
                         </div>
                         <button class="btn btn-sm btn-light" onclick="event.stopPropagation(); verEnMapa(${envio.id}, '${envio.codigo}', ${envio.destino_lat || -17.78}, ${envio.destino_lng || -63.18})">
                             <i class="fas fa-map-marker-alt"></i>
@@ -606,10 +751,10 @@ async function actualizarMapaConEnvios(enviosEnTransito) {
         for (const envio of enviosEnTransito) {
             const envioId = envio.id;
             
-            // Si hay actualizaciones recientes del WebSocket (menos de 5 segundos), NO tocar este envío
-            // El WebSocket maneja las actualizaciones en tiempo real
-            if (ultimaActualizacionWS[envioId] && (Date.now() - ultimaActualizacionWS[envioId]) < 5000) {
-                console.log(`⏭️ Envío ${envioId} tiene datos WebSocket recientes, saltando polling...`);
+            // PRIORIDAD: Si hay actualizaciones recientes del WebSocket (menos de 10 segundos), NO tocar este envío
+            // El WebSocket maneja las actualizaciones en tiempo real y tiene prioridad absoluta
+            if (ultimaActualizacionWS[envioId] && (Date.now() - ultimaActualizacionWS[envioId]) < 10000) {
+                console.log(`⏭️ Envío ${envioId} tiene datos WebSocket recientes (${Math.round((Date.now() - ultimaActualizacionWS[envioId])/1000)}s), saltando polling...`);
                 continue;
             }
             
@@ -619,7 +764,7 @@ async function actualizarMapaConEnvios(enviosEnTransito) {
                 continue;
             }
             
-            // Si ya tiene marcadores del WebSocket, no recrear
+            // Si ya tiene marcadores del WebSocket con posiciones, no recrear
             const tieneDataWebSocket = posicionesWebSocket[envioId] && posicionesWebSocket[envioId].length > 0;
             if (marcadores[envioId] && marcadores[envioId].vehiculo && tieneDataWebSocket) {
                 console.log(`⏭️ Envío ${envioId} ya tiene marcador con datos WebSocket, saltando...`);
