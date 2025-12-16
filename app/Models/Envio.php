@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use App\Models\Incidente;
 
 class Envio extends Model
 {
@@ -117,6 +118,11 @@ class Envio extends Model
     public function pedidoAlmacen()
     {
         return $this->belongsTo(PedidoAlmacen::class, 'pedido_almacen_id');
+    }
+
+    public function incidentes()
+    {
+        return $this->hasMany(Incidente::class);
     }
     
     // Helper para obtener la planta (origen)

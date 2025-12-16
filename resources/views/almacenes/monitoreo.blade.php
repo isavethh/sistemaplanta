@@ -569,8 +569,6 @@ function iniciarActualizacionAutomatica() {
     }, 2000); // Cada 2 segundos
 }
 
-let intervaloProgreso = null;
-
 function actualizarProgresoEnviosActivos() {
     // Actualizar progreso de envíos que están en tránsito
     Object.keys(marcadores).forEach(envioId => {

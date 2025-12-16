@@ -179,7 +179,7 @@ class EnvioController extends Controller
         }
         
         $planta = Almacen::where('es_planta', true)->first();
-        $envio->load(['productos', 'almacenDestino', 'asignacion.transportista', 'asignacion.vehiculo', 'pedidoAlmacen']);
+        $envio->load(['productos', 'almacenDestino', 'asignacion.transportista', 'asignacion.vehiculo', 'pedidoAlmacen', 'incidentes.transportista']);
         return view('envios.show', compact('envio', 'planta'));
     }
 

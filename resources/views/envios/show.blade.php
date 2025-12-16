@@ -193,10 +193,10 @@
         </div>
 
         <!-- Incidentes Reportados -->
+        @if($envio->incidentes && $envio->incidentes->count() > 0)
         @php
-            $incidentes = DB::table('incidentes')->where('envio_id', $envio->id)->get();
+            $incidentes = $envio->incidentes;
         @endphp
-        @if($incidentes->count() > 0)
         <div class="card shadow mt-3">
             <div class="card-header bg-gradient-danger">
                 <h3 class="card-title text-white"><i class="fas fa-exclamation-triangle"></i> Incidentes Reportados ({{ $incidentes->count() }})</h3>
@@ -220,21 +220,40 @@
                                 <i class="fas fa-exclamation-circle"></i> 
                                 {{ $tiposTexto[$incidente->tipo_incidente] ?? $incidente->tipo_incidente }}
                             </strong>
-                            <span class="badge badge-{{ $incidente->estado == 'resuelto' ? 'success' : ($incidente->estado == 'en_proceso' ? 'warning' : 'danger') }} ml-2">
-                                {{ strtoupper($incidente->estado) }}
+                            <span class="badge badge-{{ $incidente->estado == 'resuelto' ? 'success' : ($incidente->estado == 'en_revision' ? 'warning' : 'danger') }} ml-2">
+                                {{ strtoupper($incidente->estado ?? 'pendiente') }}
                             </span>
                         </div>
-                        <small class="text-muted">{{ \Carbon\Carbon::parse($incidente->fecha_reporte)->format('d/m/Y H:i') }}</small>
+                        <small class="text-muted">
+                            @if($incidente->fecha_reporte)
+                                {{ \Carbon\Carbon::parse($incidente->fecha_reporte)->format('d/m/Y H:i') }}
+                            @elseif($incidente->created_at)
+                                {{ \Carbon\Carbon::parse($incidente->created_at)->format('d/m/Y H:i') }}
+                            @else
+                                Fecha no disponible
+                            @endif
+                        </small>
                     </div>
                     <hr class="my-2">
-                    <p class="mb-2"><strong>Descripción del almacén:</strong></p>
+                    <p class="mb-2"><strong>Descripción:</strong></p>
                     <p class="mb-2" style="background: #fff; padding: 10px; border-radius: 5px; border-left: 4px solid #dc3545;">
-                        {{ $incidente->descripcion }}
+                        {{ $incidente->descripcion ?? 'Sin descripción' }}
                     </p>
                     @if($incidente->foto_url)
                     <p class="mb-1">
-                        <a href="http://10.26.10.192:8001{{ $incidente->foto_url }}" target="_blank" class="btn btn-sm btn-info">
-                            <i class="fas fa-camera"></i> Ver Foto de Evidencia
+                        @php
+                            $fotoUrl = asset('storage/' . $incidente->foto_url);
+                        @endphp
+                        <img src="{{ $fotoUrl }}" alt="Foto de evidencia" class="img-fluid img-thumbnail mb-2" style="max-height: 300px; cursor: pointer;" onclick="window.open('{{ $fotoUrl }}', '_blank')" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <p style="display:none;" class="text-danger">
+                            <i class="fas fa-exclamation-triangle"></i> No se pudo cargar la imagen. 
+                            <a href="{{ $fotoUrl }}" target="_blank" class="btn btn-sm btn-warning">
+                                <i class="fas fa-download"></i> Intentar descargar
+                            </a>
+                        </p>
+                        <br>
+                        <a href="{{ $fotoUrl }}" target="_blank" class="btn btn-sm btn-info mt-2">
+                            <i class="fas fa-camera"></i> Ver Foto Completa
                         </a>
                     </p>
                     @endif
