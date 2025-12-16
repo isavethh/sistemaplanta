@@ -16,6 +16,15 @@ use Illuminate\Support\Facades\Http;
 class EnvioController extends Controller
 {
     /**
+     * URL de la API Node.js
+     */
+    protected $nodeApiUrl;
+
+    public function __construct()
+    {
+        $this->nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
+    }
+    /**
      * Obtener envío por ID con todos sus detalles
      * GET /api/envios/{id}
      */
@@ -155,6 +164,14 @@ class EnvioController extends Controller
             } catch (\Exception $e) {
                 Log::warning("No se pudo notificar aceptación a almacenes: " . $e->getMessage());
                 // No fallar la aceptación si la notificación falla
+            }
+
+            // Sincronizar con API Node.js (bomberos.dasalas.shop)
+            try {
+                $this->sincronizarEstadoConNodeJS($envio);
+            } catch (\Exception $e) {
+                Log::warning("No se pudo sincronizar con Node.js: " . $e->getMessage());
+                // No fallar la aceptación si la sincronización falla
             }
 
             return response()->json([
@@ -307,22 +324,73 @@ class EnvioController extends Controller
     /**
      * Iniciar envío (cambiar a en_transito)
      * POST /api/envios/{id}/iniciar
+     * Solo puede iniciarse si el envío está en estado 'aceptado'
      */
     public function iniciar($id)
     {
         try {
-            $envio = Envio::findOrFail($id);
+            $envio = Envio::with(['almacenDestino', 'asignacion.transportista', 'asignacion.vehiculo'])
+                ->findOrFail($id);
+
+            // Validar que el envío esté en estado 'aceptado' para poder iniciarlo
+            if ($envio->estado !== 'aceptado') {
+                return response()->json([
+                    'success' => false,
+                    'error' => "El envío no puede iniciarse. Estado actual: {$envio->estado}. Debe estar en estado 'aceptado' para poder iniciar.",
+                    'estado_actual' => $envio->estado,
+                    'estado_requerido' => 'aceptado'
+                ], 400, [
+                    'Content-Type' => 'application/json',
+                    'Access-Control-Allow-Origin' => '*',
+                ]);
+            }
+
+            // Iniciar el envío (cambiar a en_transito)
             $envio->iniciarTransito();
+
+            Log::info('Envío iniciado por transportista', [
+                'envio_id' => $envio->id,
+                'codigo' => $envio->codigo,
+                'transportista' => $envio->asignacion->transportista->name ?? 'N/A',
+                'fecha_inicio' => $envio->fecha_inicio_transito,
+            ]);
+
+            // Sincronizar con API Node.js (bomberos.dasalas.shop)
+            try {
+                $this->sincronizarEstadoConNodeJS($envio);
+            } catch (\Exception $e) {
+                Log::warning("No se pudo sincronizar con Node.js: " . $e->getMessage());
+                // No fallar el inicio si la sincronización falla
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Envío iniciado correctamente',
-                'envio' => $envio
+                'message' => 'Envío iniciado correctamente. Ahora está en tránsito.',
+                'envio' => [
+                    'id' => $envio->id,
+                    'codigo' => $envio->codigo,
+                    'estado' => $envio->estado,
+                    'fecha_inicio_transito' => $envio->fecha_inicio_transito,
+                ]
+            ], 200, [
+                'Content-Type' => 'application/json',
+                'Access-Control-Allow-Origin' => '*',
             ]);
         } catch (\Exception $e) {
+            Log::error('Error al iniciar envío', [
+                'envio_id' => $id,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            
             return response()->json([
+                'success' => false,
                 'error' => 'Error al iniciar envío: ' . $e->getMessage()
-            ], 500);
+            ], 500, [
+                'Content-Type' => 'application/json',
+                'Access-Control-Allow-Origin' => '*',
+            ]);
         }
     }
 
@@ -590,6 +658,47 @@ class EnvioController extends Controller
             return response()->json([
                 'error' => 'Error al obtener seguimiento: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Sincronizar estado con API Node.js (bomberos.dasalas.shop)
+     */
+    private function sincronizarEstadoConNodeJS(Envio $envio)
+    {
+        try {
+            $response = Http::timeout(5)->put("{$this->nodeApiUrl}/envios/{$envio->codigo}/estado", [
+                'estado_nombre' => $envio->estado,
+                'fecha_inicio_transito' => $envio->fecha_inicio_transito ? $envio->fecha_inicio_transito->toIso8601String() : null,
+                'fecha_aceptacion' => $envio->asignacion && $envio->asignacion->fecha_aceptacion 
+                    ? $envio->asignacion->fecha_aceptacion->toIso8601String() 
+                    : null,
+            ]);
+
+            if ($response->successful()) {
+                Log::info('Estado de envío sincronizado con Node.js', [
+                    'envio_id' => $envio->id,
+                    'codigo' => $envio->codigo,
+                    'estado' => $envio->estado,
+                ]);
+            } else {
+                Log::warning('Error al sincronizar estado con Node.js', [
+                    'envio_id' => $envio->id,
+                    'codigo' => $envio->codigo,
+                    'estado' => $envio->estado,
+                    'response_status' => $response->status(),
+                    'response_body' => $response->body(),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error al sincronizar estado con Node.js', [
+                'envio_id' => $envio->id,
+                'codigo' => $envio->codigo,
+                'estado' => $envio->estado,
+                'error' => $e->getMessage(),
+                'node_api_url' => $this->nodeApiUrl,
+            ]);
+            // No lanzar excepción, solo loguear el error
         }
     }
 

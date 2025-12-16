@@ -24,7 +24,7 @@ class EnvioApiController extends Controller
 
     public function __construct()
     {
-        $this->nodeApiUrl = env('NODE_API_URL', 'http://localhost:3000/api');
+        $this->nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
     }
 
     /**

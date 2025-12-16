@@ -14,7 +14,7 @@ class RutaApiController extends Controller
      */
     public function enviosActivos()
     {
-        // Envíos en tránsito (solo los que empiezan con "P")
+        // Envíos en tránsito (todos los envíos activos)
         $enTransito = DB::select("
             SELECT 
                 e.id,
@@ -33,11 +33,10 @@ class RutaApiController extends Controller
             LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
             LEFT JOIN users u ON v.transportista_id = u.id
             WHERE e.estado = 'en_transito'
-                AND e.codigo LIKE 'P%'
             ORDER BY e.fecha_inicio_transito DESC
         ");
         
-        // Envíos esperando inicio (asignados o aceptados) - solo los que empiezan con "P"
+        // Envíos esperando inicio (asignados o aceptados) - "Esperando inicio"
         $esperando = DB::select("
             SELECT 
                 e.id,
@@ -46,18 +45,18 @@ class RutaApiController extends Controller
                 a.nombre as almacen_nombre,
                 a.latitud as destino_lat,
                 a.longitud as destino_lng,
-                u.name as transportista_nombre
+                u.name as transportista_nombre,
+                ea.fecha_aceptacion
             FROM envios e
             LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
             LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
             LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
             LEFT JOIN users u ON v.transportista_id = u.id
             WHERE e.estado IN ('asignado', 'aceptado')
-                AND e.codigo LIKE 'P%'
             ORDER BY e.created_at DESC
         ");
         
-        // Envíos cancelados por incidente (últimos 7 días) - solo los que empiezan con "P"
+        // Envíos cancelados por incidente (últimos 7 días)
         $cancelados = DB::select("
             SELECT 
                 e.id,
@@ -79,7 +78,6 @@ class RutaApiController extends Controller
             LEFT JOIN users u ON v.transportista_id = u.id
             LEFT JOIN incidentes i ON e.id = i.envio_id AND i.accion = 'cancelar'
             WHERE e.estado = 'cancelado' 
-                AND e.codigo LIKE 'P%'
                 AND e.updated_at >= NOW() - INTERVAL '7 days'
             ORDER BY e.updated_at DESC
             LIMIT 50

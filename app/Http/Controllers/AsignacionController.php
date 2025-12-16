@@ -113,6 +113,14 @@ class AsignacionController extends Controller
             
             \Log::info("✅ Envío {$envio->codigo} asignado a transportista {$transportista->name}");
             
+            // Sincronizar con API Node.js (bomberos.dasalas.shop)
+            try {
+                $this->sincronizarEnvioConNodeJS($envio);
+            } catch (\Exception $e) {
+                \Log::warning("No se pudo sincronizar asignación con Node.js: " . $e->getMessage());
+                // No fallar la asignación si la sincronización falla
+            }
+            
             return back()->with('success', "✅ Envío {$envio->codigo} asignado correctamente a {$transportista->name}. El transportista podrá verlo en la app móvil.");
         } catch (\Exception $e) {
             DB::rollBack();
@@ -173,7 +181,7 @@ class AsignacionController extends Controller
                 'vehiculo_id' => $envio->asignacion->vehiculo_id ?? null,
             ];
 
-            $nodeApiUrl = env('NODE_API_URL', 'http://localhost:3000/api');
+            $nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
             
             $ch = curl_init($nodeApiUrl . '/envios/sync');
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
