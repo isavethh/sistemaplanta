@@ -22,13 +22,13 @@ class AsignacionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $enviosAsignados = Envio::with(['almacenDestino', 'asignacion.transportista', 'asignacion.vehiculo'])
+        $enviosAsignados = Envio::with(['almacenDestino', 'asignacion.vehiculo.transportista', 'asignacion.vehiculo'])
             ->whereIn('estado', ['asignado', 'aceptado'])
             ->orderBy('updated_at', 'desc')
             ->get();
 
         // NUEVO: Envíos rechazados para que el admin los vea
-        $enviosRechazados = Envio::with(['almacenDestino', 'asignacion.transportista', 'asignacion.vehiculo'])
+        $enviosRechazados = Envio::with(['almacenDestino', 'asignacion.vehiculo.transportista', 'asignacion.vehiculo'])
             ->where('estado', 'rechazado')
             ->orderBy('fecha_rechazo', 'desc')
             ->get();
@@ -76,6 +76,15 @@ class AsignacionController extends Controller
                 return back()->with('error', 'El transportista seleccionado no es válido.');
             }
 
+            // Verificar que el vehículo exista
+            $vehiculo = Vehiculo::findOrFail($request->vehiculo_id);
+            
+            // Asignar el transportista al vehículo si no lo tiene o es diferente
+            if (!$vehiculo->transportista_id || $vehiculo->transportista_id != $request->transportista_id) {
+                $vehiculo->update(['transportista_id' => $request->transportista_id]);
+                \Log::info("✅ Transportista {$transportista->name} (ID: {$request->transportista_id}) asignado al vehículo {$vehiculo->placa}");
+            }
+
             // Verificar que el vehículo no esté ocupado
             $vehiculoOcupado = EnvioAsignacion::whereHas('envio', function($query) {
                 $query->whereIn('estado', ['asignado', 'aceptado', 'en_transito']);
@@ -86,10 +95,9 @@ class AsignacionController extends Controller
                 return back()->with('error', 'El vehículo seleccionado ya está asignado a otro envío activo.');
             }
 
-            // Crear asignación
+            // Crear asignación (solo guardar vehiculo_id, el transportista se obtiene a través del vehículo)
             $asignacion = EnvioAsignacion::create([
                 'envio_id' => $request->envio_id,
-                'transportista_id' => $request->transportista_id,
                 'vehiculo_id' => $request->vehiculo_id,
                 'fecha_asignacion' => now(),
             ]);

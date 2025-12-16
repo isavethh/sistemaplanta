@@ -1,0 +1,242 @@
+{
+  "info": {
+    "name": "plantaCruds - Envíos desde Trazabilidad",
+    "description": "Colección de requests para crear y gestionar envíos desde Trazabilidad",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Crear Envío desde Trazabilidad (Pedido Almacén)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"codigo\": \"PED-TRAZ-12345\",\n  \"almacen_destino\": \"Almacén Centro\",\n  \"almacen_destino_lat\": -17.7892,\n  \"almacen_destino_lng\": -63.1751,\n  \"almacen_destino_direccion\": \"Av. Principal #123, Santa Cruz\",\n  \"origen\": \"trazabilidad\",\n  \"origen_lat\": -17.7833,\n  \"origen_lng\": -63.1821,\n  \"origen_direccion\": \"Planta Trazabilidad\",\n  \"fecha_requerida\": \"2025-12-20\",\n  \"hora_requerida\": \"14:00\",\n  \"observaciones\": \"Pedido urgente desde Trazabilidad\",\n  \"total_cantidad\": 80,\n  \"total_peso\": 19.5,\n  \"total_precio\": 395.00,\n  \"productos\": [\n    {\n      \"producto_nombre\": \"Tomate\",\n      \"cantidad\": 50,\n      \"peso_unitario\": 0.2,\n      \"precio_unitario\": 5.50,\n      \"total_peso\": 10.0,\n      \"total_precio\": 275.00\n    },\n    {\n      \"producto_nombre\": \"Lechuga\",\n      \"cantidad\": 30,\n      \"peso_unitario\": 0.3,\n      \"precio_unitario\": 4.00,\n      \"total_peso\": 9.0,\n      \"total_precio\": 120.00\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pedido-almacen",
+          "host": ["{{base_url}}"],
+          "path": ["pedido-almacen"]
+        },
+        "description": "Crea un envío desde Trazabilidad usando la ruta especial de pedidos de almacén"
+      }
+    },
+    {
+      "name": "2. Crear Envío Estándar (REST API)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"almacen_destino_id\": 1,\n  \"categoria\": \"Verduras\",\n  \"fecha_estimada_entrega\": \"2025-12-20\",\n  \"hora_estimada\": \"14:00\",\n  \"observaciones\": \"Envío desde Trazabilidad - Pedido #12345\",\n  \"origen\": \"trazabilidad\",\n  \"numero_pedido_trazabilidad\": \"PED-12345\",\n  \"productos\": [\n    {\n      \"producto_nombre\": \"Tomate\",\n      \"cantidad\": 50,\n      \"peso_kg\": 0.2,\n      \"precio\": 5.50\n    },\n    {\n      \"producto_nombre\": \"Lechuga\",\n      \"cantidad\": 30,\n      \"peso_kg\": 0.3,\n      \"precio\": 4.00\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/envios",
+          "host": ["{{base_url}}"],
+          "path": ["envios"]
+        },
+        "description": "Crea un envío usando la ruta REST estándar"
+      }
+    },
+    {
+      "name": "3. Obtener Envío por ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/envios/{{envio_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["envios", "{{envio_id}}"]
+        },
+        "description": "Obtiene los detalles de un envío específico"
+      }
+    },
+    {
+      "name": "4. Obtener Propuesta de Vehículos (PDF)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/envios/{{envio_id}}/propuesta-vehiculos-pdf",
+          "host": ["{{base_url}}"],
+          "path": ["envios", "{{envio_id}}", "propuesta-vehiculos-pdf"]
+        },
+        "description": "Descarga el PDF con la propuesta de vehículos para el envío"
+      }
+    },
+    {
+      "name": "5. Aprobar Propuesta de Vehículos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion\": \"aprobar\",\n  \"observaciones\": \"Propuesta aprobada, proceder con asignación de transportista\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/envios/{{envio_id}}/aprobar-rechazar",
+          "host": ["{{base_url}}"],
+          "path": ["envios", "{{envio_id}}", "aprobar-rechazar"]
+        },
+        "description": "Aprueba la propuesta de vehículos y cambia el estado del envío a 'pendiente'"
+      }
+    },
+    {
+      "name": "6. Rechazar Propuesta de Vehículos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion\": \"rechazar\",\n  \"observaciones\": \"Rechazado por falta de vehículos disponibles\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/envios/{{envio_id}}/aprobar-rechazar",
+          "host": ["{{base_url}}"],
+          "path": ["envios", "{{envio_id}}", "aprobar-rechazar"]
+        },
+        "description": "Rechaza la propuesta de vehículos y cancela el envío"
+      }
+    },
+    {
+      "name": "7. Listar Todos los Envíos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/envios",
+          "host": ["{{base_url}}"],
+          "path": ["envios"]
+        },
+        "description": "Obtiene la lista de todos los envíos"
+      }
+    },
+    {
+      "name": "8. Actualizar Estado del Envío",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado\": \"asignado\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/envios/{{envio_id}}/estado",
+          "host": ["{{base_url}}"],
+          "path": ["envios", "{{envio_id}}", "estado"]
+        },
+        "description": "Actualiza el estado de un envío"
+      }
+    },
+    {
+      "name": "9. Obtener Envío por Código QR",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/envios/qr/{{codigo_envio}}",
+          "host": ["{{base_url}}"],
+          "path": ["envios", "qr", "{{codigo_envio}}"]
+        },
+        "description": "Obtiene un envío por su código (útil para escanear QR)"
+      }
+    },
+    {
+      "name": "10. Ping - Verificar API",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/ping",
+          "host": ["{{base_url}}"],
+          "path": ["ping"]
+        },
+        "description": "Verifica que la API esté funcionando"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://bomberos.dasalas.shop/api",
+      "type": "string"
+    },
+    {
+      "key": "envio_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "codigo_envio",
+      "value": "ENV-251216-ABC123",
+      "type": "string"
+    }
+  ]
+}
+

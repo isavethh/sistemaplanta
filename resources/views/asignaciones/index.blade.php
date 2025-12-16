@@ -237,9 +237,9 @@
                             </td>
                             <td>
                                 <i class="fas fa-user"></i> 
-                                {{ $envio->asignacion && $envio->asignacion->transportista ? $envio->asignacion->transportista->name : 'N/A' }}
-                                @if($envio->asignacion && $envio->asignacion->transportista && $envio->asignacion->transportista->licencia)
-                                    <br><small class="text-muted">Lic: {{ $envio->asignacion->transportista->licencia }}</small>
+                                {{ $envio->asignacion && $envio->asignacion->vehiculo && $envio->asignacion->vehiculo->transportista ? $envio->asignacion->vehiculo->transportista->name : 'N/A' }}
+                                @if($envio->asignacion && $envio->asignacion->vehiculo && $envio->asignacion->vehiculo->transportista && $envio->asignacion->vehiculo->transportista->licencia)
+                                    <br><small class="text-muted">Lic: {{ $envio->asignacion->vehiculo->transportista->licencia }}</small>
                                 @endif
                             </td>
                             <td>
@@ -323,7 +323,7 @@
                             </td>
                             <td>
                                 <i class="fas fa-user text-warning"></i> 
-                                {{ $envio->asignacion && $envio->asignacion->transportista ? $envio->asignacion->transportista->name : 'N/A' }}
+                                {{ $envio->asignacion && $envio->asignacion->vehiculo && $envio->asignacion->vehiculo->transportista ? $envio->asignacion->vehiculo->transportista->name : 'N/A' }}
                             </td>
                             <td>
                                 <small>{{ $envio->motivo_rechazo ?? 'Sin motivo' }}</small>
