@@ -265,36 +265,64 @@
         transform: scale(1.02);
     }
     
-    /* Prevenir movimiento del modal en hover */
-    .modal.show .modal-dialog,
-    .modal.show .modal-content,
-    .modal.show .modal-header,
-    .modal.show .modal-body,
-    .modal.show .modal-footer,
-    .modal.show .modal-dialog:hover,
-    .modal.show .modal-content:hover,
-    .modal.show .modal-header:hover,
-    .modal.show .modal-body:hover,
-    .modal.show .modal-footer:hover {
+    /* SOLUCIÓN COMPLETA: Prevenir cualquier movimiento del modal */
+    body.modal-open .modal[id^="modalResolver"] {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        z-index: 1055 !important;
+        overflow: hidden !important;
+    }
+    
+    body.modal-open .modal[id^="modalResolver"] .modal-dialog {
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        margin: 0 !important;
+        transform: translate(-50%, -50%) !important;
+        max-width: 500px !important;
+        width: 90% !important;
+        pointer-events: auto !important;
+    }
+    
+    body.modal-open .modal[id^="modalResolver"].show .modal-dialog {
+        transform: translate(-50%, -50%) !important;
+    }
+    
+    body.modal-open .modal[id^="modalResolver"].fade .modal-dialog {
+        transition: opacity .15s linear !important;
+        transform: translate(-50%, -50%) !important;
+    }
+    
+    /* Prevenir TODAS las transformaciones en hover - aplica a TODO dentro del modal */
+    body.modal-open .modal[id^="modalResolver"] *,
+    body.modal-open .modal[id^="modalResolver"] *:hover,
+    body.modal-open .modal[id^="modalResolver"] *:focus,
+    body.modal-open .modal[id^="modalResolver"] *:active {
+        transform: inherit !important;
+        transition: none !important;
+        will-change: auto !important;
+    }
+    
+    /* Override específico para elementos comunes que pueden tener transform */
+    body.modal-open .modal[id^="modalResolver"] .btn,
+    body.modal-open .modal[id^="modalResolver"] .btn:hover,
+    body.modal-open .modal[id^="modalResolver"] .btn:focus,
+    body.modal-open .modal[id^="modalResolver"] .card,
+    body.modal-open .modal[id^="modalResolver"] .card:hover {
         transform: none !important;
-        position: relative !important;
+        translate: none !important;
+        scale: none !important;
+        rotate: none !important;
     }
     
-    /* Prevenir cualquier transformación en hover para elementos dentro del modal cuando está visible */
-    .modal.show [id^="modalResolver"] .modal-content *:hover,
-    .modal.show [id^="modalResolver"] .modal-content:hover,
-    .modal.show [id^="modalResolver"] .modal-dialog:hover {
-        transform: none !important;
-    }
-    
-    /* Mantener la animación de apertura del modal */
-    .modal.fade .modal-dialog {
-        transition: transform .3s ease-out;
-        transform: translate(0, -50px);
-    }
-    
-    .modal.show .modal-dialog {
-        transform: none;
+    /* Asegurar que el modal-dialog específicamente NO se mueva */
+    body.modal-open .modal[id^="modalResolver"] .modal-dialog,
+    body.modal-open .modal[id^="modalResolver"] .modal-dialog:hover,
+    body.modal-open .modal[id^="modalResolver"] .modal-dialog:focus {
+        transform: translate(-50%, -50%) !important;
     }
 </style>
 @endsection

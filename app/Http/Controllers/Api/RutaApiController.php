@@ -206,6 +206,14 @@ class RutaApiController extends Controller
      */
     public function enviosActivosPropietario()
     {
+        // Verificar autenticación usando la sesión web (ya que se accede desde la web)
+        if (!auth()->check()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No autenticado. Por favor, inicia sesión.'
+            ], 401);
+        }
+        
         $user = auth()->user();
         
         if (!$user || !method_exists($user, 'esPropietario') || !$user->esPropietario()) {
@@ -216,7 +224,12 @@ class RutaApiController extends Controller
         }
 
         // Obtener IDs de todos los almacenes del propietario
-        $almacenesIds = \App\Models\Almacen::where('usuario_almacen_id', $user->id)
+        // Un propietario puede tener almacenes asociados directamente o a través de pedidos
+        $almacenesIds = \App\Models\Almacen::where(function($query) use ($user) {
+                // Almacenes donde el usuario es el propietario directo
+                $query->where('usuario_propietario_id', $user->id)
+                      ->orWhere('usuario_almacen_id', $user->id);
+            })
             ->where('es_planta', false)
             ->where('activo', true)
             ->pluck('id')
