@@ -38,8 +38,20 @@ class RoleFilter implements FilterInterface
 
         $user = Auth::user();
 
+        // Si el item tiene la propiedad 'exclude_admin', ocultarlo para admin
+        if (isset($item['exclude_admin']) && $item['exclude_admin'] === true) {
+            if ($user->hasRole('admin')) {
+                return true; // Restringir para admin
+            }
+        }
+
         // Super users should see everything (admin, administrador, super-admin)
+        // EXCEPTO los elementos marcados como solo para operador (sin otros roles)
         if ($user->hasRole('super-admin') || $user->hasRole('administrador') || $user->hasRole('admin')) {
+            // Si el item está marcado solo para operador, ocultarlo para admin
+            if (!empty($item['role']) && $item['role'] === 'operador' && !isset($item['show_to_admin'])) {
+                return true; // Restringir elementos solo de operador para admin
+            }
             return false;
         }
 

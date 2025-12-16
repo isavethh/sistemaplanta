@@ -492,6 +492,7 @@ return [
             'icon_color' => 'warning',
             'role' => 'propietario',
             'url' => 'pedidos-almacen?estado=enviado_trazabilidad',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         [
             'text' => 'Pedidos Aceptados',
@@ -500,6 +501,7 @@ return [
             'icon_color' => 'success',
             'role' => 'propietario',
             'url' => 'pedidos-almacen?estado=propuesta_aceptada',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         [
             'text' => 'Pedidos Entregados',
