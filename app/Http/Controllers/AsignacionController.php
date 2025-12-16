@@ -187,9 +187,11 @@ class AsignacionController extends Controller
 
             $data = [
                 'laravel_envio_id' => $envio->id,
-                'codigo' => $envio->codigo,
+                'codigo' => $envio->codigo ?? 'N/A',
                 'almacen_destino_id' => $envio->almacen_destino_id,
                 'almacen_destino_nombre' => $envio->almacenDestino->nombre ?? null,
+                'almacen_nombre' => $envio->almacenDestino->nombre ?? null, // Para compatibilidad con app móvil
+                'direccion_completa' => $envio->almacenDestino->direccion_completa ?? null, // Para compatibilidad con app móvil
                 'fecha_estimada_entrega' => $envio->fecha_estimada_entrega,
                 'hora_estimada' => $envio->hora_estimada,
                 'estado' => $envio->estado,

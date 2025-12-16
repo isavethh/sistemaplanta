@@ -458,11 +458,39 @@ class EnvioApiController extends Controller
         $envioData['destino_latitud'] = $envio->almacenDestino->latitud ?? $envio->latitud ?? -17.7892;
         $envioData['destino_longitud'] = $envio->almacenDestino->longitud ?? $envio->longitud ?? -63.1751;
 
+        // Asegurar que el código siempre esté presente
+        if (empty($envioData['codigo'])) {
+            $envioData['codigo'] = $envio->codigo ?? 'N/A';
+        }
+
+        // Agregar campos que espera la app móvil (normalizar nombres)
+        // La app móvil espera: almacen_nombre y direccion_completa
+        $envioData['almacen_nombre'] = $envio->almacenDestino->nombre ?? ($envioData['almacen_destino']['nombre'] ?? 'Sin especificar');
+        $envioData['direccion_completa'] = $envio->almacenDestino->direccion_completa ?? ($envioData['almacen_destino']['direccion_completa'] ?? '');
+        $envioData['direccion_nombre'] = $envio->almacenDestino->direccion_completa ?? ($envioData['almacen_destino']['direccion_completa'] ?? '');
+        
+        // Agregar dirección de origen (planta)
+        $envioData['origen_direccion'] = $planta->direccion_completa ?? $planta->nombre ?? 'Planta Principal';
+
+        // Asegurar que los datos del almacén destino estén en el nivel raíz para fácil acceso
+        if (isset($envioData['almacen_destino']) && is_array($envioData['almacen_destino'])) {
+            // Mantener la estructura anidada pero también agregar campos planos
+            $envioData['almacen_destino_id'] = $envioData['almacen_destino']['id'] ?? $envio->almacen_destino_id;
+            $envioData['almacen_destino_nombre'] = $envioData['almacen_destino']['nombre'] ?? $envioData['almacen_nombre'];
+            $envioData['almacen_destino_direccion'] = $envioData['almacen_destino']['direccion_completa'] ?? $envioData['direccion_completa'];
+        }
+
         return response()->json([
             'success' => true,
             'data' => $envioData,
-            'estado' => $envio->estado, // Asegurar que estado esté presente
-            'estado_nombre' => $envioData['estado_nombre'], // Asegurar que estado_nombre esté presente
+            // También devolver campos en el nivel raíz para compatibilidad
+            'id' => $envio->id,
+            'codigo' => $envioData['codigo'],
+            'estado' => $envio->estado,
+            'estado_nombre' => $envioData['estado_nombre'],
+            'almacen_nombre' => $envioData['almacen_nombre'],
+            'direccion_completa' => $envioData['direccion_completa'],
+            'direccion_nombre' => $envioData['direccion_nombre'],
             'qr_code' => $qr ? ($qr->qr_image ?? null) : null
         ], 200, [
             'Content-Type' => 'application/json',
@@ -494,9 +522,30 @@ class EnvioApiController extends Controller
         // Buscar QR si existe
         $qr = CodigoQR::where('codigo', $codigo)->first();
 
+        // Normalizar datos para la app móvil
+        $envioData = $envio->toArray();
+        
+        // Asegurar que el código siempre esté presente
+        if (empty($envioData['codigo'])) {
+            $envioData['codigo'] = $envio->codigo ?? 'N/A';
+        }
+
+        // Agregar campos que espera la app móvil
+        $envioData['almacen_nombre'] = $envio->almacenDestino->nombre ?? ($envioData['almacen_destino']['nombre'] ?? 'Sin especificar');
+        $envioData['direccion_completa'] = $envio->almacenDestino->direccion_completa ?? ($envioData['almacen_destino']['direccion_completa'] ?? '');
+        $envioData['direccion_nombre'] = $envio->almacenDestino->direccion_completa ?? ($envioData['almacen_destino']['direccion_completa'] ?? '');
+        
+        // Agregar dirección de origen (planta)
+        $planta = \App\Models\Almacen::where('es_planta', true)->first();
+        $envioData['origen_direccion'] = $planta->direccion_completa ?? $planta->nombre ?? 'Planta Principal';
+
         return response()->json([
             'success' => true,
-            'data' => $envio,
+            'data' => $envioData,
+            // También devolver campos en el nivel raíz para compatibilidad
+            'codigo' => $envioData['codigo'],
+            'almacen_nombre' => $envioData['almacen_nombre'],
+            'direccion_completa' => $envioData['direccion_completa'],
             'qr_code' => $qr ? ('data:image/png;base64,' . $qr->qr_image) : null
         ]);
     }
@@ -583,10 +632,15 @@ class EnvioApiController extends Controller
     private function sincronizarConNodeJS($envio)
     {
         try {
+            $envio->load('almacenDestino');
+            
             $response = Http::timeout(5)->post("{$this->nodeApiUrl}/envios/sync", [
                 'laravel_envio_id' => $envio->id,
-                'codigo' => $envio->codigo,
+                'codigo' => $envio->codigo ?? 'N/A',
                 'almacen_destino_id' => $envio->almacen_destino_id,
+                'almacen_destino_nombre' => $envio->almacenDestino->nombre ?? null,
+                'almacen_nombre' => $envio->almacenDestino->nombre ?? null, // Para compatibilidad con app móvil
+                'direccion_completa' => $envio->almacenDestino->direccion_completa ?? null, // Para compatibilidad con app móvil
                 'estado' => $envio->estado,
                 'fecha_programada' => $envio->fecha_estimada_entrega,
                 'hora_estimada_llegada' => $envio->hora_estimada,
