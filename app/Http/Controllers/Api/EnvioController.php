@@ -141,54 +141,57 @@ class EnvioController extends Controller
                 'request_all' => $request->all()
             ]);
             
-            if ($firmaBase64) {
-                // Verificar si es base64 válido
-                $firmaLimpia = $firmaBase64;
-                if (strpos($firmaBase64, 'data:image') === 0) {
-                    // Ya tiene el prefijo data:image, guardarlo tal cual
-                    $firmaLimpia = $firmaBase64;
-                } elseif (preg_match('/^[A-Za-z0-9+\/]+=*$/', $firmaBase64) && strlen($firmaBase64) > 100) {
-                    // Es base64 puro, agregar prefijo
-                    $firmaLimpia = 'data:image/png;base64,' . $firmaBase64;
+            if ($firmaBase64 && trim($firmaBase64) !== '') {
+                // Limpiar espacios en blanco
+                $firmaLimpia = trim($firmaBase64);
+                
+                // Verificar si es base64 válido (imagen)
+                $esBase64Valido = false;
+                
+                if (strpos($firmaLimpia, 'data:image') === 0) {
+                    // Ya tiene el prefijo data:image, verificar que tenga contenido base64
+                    $base64Part = substr($firmaLimpia, strpos($firmaLimpia, ',') + 1);
+                    if (preg_match('/^[A-Za-z0-9+\/]+=*$/', $base64Part) && strlen($base64Part) > 100) {
+                        $esBase64Valido = true;
+                    }
+                } elseif (preg_match('/^[A-Za-z0-9+\/]+=*$/', $firmaLimpia) && strlen($firmaLimpia) > 100) {
+                    // Es base64 puro (sin prefijo), agregar prefijo
+                    $esBase64Valido = true;
+                    $firmaLimpia = 'data:image/png;base64,' . $firmaLimpia;
                 }
                 
-                // Guardar firma base64 directamente
-                $envio->firma_transportista = $firmaLimpia;
-                Log::info('✅ Firma base64 recibida y guardada', [
+                if ($esBase64Valido) {
+                    // Guardar firma base64 directamente
+                    $envio->firma_transportista = $firmaLimpia;
+                    Log::info('✅ Firma base64 recibida y guardada', [
+                        'envio_id' => $envio->id,
+                        'envio_codigo' => $envio->codigo,
+                        'firma_length' => strlen($firmaLimpia),
+                        'tiene_prefijo' => strpos($firmaLimpia, 'data:image') === 0
+                    ]);
+                } else {
+                    // La firma recibida no es base64 válido
+                    Log::error('❌ Firma recibida NO es base64 válido', [
+                        'envio_id' => $envio->id,
+                        'envio_codigo' => $envio->codigo,
+                        'firma_length' => strlen($firmaLimpia),
+                        'firma_preview' => substr($firmaLimpia, 0, 100)
+                    ]);
+                    // NO guardar - dejar null
+                    $envio->firma_transportista = null;
+                }
+            } else {
+                // NO generar firma de texto automática - dejar null
+                // El usuario DEBE capturar la firma desde la app móvil
+                Log::error('❌ NO se recibió firma_base64 en el request - NO se generará texto automático', [
                     'envio_id' => $envio->id,
                     'envio_codigo' => $envio->codigo,
-                    'firma_length' => strlen($firmaLimpia),
-                    'tiene_prefijo' => strpos($firmaLimpia, 'data:image') === 0
+                    'request_keys' => array_keys($request->all()),
+                    'request_all' => $request->all()
                 ]);
-            } elseif ($envio->asignacion && $envio->asignacion->transportista) {
-                Log::warning('⚠️ No se recibió firma base64, generando firma de texto como fallback', [
-                    'envio_id' => $envio->id,
-                    'envio_codigo' => $envio->codigo
-                ]);
-                // Generar firma de texto como fallback
-                $transportista = $envio->asignacion->transportista;
-                $firma = "FIRMA DIGITAL DE ACEPTACIÓN\n\n";
-                $firma .= "Yo, {$transportista->name}, con documento de identidad, ";
-                $firma .= "acepto la responsabilidad del envío {$envio->codigo}.\n\n";
-                $firma .= "Detalles del envío:\n";
-                $firma .= "- Código: {$envio->codigo}\n";
-                $firma .= "- Destino: " . ($envio->almacenDestino->nombre ?? 'N/A') . "\n";
-                $firma .= "- Total productos: {$envio->total_cantidad} unidades\n";
-                $firma .= "- Peso total: {$envio->total_peso} kg\n\n";
-                $firma .= "Fecha y hora de aceptación: " . now()->format('d/m/Y H:i:s') . "\n";
-                $firma .= "Transportista: {$transportista->name}\n";
-                if ($transportista->email) {
-                    $firma .= "Email: {$transportista->email}\n";
-                }
-                if ($transportista->licencia) {
-                    $firma .= "Licencia de conducir: {$transportista->licencia}\n";
-                }
-                $firma .= "\nEsta firma digital certifica que el transportista ha aceptado el envío y asume la responsabilidad de su entrega.";
                 
-                $envio->firma_transportista = $firma;
-                Log::info('Firma de texto generada como fallback', [
-                    'envio_id' => $envio->id
-                ]);
+                // NO generar texto automático - dejar sin firma
+                $envio->firma_transportista = null;
             }
             
             $envio->save();
