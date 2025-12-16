@@ -427,13 +427,17 @@ class ReporteController extends Controller
     {
         $filtros = $this->aplicarFiltrosFecha($request);
         
+        // Ajustar fechas para incluir todo el día
+        $fechaInicio = Carbon::parse($filtros['fecha_inicio'])->startOfDay();
+        $fechaFin = Carbon::parse($filtros['fecha_fin'])->endOfDay();
+        
         // Estadísticas de incidentes
         $estadisticas = $this->obtenerEstadisticasIncidentes($filtros);
         
         // Distribución por tipo
         $porTipo = DB::table('incidentes')
             ->select('tipo_incidente', DB::raw('COUNT(*) as total'))
-            ->whereBetween('fecha_reporte', [$filtros['fecha_inicio'], $filtros['fecha_fin']])
+            ->whereBetween('fecha_reporte', [$fechaInicio, $fechaFin])
             ->groupBy('tipo_incidente')
             ->orderByDesc('total')
             ->get();
@@ -445,7 +449,7 @@ class ReporteController extends Controller
             ->leftJoin('envio_asignaciones as ea', 'e.id', '=', 'ea.envio_id')
             ->leftJoin('vehiculos as v', 'ea.vehiculo_id', '=', 'v.id')
             ->leftJoin('users as t', 'v.transportista_id', '=', 't.id')
-            ->whereBetween('i.fecha_reporte', [$filtros['fecha_inicio'], $filtros['fecha_fin']])
+            ->whereBetween('i.fecha_reporte', [$fechaInicio, $fechaFin])
             ->select(
                 'i.*',
                 'e.codigo as envio_codigo',
@@ -479,11 +483,16 @@ class ReporteController extends Controller
     public function incidentesPdf(Request $request)
     {
         $filtros = $this->aplicarFiltrosFecha($request);
+        
+        // Ajustar fechas para incluir todo el día
+        $fechaInicio = Carbon::parse($filtros['fecha_inicio'])->startOfDay();
+        $fechaFin = Carbon::parse($filtros['fecha_fin'])->endOfDay();
+        
         $estadisticas = $this->obtenerEstadisticasIncidentes($filtros);
         
         $porTipo = DB::table('incidentes')
             ->select('tipo_incidente', DB::raw('COUNT(*) as total'))
-            ->whereBetween('fecha_reporte', [$filtros['fecha_inicio'], $filtros['fecha_fin']])
+            ->whereBetween('fecha_reporte', [$fechaInicio, $fechaFin])
             ->groupBy('tipo_incidente')
             ->orderByDesc('total')
             ->get();
@@ -494,7 +503,7 @@ class ReporteController extends Controller
             ->leftJoin('envio_asignaciones as ea', 'e.id', '=', 'ea.envio_id')
             ->leftJoin('vehiculos as v', 'ea.vehiculo_id', '=', 'v.id')
             ->leftJoin('users as t', 'v.transportista_id', '=', 't.id')
-            ->whereBetween('i.fecha_reporte', [$filtros['fecha_inicio'], $filtros['fecha_fin']])
+            ->whereBetween('i.fecha_reporte', [$fechaInicio, $fechaFin])
             ->select('i.*', 'e.codigo as envio_codigo', 'a.nombre as almacen_nombre', 't.name as transportista_nombre')
             ->orderBy('i.fecha_reporte', 'desc')
             ->get();
@@ -512,13 +521,17 @@ class ReporteController extends Controller
     {
         $filtros = $this->aplicarFiltrosFecha($request);
 
+        // Ajustar fechas para incluir todo el día
+        $fechaInicio = Carbon::parse($filtros['fecha_inicio'])->startOfDay();
+        $fechaFin = Carbon::parse($filtros['fecha_fin'])->endOfDay();
+
         $incidentes = DB::table('incidentes as i')
             ->leftJoin('envios as e', 'i.envio_id', '=', 'e.id')
             ->leftJoin('almacenes as a', 'e.almacen_destino_id', '=', 'a.id')
             ->leftJoin('envio_asignaciones as ea', 'e.id', '=', 'ea.envio_id')
             ->leftJoin('vehiculos as v', 'ea.vehiculo_id', '=', 'v.id')
             ->leftJoin('users as t', 'v.transportista_id', '=', 't.id')
-            ->whereBetween('i.fecha_reporte', [$filtros['fecha_inicio'], $filtros['fecha_fin']])
+            ->whereBetween('i.fecha_reporte', [$fechaInicio, $fechaFin])
             ->select('i.*', 'e.codigo as envio_codigo', 'a.nombre as almacen_nombre', 't.name as transportista_nombre')
             ->orderBy('i.fecha_reporte', 'desc')
             ->get();
@@ -1038,8 +1051,12 @@ class ReporteController extends Controller
 
     private function obtenerEstadisticasIncidentes(array $filtros): array
     {
+        // Ajustar fechas para incluir todo el día
+        $fechaInicio = Carbon::parse($filtros['fecha_inicio'])->startOfDay();
+        $fechaFin = Carbon::parse($filtros['fecha_fin'])->endOfDay();
+        
         $base = DB::table('incidentes')
-            ->whereBetween('fecha_reporte', [$filtros['fecha_inicio'], $filtros['fecha_fin']]);
+            ->whereBetween('fecha_reporte', [$fechaInicio, $fechaFin]);
 
         return [
             'total' => (clone $base)->count(),
@@ -1052,8 +1069,12 @@ class ReporteController extends Controller
 
     private function calcularTiempoPromedioResolucion(array $filtros): string
     {
+        // Ajustar fechas para incluir todo el día
+        $fechaInicio = Carbon::parse($filtros['fecha_inicio'])->startOfDay();
+        $fechaFin = Carbon::parse($filtros['fecha_fin'])->endOfDay();
+        
         $resultado = DB::table('incidentes')
-            ->whereBetween('fecha_reporte', [$filtros['fecha_inicio'], $filtros['fecha_fin']])
+            ->whereBetween('fecha_reporte', [$fechaInicio, $fechaFin])
             ->whereNotNull('fecha_resolucion')
             ->selectRaw('AVG(EXTRACT(EPOCH FROM (fecha_resolucion::timestamp - fecha_reporte::timestamp))/3600) as horas_promedio')
             ->first();
