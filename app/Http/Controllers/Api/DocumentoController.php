@@ -390,122 +390,7 @@ class DocumentoController extends Controller
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .firma-sello-container {
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-start;
-            padding: 40px 20px;
-            gap: 60px;
-            margin-top: 30px;
-            border-top: 2px solid #4CAF50;
-            padding-top: 40px;
-        }
-        .firma-box, .sello-box {
-            flex: 1;
-            text-align: center;
-            min-width: 250px;
-        }
-        .firma-imagen {
-            max-width: 240px;
-            max-height: 150px;
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-            padding: 15px;
-            background: white;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            margin: 0 auto 20px;
-            display: block;
-        }
-        .firma-placeholder {
-            width: 240px;
-            height: 150px;
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            padding: 15px;
-            background: #f9f9f9;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .firma-placeholder-text {
-            color: #666;
-            font-size: 14px;
-            font-weight: bold;
-            text-align: center;
-        }
-        .sello-circular {
-            width: 200px;
-            height: 200px;
-            border: 4px solid #4CAF50;
-            border-radius: 50%;
-            display: inline-flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #f0f9f0 0%, #ffffff 100%);
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.25);
-            position: relative;
-            margin: 0 auto 20px;
-        }
-        .sello-header {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 9px;
-            color: #4CAF50;
-            font-weight: bold;
-            background: white;
-            padding: 3px 10px;
-            border-radius: 4px;
-            white-space: nowrap;
-        }
-        .sello-content {
-            text-align: center;
-            padding: 25px 15px;
-        }
-        .sello-star {
-            font-size: 14px;
-            color: #4CAF50;
-            margin-bottom: 8px;
-        }
-        .sello-titulo {
-            font-size: 18px;
-            color: #4CAF50;
-            font-weight: bold;
-            margin-bottom: 10px;
-            line-height: 1.2;
-        }
-        .sello-autorizado {
-            font-size: 13px;
-            color: #4CAF50;
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
-        .sello-year {
-            font-size: 12px;
-            color: #4CAF50;
-        }
-        .firma-line, .sello-line {
-            border-top: 3px solid #333;
-            padding-top: 15px;
-            margin-top: 15px;
-            display: inline-block;
-            min-width: 240px;
-        }
-        .firma-label, .sello-label {
-            font-size: 16px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        .firma-nombre, .sello-nombre {
-            font-size: 13px;
-            color: #666;
-            margin-top: 5px;
-        }
+        /* Estilos solo para firma del transportista (sin sello en documento móvil) */
         .firma-container-solo {
             margin-top: 40px;
             padding: 30px 20px;
@@ -582,9 +467,6 @@ class DocumentoController extends Controller
             .container {
                 box-shadow: none;
                 padding: 20px;
-            }
-            .firma-sello-container {
-                page-break-inside: avoid;
             }
         }
     </style>
