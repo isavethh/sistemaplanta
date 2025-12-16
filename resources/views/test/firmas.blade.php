@@ -61,39 +61,45 @@
                                 </tr>
 
                                 <!-- Modal para mostrar la firma -->
-                                <div class="modal fade" id="firmaModal{{ $item['envio']->id }}" tabindex="-1" role="dialog">
-                                    <div class="modal-dialog modal-lg" role="document">
+                                <div class="modal fade" id="firmaModal{{ $item['envio']->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title">
-                                                    Firma - Envío {{ $item['envio']->codigo }}
-                                                </h5>
-                                                <button type="button" class="close" data-dismiss="modal">
-                                                    <span>&times;</span>
+                                                <h5 class="modal-title">Firma - Envío {{ $item['envio']->codigo }}</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
                                                 </button>
                                             </div>
                                             <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <strong>Transportista:</strong> {{ $item['transportista'] }}<br>
-                                                    <strong>Tipo:</strong> {{ $item['esBase64'] ? 'Base64 (Imagen)' : 'Texto' }}<br>
-                                                    <strong>Longitud:</strong> {{ number_format($item['longitud']) }} caracteres<br>
-                                                    <strong>Fecha:</strong> {{ $item['envio']->updated_at->format('d/m/Y H:i:s') }}
-                                                </div>
+                                                <table class="table table-sm table-bordered mb-3">
+                                                    <tr>
+                                                        <th width="30%">Transportista:</th>
+                                                        <td>{{ $item['transportista'] }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Tipo:</th>
+                                                        <td>{{ $item['esBase64'] ? 'Base64 (Imagen)' : 'Texto' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Longitud:</th>
+                                                        <td>{{ number_format($item['longitud']) }} caracteres</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Fecha:</th>
+                                                        <td>{{ $item['envio']->updated_at->format('d/m/Y H:i:s') }}</td>
+                                                    </tr>
+                                                </table>
                                                 
                                                 @if($item['esBase64'])
-                                                    <div class="text-center">
+                                                    <div class="text-center p-3" style="background: #f8f9fa; border-radius: 4px;">
                                                         <img src="{{ $item['firmaBase64'] }}" 
                                                              alt="Firma Transportista" 
-                                                             style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: white;">
+                                                             style="max-width: 100%; max-height: 400px; border: 1px solid #ddd; border-radius: 4px;">
                                                     </div>
                                                 @else
-                                                    <div class="card">
-                                                        <div class="card-body">
-                                                            <h6 class="card-title">Contenido de la Firma (Texto):</h6>
-                                                            <div class="firma-texto-container">
-                                                                <pre class="firma-texto-pre">{{ htmlspecialchars($item['firmaTexto'], ENT_QUOTES, 'UTF-8') }}</pre>
-                                                            </div>
-                                                        </div>
+                                                    <div style="background: #f8f9fa; padding: 15px; border-radius: 4px;">
+                                                        <strong>Contenido de la Firma (Texto):</strong>
+                                                        <textarea readonly style="width: 100%; margin-top: 10px; padding: 10px; background: white; border: 1px solid #ddd; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.5; min-height: 200px; max-height: 400px; resize: vertical;">{{ $item['firmaTexto'] }}</textarea>
                                                     </div>
                                                 @endif
                                             </div>
@@ -133,32 +139,6 @@
     <style>
         .table th {
             background-color: #f8f9fa;
-        }
-        .firma-texto-container {
-            max-height: 500px;
-            overflow-y: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            background-color: #f8f9fa;
-            padding: 15px;
-        }
-        .firma-texto-pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            margin: 0;
-            padding: 0;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 12px;
-            line-height: 1.6;
-            color: #333;
-            background: transparent;
-            border: none;
-            max-height: none;
-            overflow: visible;
-        }
-        .modal-body {
-            max-height: 70vh;
-            overflow-y: auto;
         }
     </style>
 @stop
