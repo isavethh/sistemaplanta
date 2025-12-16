@@ -192,28 +192,14 @@ class TransportistaController extends Controller
                             \Log::debug("No se pudo obtener info de ruta {$rutaEntregaId} desde Node.js: " . $e->getMessage());
                         }
                     } else {
-                        // Verificar si es asignación múltiple sin ruta (legacy)
-                        $fechaAsignacion = $envio->fecha_asignacion ? \Carbon\Carbon::parse($envio->fecha_asignacion)->format('Y-m-d') : null;
-                        $vehiculoId = $envio->vehiculo_id;
-                        
-                        if ($fechaAsignacion && $vehiculoId) {
-                            // Obtener otros envíos del mismo día y vehículo (transportista_id ya no existe en envio_asignaciones)
-                            $otrosEnviosMismoDia = \App\Models\EnvioAsignacion::where('vehiculo_id', $vehiculoId)
-                                ->whereDate('fecha_asignacion', $fechaAsignacion)
-                                ->whereHas('vehiculo', function($q) use ($transportistaId) {
-                                    $q->where('transportista_id', $transportistaId);
-                                })
-                                ->where('envio_id', '!=', $envio->id)
-                                ->count();
-                            
-                            $envio->es_asignacion_multiple = $otrosEnviosMismoDia > 0;
-                            $envio->tipo_asignacion = $otrosEnviosMismoDia > 0 ? 'multiple' : 'normal';
-                            $envio->total_envios_asignacion = $otrosEnviosMismoDia + 1;
-                        } else {
-                            $envio->es_asignacion_multiple = false;
-                            $envio->tipo_asignacion = 'normal';
-                            $envio->total_envios_asignacion = 1;
-                        }
+                        // No tiene ruta_entrega_id = Es un envío individual (NO multienvío)
+                        // Incluso si tiene otros envíos asignados al mismo vehículo/transportista en el mismo día,
+                        // NO es multienvío a menos que tenga ruta_entrega_id
+                        $envio->es_asignacion_multiple = false;
+                        $envio->tipo_asignacion = 'normal';
+                        $envio->es_multi_entrega = false;
+                        $envio->es_ruta_multiple = false;
+                        $envio->total_envios_asignacion = 1;
                     }
                     
                     return $envio;

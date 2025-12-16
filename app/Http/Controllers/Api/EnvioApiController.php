@@ -37,28 +37,13 @@ class EnvioApiController extends Controller
                 ->orderBy('id', 'desc') // Ordenar por ID para mostrar los más recientes primero
                 ->get()
                 ->map(function($envio) {
-                    // Agregar flag para identificar si es asignación múltiple
-                    // Un envío es parte de asignación múltiple si tiene la misma fecha_asignacion
-                    // y el mismo transportista/vehiculo que otros envíos
-                    $asignacion = $envio->asignacion;
-                    if ($asignacion) {
-                        $mismoDia = EnvioAsignacion::whereHas('vehiculo', function($q) use ($asignacion) {
-                                $vehiculoTransportistaId = $asignacion->vehiculo ? $asignacion->vehiculo->transportista_id : null;
-                                if ($vehiculoTransportistaId) {
-                                    $q->where('transportista_id', $vehiculoTransportistaId);
-                                }
-                            })
-                            ->where('vehiculo_id', $asignacion->vehiculo_id)
-                            ->whereDate('fecha_asignacion', $asignacion->fecha_asignacion)
-                            ->where('id', '!=', $asignacion->id)
-                            ->exists();
-                        
-                        $envio->es_asignacion_multiple = $mismoDia;
-                        $envio->tipo_asignacion = $mismoDia ? 'multiple' : 'normal';
-                    } else {
-                        $envio->es_asignacion_multiple = false;
-                        $envio->tipo_asignacion = 'normal';
-                    }
+                    // Un envío es multienvío SOLO si tiene ruta_entrega_id (creado desde Asignación Múltiple en web)
+                    // Los envíos creados desde la app móvil o asignaciones individuales NO son multienvío
+                    $esMultiEntrega = !empty($envio->ruta_entrega_id);
+                    
+                    $envio->es_asignacion_multiple = $esMultiEntrega;
+                    $envio->tipo_asignacion = $esMultiEntrega ? 'multiple' : 'normal';
+                    $envio->es_multi_entrega = $esMultiEntrega;
                     
                     return $envio;
                 });
@@ -181,6 +166,8 @@ class EnvioApiController extends Controller
             }
 
             // Crear envío
+            // IMPORTANTE: ruta_entrega_id no se establece aquí - será NULL (envío individual)
+            // Solo se establece ruta_entrega_id cuando se hace asignación múltiple desde la web (AsignacionMultipleController)
             $envio = Envio::create([
                 'codigo' => $codigo,
                 'almacen_destino_id' => $validated['almacen_destino_id'],
@@ -193,6 +180,7 @@ class EnvioApiController extends Controller
                 'total_cantidad' => 0,
                 'total_peso' => 0,
                 'total_precio' => 0,
+                // ruta_entrega_id será NULL - envío individual, NO multienvío
             ]);
 
             Log::info('✅ [EnvioApiController] Envío creado', ['envio_id' => $envio->id]);
