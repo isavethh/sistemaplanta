@@ -409,11 +409,11 @@ return [
         // =============================================
         // MENÚ PARA TRANSPORTISTA
         // =============================================
-        ['header' => '🚚 MIS ENTREGAS', 'role' => 'transportista'],
-        ['text' => 'Envíos Asignados', 'route' => 'envios.index', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'primary', 'role' => 'transportista'],
-        ['text' => 'Mis Rutas', 'url' => 'rutas-multi', 'icon' => 'fas fa-route', 'icon_color' => 'info', 'role' => 'transportista'],
-        ['text' => 'Documentos de Entrega', 'url' => 'notas-entrega', 'icon' => 'fas fa-file-invoice', 'icon_color' => 'success', 'role' => 'transportista'],
-        ['text' => 'Mi Inventario', 'url' => 'inventarios-transportista', 'icon' => 'fas fa-boxes', 'icon_color' => 'warning', 'role' => 'transportista'],
+        ['header' => '🚚 MIS ENTREGAS', 'role' => 'transportista', 'exclude_admin' => true],
+        ['text' => 'Envíos Asignados', 'route' => 'envios.index', 'icon' => 'fas fa-shipping-fast', 'icon_color' => 'primary', 'role' => 'transportista', 'exclude_admin' => true],
+        ['text' => 'Mis Rutas', 'url' => 'rutas-multi', 'icon' => 'fas fa-route', 'icon_color' => 'info', 'role' => 'transportista', 'exclude_admin' => true],
+        ['text' => 'Documentos de Entrega', 'url' => 'notas-entrega', 'icon' => 'fas fa-file-invoice', 'icon_color' => 'success', 'role' => 'transportista', 'exclude_admin' => true],
+        ['text' => 'Mi Inventario', 'url' => 'inventarios-transportista', 'icon' => 'fas fa-boxes', 'icon_color' => 'warning', 'role' => 'transportista', 'exclude_admin' => true],
         
         ['header' => '📊 MIS REPORTES', 'role' => 'transportista'],
         ['text' => 'Mis Incidentes', 'url' => 'reportes/mis-incidentes', 'icon' => 'fas fa-file-alt', 'icon_color' => 'danger', 'role' => 'transportista'],
