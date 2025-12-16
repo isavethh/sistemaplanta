@@ -19,7 +19,7 @@ class AlmacenController extends Controller
                 ->get();
         } else {
             // Admin u otros roles ven todos los almacenes
-            $almacenes = Almacen::with('usuarioAlmacen')->get();
+        $almacenes = Almacen::with('usuarioAlmacen')->get();
         }
         
         return view('almacenes.index', compact('almacenes'));
@@ -59,8 +59,8 @@ class AlmacenController extends Controller
             $validated['latitud'] = $validated['latitud'] ?? -17.8146;
             $validated['longitud'] = $validated['longitud'] ?? -63.1561;
         } else {
-            $validated['activo'] = $request->has('activo');
-            $validated['es_planta'] = $request->has('es_planta');
+        $validated['activo'] = $request->has('activo');
+        $validated['es_planta'] = $request->has('es_planta');
         }
         
         $validated['activo'] = $validated['activo'] ?? true;
@@ -123,8 +123,8 @@ class AlmacenController extends Controller
 
         // Si es propietario, no permitir cambiar es_planta
         if (!$user->esPropietario()) {
-            $validated['activo'] = $request->has('activo');
-            $validated['es_planta'] = $request->has('es_planta');
+        $validated['activo'] = $request->has('activo');
+        $validated['es_planta'] = $request->has('es_planta');
         } else {
             // Mantener valores originales para propietarios
             $validated['activo'] = $almacen->activo;

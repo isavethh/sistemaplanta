@@ -20,7 +20,7 @@ class DocumentoController extends Controller
         try {
             $envio = Envio::with(['almacenDestino', 'productos', 'asignacion.transportista', 'asignacion.vehiculo'])
                 ->findOrFail($id);
-            
+
             // Asegurar que el envío tenga código
             if (empty($envio->codigo)) {
                 $envio->codigo = \App\Models\Envio::generarCodigo();
@@ -633,35 +633,17 @@ class DocumentoController extends Controller
             <p>' . nl2br(htmlspecialchars($envio->observaciones)) . '</p>
         </div>' : '') . '
 
-        <!-- Firma y Sello en la misma línea -->
-        <div class="firma-sello-container">
-            <!-- Firma del Transportista -->
-            <div class="firma-box">
+        <!-- Solo Firma del Transportista (sin sello para móvil) -->
+        <div class="firma-container-solo">
+            <div class="firma-box-solo">
                 ' . ($firmaTransportista ? 
-                    '<img src="data:image/png;base64,' . $firmaTransportista . '" alt="Firma Transportista" class="firma-imagen">' 
-                    : '<div class="firma-placeholder">
-                        <div class="firma-placeholder-text">' . ($envio->asignacion && $envio->asignacion->transportista ? htmlspecialchars($envio->asignacion->transportista->name) : 'Sin firma') . '</div>
+                    '<img src="data:image/png;base64,' . $firmaTransportista . '" alt="Firma Transportista" class="firma-imagen-solo">' 
+                    : '<div class="firma-placeholder-solo">
+                        <div class="firma-placeholder-text-solo">' . ($envio->asignacion && $envio->asignacion->transportista ? htmlspecialchars($envio->asignacion->transportista->name) : 'Sin firma') . '</div>
                     </div>') . '
-                <div class="firma-line">
-                    <div class="firma-label">FIRMA TRANSPORTISTA</div>
-                    <div class="firma-nombre">' . ($envio->asignacion && $envio->asignacion->transportista ? htmlspecialchars($envio->asignacion->transportista->name) : 'N/A') . '</div>
-                </div>
-            </div>
-            
-            <!-- Sello de Planta Principal -->
-            <div class="sello-box">
-                <div class="sello-circular">
-                    <div class="sello-header">SISTEMA DE GESTIÓN LOGÍSTICA</div>
-                    <div class="sello-content">
-                        <div class="sello-star">⭐</div>
-                        <div class="sello-titulo">PLANTA<br>PRINCIPAL</div>
-                        <div class="sello-autorizado">Autorizado</div>
-                        <div class="sello-year">' . date('Y') . '</div>
-                    </div>
-                </div>
-                <div class="sello-line">
-                    <div class="sello-label">SELLO OFICIAL</div>
-                    <div class="sello-nombre">Planta Principal</div>
+                <div class="firma-line-solo">
+                    <div class="firma-label-solo">FIRMA TRANSPORTISTA</div>
+                    <div class="firma-nombre-solo">' . ($envio->asignacion && $envio->asignacion->transportista ? htmlspecialchars($envio->asignacion->transportista->name) : 'N/A') . '</div>
                 </div>
             </div>
         </div>

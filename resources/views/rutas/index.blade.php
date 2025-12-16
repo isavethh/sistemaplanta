@@ -267,43 +267,43 @@ function inicializarWebSocket() {
                 }
                 
                 posicionesWebSocket[idEnvio] = [puntoInicial];
-                
-                // Crear marcadores inmediatamente con la ruta de la app
+                    
+                    // Crear marcadores inmediatamente con la ruta de la app
                 const ultimoPunto = rutaLeaflet.length > 0 ? rutaLeaflet[rutaLeaflet.length - 1] : puntoInicial;
-                
-                // Marcador del destino
-                const marcadorDestino = L.marker(ultimoPunto, { icon: iconos.destino })
-                    .addTo(map)
+                    
+                    // Marcador del destino
+                    const marcadorDestino = L.marker(ultimoPunto, { icon: iconos.destino })
+                        .addTo(map)
                     .bindPopup(`<b>📦 Destino</b><br>Envío ${idEnvio}`);
-                
+                    
                 // Marcador del vehículo en la posición inicial
                 const marcadorVehiculo = L.marker(puntoInicial, { icon: iconos.vehiculo })
-                    .addTo(map)
+                        .addTo(map)
                     .bindPopup(`<b>🚚 Envío ${idEnvio}</b><br>Iniciando ruta...<br><small>🔴 En vivo</small>`);
-                
-                // Dibujar ruta COMPLETA en azul punteado (ruta de Google)
+                    
+                    // Dibujar ruta COMPLETA en azul punteado (ruta de Google)
                 const lineaRutaCompleta = rutaLeaflet.length > 0 ? L.polyline(rutaLeaflet, {
-                    color: '#2196F3',
-                    weight: 5,
-                    opacity: 0.5,
-                    dashArray: '10, 10'
+                        color: '#2196F3',
+                        weight: 5,
+                        opacity: 0.5,
+                        dashArray: '10, 10'
                 }).addTo(map) : null;
-                
+                    
                 // Ruta recorrida (empezando con el punto inicial)
                 const lineaRutaRecorrida = L.polyline([puntoInicial], {
-                    color: '#4CAF50',
-                    weight: 6,
-                    opacity: 0.9
-                }).addTo(map);
-                
+                        color: '#4CAF50',
+                        weight: 6,
+                        opacity: 0.9
+                    }).addTo(map);
+                    
                 marcadores[idEnvio] = { 
-                    vehiculo: marcadorVehiculo, 
-                    destino: marcadorDestino,
-                    ruta: lineaRutaCompleta,
-                    rutaRecorrida: lineaRutaRecorrida
-                };
-                
-                // Ajustar mapa para mostrar la ruta
+                        vehiculo: marcadorVehiculo, 
+                        destino: marcadorDestino,
+                        ruta: lineaRutaCompleta,
+                        rutaRecorrida: lineaRutaRecorrida
+                    };
+                    
+                    // Ajustar mapa para mostrar la ruta
                 if (rutaLeaflet.length > 0) {
                     map.fitBounds(L.latLngBounds(rutaLeaflet), { padding: [50, 50] });
                 } else {
