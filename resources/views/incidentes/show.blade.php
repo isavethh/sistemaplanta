@@ -261,25 +261,32 @@
 </div>
 
 <!-- Modal Resolver -->
-<div class="modal fade" id="modalResolver" tabindex="-1">
-    <div class="modal-dialog">
+<div class="modal fade" id="modalResolver" tabindex="-1" role="dialog" aria-labelledby="modalResolverLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <form action="{{ route('incidentes.cambiarEstado', $incidente->id) }}" method="POST">
                 @csrf
                 @method('PUT')
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title"><i class="fas fa-check-circle"></i> Resolver Incidente</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                    <h5 class="modal-title" id="modalResolverLabel">
+                        <i class="fas fa-check-circle"></i> Resolver Incidente #{{ $incidente->id }}
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="estado" value="resuelto">
                     <div class="form-group">
-                        <label><strong>Notas de Resolución</strong></label>
-                        <textarea name="notas" class="form-control" rows="4" placeholder="Describe cómo se resolvió el incidente, qué acciones se tomaron, etc."></textarea>
+                        <label for="notas_resolucion_show"><strong>Notas de Resolución</strong></label>
+                        <textarea name="notas" id="notas_resolucion_show" class="form-control" rows="4" placeholder="Describe cómo se resolvió el incidente, qué acciones se tomaron, etc."></textarea>
+                        <small class="form-text text-muted">Esta información quedará registrada en el historial del incidente.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
                     <button type="submit" class="btn btn-success">
                         <i class="fas fa-check"></i> Marcar como Resuelto
                     </button>
@@ -298,66 +305,6 @@
     }
     .img-thumbnail:hover {
         transform: scale(1.02);
-    }
-    
-    /* SOLUCIÓN COMPLETA: Prevenir cualquier movimiento del modal */
-    body.modal-open .modal[id^="modalResolver"] {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        z-index: 1055 !important;
-        overflow: hidden !important;
-    }
-    
-    body.modal-open .modal[id^="modalResolver"] .modal-dialog {
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        margin: 0 !important;
-        transform: translate(-50%, -50%) !important;
-        max-width: 500px !important;
-        width: 90% !important;
-        pointer-events: auto !important;
-    }
-    
-    body.modal-open .modal[id^="modalResolver"].show .modal-dialog {
-        transform: translate(-50%, -50%) !important;
-    }
-    
-    body.modal-open .modal[id^="modalResolver"].fade .modal-dialog {
-        transition: opacity .15s linear !important;
-        transform: translate(-50%, -50%) !important;
-    }
-    
-    /* Prevenir TODAS las transformaciones en hover - aplica a TODO dentro del modal */
-    body.modal-open .modal[id^="modalResolver"] *,
-    body.modal-open .modal[id^="modalResolver"] *:hover,
-    body.modal-open .modal[id^="modalResolver"] *:focus,
-    body.modal-open .modal[id^="modalResolver"] *:active {
-        transform: inherit !important;
-        transition: none !important;
-        will-change: auto !important;
-    }
-    
-    /* Override específico para elementos comunes que pueden tener transform */
-    body.modal-open .modal[id^="modalResolver"] .btn,
-    body.modal-open .modal[id^="modalResolver"] .btn:hover,
-    body.modal-open .modal[id^="modalResolver"] .btn:focus,
-    body.modal-open .modal[id^="modalResolver"] .card,
-    body.modal-open .modal[id^="modalResolver"] .card:hover {
-        transform: none !important;
-        translate: none !important;
-        scale: none !important;
-        rotate: none !important;
-    }
-    
-    /* Asegurar que el modal-dialog específicamente NO se mueva */
-    body.modal-open .modal[id^="modalResolver"] .modal-dialog,
-    body.modal-open .modal[id^="modalResolver"] .modal-dialog:hover,
-    body.modal-open .modal[id^="modalResolver"] .modal-dialog:focus {
-        transform: translate(-50%, -50%) !important;
     }
 </style>
 @endsection

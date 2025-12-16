@@ -274,38 +274,12 @@
                                 <i class="fas fa-eye"></i>
                             </a>
                             @if($incidente->estado != 'resuelto')
-                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modalResolver{{ $incidente->id }}" title="Resolver">
+                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modalResolverIncidente" data-incidente-id="{{ $incidente->id }}" title="Resolver">
                                     <i class="fas fa-check"></i>
                                 </button>
                             @endif
                         </div>
                         
-                        <!-- Modal Resolver -->
-                        <div class="modal fade" id="modalResolver{{ $incidente->id }}" tabindex="-1">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <form action="{{ route('incidentes.cambiarEstado', $incidente->id) }}" method="POST">
-                                        @csrf
-                                        @method('PUT')
-                                        <div class="modal-header bg-success text-white">
-                                            <h5 class="modal-title"><i class="fas fa-check-circle"></i> Resolver Incidente #{{ $incidente->id }}</h5>
-                                            <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <input type="hidden" name="estado" value="resuelto">
-                                            <div class="form-group">
-                                                <label>Notas de Resolución</label>
-                                                <textarea name="notas" class="form-control" rows="3" placeholder="Describe cómo se resolvió el incidente..."></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                                            <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Marcar como Resuelto</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
                     </td>
                 </tr>
                 @endforeach
@@ -324,6 +298,42 @@
         @endif
     </div>
 </div>
+
+<!-- Modal Resolver (Un solo modal reutilizable) -->
+<div class="modal fade" id="modalResolverIncidente" tabindex="-1" role="dialog" aria-labelledby="modalResolverIncidenteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <form id="formResolverIncidente" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalResolverIncidenteLabel">
+                        <i class="fas fa-check-circle"></i> Resolver Incidente
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="estado" value="resuelto">
+                    <div class="form-group">
+                        <label for="notas_resolucion"><strong>Notas de Resolución</strong></label>
+                        <textarea name="notas" id="notas_resolucion" class="form-control" rows="4" placeholder="Describe cómo se resolvió el incidente, qué acciones se tomaron, etc."></textarea>
+                        <small class="form-text text-muted">Esta información quedará registrada en el historial del incidente.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Marcar como Resuelto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('css')
@@ -337,65 +347,19 @@
     .table-warning {
         background-color: #fff3cd !important;
     }
-    
-    /* SOLUCIÓN COMPLETA: Prevenir cualquier movimiento del modal */
-    body.modal-open .modal[id^="modalResolver"] {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        z-index: 1055 !important;
-        overflow: hidden !important;
-    }
-    
-    body.modal-open .modal[id^="modalResolver"] .modal-dialog {
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        margin: 0 !important;
-        transform: translate(-50%, -50%) !important;
-        max-width: 500px !important;
-        width: 90% !important;
-        pointer-events: auto !important;
-    }
-    
-    body.modal-open .modal[id^="modalResolver"].show .modal-dialog {
-        transform: translate(-50%, -50%) !important;
-    }
-    
-    body.modal-open .modal[id^="modalResolver"].fade .modal-dialog {
-        transition: opacity .15s linear !important;
-        transform: translate(-50%, -50%) !important;
-    }
-    
-    /* Prevenir TODAS las transformaciones en hover - aplica a TODO dentro del modal */
-    body.modal-open .modal[id^="modalResolver"] *,
-    body.modal-open .modal[id^="modalResolver"] *:hover,
-    body.modal-open .modal[id^="modalResolver"] *:focus,
-    body.modal-open .modal[id^="modalResolver"] *:active {
-        transform: inherit !important;
-        transition: none !important;
-        will-change: auto !important;
-    }
-    
-    /* Override específico para elementos comunes que pueden tener transform */
-    body.modal-open .modal[id^="modalResolver"] .btn,
-    body.modal-open .modal[id^="modalResolver"] .btn:hover,
-    body.modal-open .modal[id^="modalResolver"] .btn:focus,
-    body.modal-open .modal[id^="modalResolver"] .card,
-    body.modal-open .modal[id^="modalResolver"] .card:hover {
-        transform: none !important;
-        translate: none !important;
-        scale: none !important;
-        rotate: none !important;
-    }
-    
-    /* Asegurar que el modal-dialog específicamente NO se mueva */
-    body.modal-open .modal[id^="modalResolver"] .modal-dialog,
-    body.modal-open .modal[id^="modalResolver"] .modal-dialog:hover,
-    body.modal-open .modal[id^="modalResolver"] .modal-dialog:focus {
-        transform: translate(-50%, -50%) !important;
-    }
 </style>
+@endsection
+
+@section('js')
+<script>
+$(document).ready(function() {
+    // Configurar el modal cuando se abre
+    $('[data-target="#modalResolverIncidente"]').on('click', function() {
+        var incidenteId = $(this).data('incidente-id');
+        var actionUrl = '{{ route("incidentes.cambiarEstado", ":id") }}'.replace(':id', incidenteId);
+        $('#formResolverIncidente').attr('action', actionUrl);
+        $('#notas_resolucion').val(''); // Limpiar el textarea
+    });
+});
+</script>
 @endsection
