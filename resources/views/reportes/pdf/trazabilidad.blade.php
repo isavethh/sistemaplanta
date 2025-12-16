@@ -149,87 +149,88 @@
             font-size: 9px;
         }
         .firma-section {
-            margin-top: 25px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            gap: 15px;
-            padding: 20px 5px;
+            margin-top: 30px;
             border-top: 2px solid #4CAF50;
+            padding-top: 20px;
             page-break-inside: avoid;
             width: 100%;
-            box-sizing: border-box;
+        }
+        .firma-container {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
         }
         .firma-box {
+            display: table-cell;
+            width: 50%;
             text-align: center;
-            flex: 0 1 45%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            min-height: 120px;
+            vertical-align: top;
+            padding: 0 15px;
         }
-        .firma-line {
-            border-top: 2px solid #333;
-            margin-top: 8px;
-            padding-top: 4px;
-            width: 100%;
-            max-width: 130px;
-            font-size: 8px;
-        }
-        .firma-line strong {
-            font-size: 9px;
-            display: block;
-            margin-bottom: 2px;
-        }
-        .firma-line small {
-            font-size: 8px;
+        .firma-content {
+            display: inline-block;
+            text-align: center;
         }
         .firma-stamp {
-            width: 70px;
-            height: 70px;
-            margin: 0 auto 8px;
+            width: 65px;
+            height: 65px;
+            margin: 0 auto 10px;
             display: block;
-            flex-shrink: 0;
         }
         .firma-imagen-container {
-            margin: 0 auto 8px;
-            width: 100px;
-            height: 60px;
+            width: 90px;
+            height: 55px;
+            margin: 0 auto 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        .firma-imagen-container img {
-            max-width: 100px;
-            max-height: 60px;
-            width: auto;
-            height: auto;
             border: 2px solid #4CAF50;
             border-radius: 4px;
-            padding: 5px;
+            padding: 4px;
             background: white;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .firma-imagen-container img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
             object-fit: contain;
         }
         .firma-placeholder-box {
-            width: 100px;
-            height: 60px;
+            width: 90px;
+            height: 55px;
             border: 2px dashed #ccc;
             border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 8px;
+            margin: 0 auto 10px;
             background: #f9f9f9;
-            flex-shrink: 0;
         }
         .firma-placeholder-text {
             color: #999;
-            font-size: 8px;
+            font-size: 7px;
             font-weight: bold;
             text-align: center;
-            padding: 5px;
+            padding: 3px;
+        }
+        .firma-line {
+            border-top: 2px solid #333;
+            margin-top: 10px;
+            padding-top: 5px;
+            display: inline-block;
+            width: 100%;
+            max-width: 120px;
+        }
+        .firma-line strong {
+            font-size: 8px;
+            display: block;
+            margin-bottom: 2px;
+            font-weight: bold;
+        }
+        .firma-line small {
+            font-size: 7px;
         }
         .page-break {
             page-break-after: always;
@@ -424,29 +425,35 @@
 
     <!-- FIRMAS Y SELLO LADO A LADO -->
     <div class="firma-section">
-        <!-- Sello de Planta Principal -->
-        <div class="firma-box">
-            <img src="{{ public_path('images/sello-planta.svg') }}" alt="Sello" class="firma-stamp">
-            <div class="firma-line">
-                <strong>SELLO OFICIAL</strong><br>
-                <small>Planta Principal</small>
+        <div class="firma-container">
+            <!-- Sello de Planta Principal -->
+            <div class="firma-box">
+                <div class="firma-content">
+                    <img src="{{ public_path('images/sello-planta.svg') }}" alt="Sello" class="firma-stamp">
+                    <div class="firma-line">
+                        <strong>SELLO OFICIAL</strong><br>
+                        <small>Planta Principal</small>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <!-- Firma del Transportista -->
-        <div class="firma-box">
-            @if($firmaTransportista)
-                <div class="firma-imagen-container">
-                    <img src="data:image/png;base64,{{ $firmaTransportista }}" alt="Firma Transportista">
+            
+            <!-- Firma del Transportista -->
+            <div class="firma-box">
+                <div class="firma-content">
+                    @if($firmaTransportista)
+                        <div class="firma-imagen-container">
+                            <img src="data:image/png;base64,{{ $firmaTransportista }}" alt="Firma Transportista">
+                        </div>
+                    @else
+                        <div class="firma-placeholder-box">
+                            <span class="firma-placeholder-text">{{ $envio->transportista_nombre ?? 'Sin firma' }}</span>
+                        </div>
+                    @endif
+                    <div class="firma-line">
+                        <strong>FIRMA TRANSPORTISTA</strong><br>
+                        <small>{{ $envio->transportista_nombre ?? 'N/A' }}</small>
+                    </div>
                 </div>
-            @else
-                <div class="firma-placeholder-box">
-                    <span class="firma-placeholder-text">{{ $envio->transportista_nombre ?? 'Sin firma' }}</span>
-                </div>
-            @endif
-            <div class="firma-line">
-                <strong>FIRMA TRANSPORTISTA</strong><br>
-                <small>{{ $envio->transportista_nombre ?? 'N/A' }}</small>
             </div>
         </div>
     </div>
