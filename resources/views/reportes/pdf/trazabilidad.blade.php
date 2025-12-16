@@ -446,12 +446,12 @@
                         </div>
                     @else
                         <div class="firma-placeholder-box">
-                            <span class="firma-placeholder-text">{{ $envio->transportista_nombre ?? 'Sin firma' }}</span>
+                            <span class="firma-placeholder-text">{{ $transportistaNombre ?? 'Sin firma' }}</span>
                         </div>
                     @endif
                     <div class="firma-line">
                         <strong>FIRMA TRANSPORTISTA</strong><br>
-                        <small>{{ $envio->transportista_nombre ?? 'N/A' }}</small>
+                        <small>{{ $transportistaNombre ?? 'N/A' }}</small>
                     </div>
                 </div>
             </div>

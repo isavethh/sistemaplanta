@@ -1815,27 +1815,39 @@ class ReporteController extends Controller
         $fechaInicioTransito = $envio->fecha_inicio_transito;
         $fechaEntrega = $envio->fecha_entrega;
 
-        // Obtener firma del checklist desde Node.js
+        // Obtener firma del transportista
+        // Prioridad: 1) firma_transportista del envío (si es base64), 2) Node.js API, 3) null
         $firmaTransportista = null;
-        try {
-            $nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
+        
+        // Primero verificar si hay una firma base64 guardada directamente en el envío
+        if ($envio->firma_transportista) {
+            $firma = $envio->firma_transportista;
             
-            // Intentar primero con el ID del envío
-            $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
-                'envio_id' => $id,
-                'tipo' => 'salida'
-            ]);
-            
-            if ($response->successful()) {
-                $checklists = $response->json();
-                $checklistSalida = collect($checklists['checklists'] ?? [])->first();
-                $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+            // Si empieza con "data:image", es base64 completo
+            if (strpos($firma, 'data:image') === 0) {
+                // Extraer solo la parte base64
+                $firma = preg_replace('#^data:image/[^;]+;base64,#', '', $firma);
             }
             
-            // Si no se encontró con el ID, intentar con el código del envío
-            if (!$firmaTransportista && $envio->codigo) {
-                $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
+            // Verificar si parece ser base64 válido (solo caracteres base64 y longitud razonable)
+            if (preg_match('/^[A-Za-z0-9+\/]+=*$/', $firma) && strlen($firma) > 100) {
+                $firmaTransportista = $firma;
+                \Log::info("Firma base64 encontrada en envío para trazabilidad (vista)", [
+                    'envio_id' => $id,
                     'envio_codigo' => $envio->codigo,
+                    'firma_length' => strlen($firma)
+                ]);
+            }
+        }
+        
+        // Si no hay firma en el envío, buscar en Node.js
+        if (!$firmaTransportista) {
+            try {
+                $nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
+                
+                // Intentar primero con el ID del envío
+                $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
+                    'envio_id' => $id,
                     'tipo' => 'salida'
                 ]);
                 
@@ -1844,37 +1856,57 @@ class ReporteController extends Controller
                     $checklistSalida = collect($checklists['checklists'] ?? [])->first();
                     $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
                 }
-            }
-            
-            // Si aún no se encontró, intentar buscar todos los checklists y filtrar
-            if (!$firmaTransportista) {
-                $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists");
                 
-                if ($response->successful()) {
-                    $checklists = $response->json();
-                    $allChecklists = $checklists['checklists'] ?? [];
+                // Si no se encontró con el ID, intentar con el código del envío
+                if (!$firmaTransportista && $envio->codigo) {
+                    $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
+                        'envio_codigo' => $envio->codigo,
+                        'tipo' => 'salida'
+                    ]);
                     
-                    // Buscar por ID o código
-                    $checklistSalida = collect($allChecklists)->first(function($checklist) use ($id, $envio) {
-                        return ($checklist['envio_id'] == $id || $checklist['envio_codigo'] == $envio->codigo) 
-                            && ($checklist['tipo'] == 'salida' || $checklist['tipo'] == 'checklist_salida');
-                    });
-                    
-                    $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                    if ($response->successful()) {
+                        $checklists = $response->json();
+                        $checklistSalida = collect($checklists['checklists'] ?? [])->first();
+                        $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                    }
                 }
+                
+                // Si aún no se encontró, intentar buscar todos los checklists y filtrar
+                if (!$firmaTransportista) {
+                    $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists");
+                    
+                    if ($response->successful()) {
+                        $checklists = $response->json();
+                        $allChecklists = $checklists['checklists'] ?? [];
+                        
+                        // Buscar por ID o código
+                        $checklistSalida = collect($allChecklists)->first(function($checklist) use ($id, $envio) {
+                            return ($checklist['envio_id'] == $id || $checklist['envio_codigo'] == $envio->codigo) 
+                                && ($checklist['tipo'] == 'salida' || $checklist['tipo'] == 'checklist_salida');
+                        });
+                        
+                        $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                    }
+                }
+                
+                \Log::info("Firma obtenida para trazabilidad (vista)", [
+                    'envio_id' => $id,
+                    'envio_codigo' => $envio->codigo,
+                    'tiene_firma' => !empty($firmaTransportista),
+                    'fuente' => $firmaTransportista ? 'nodejs' : 'ninguna'
+                ]);
+            } catch (\Exception $e) {
+                \Log::warning("Error obteniendo firma para trazabilidad: " . $e->getMessage(), [
+                    'envio_id' => $id,
+                    'envio_codigo' => $envio->codigo ?? null
+                ]);
             }
-            
-            \Log::info("Firma obtenida para trazabilidad (vista)", [
-                'envio_id' => $id,
-                'envio_codigo' => $envio->codigo,
-                'tiene_firma' => !empty($firmaTransportista)
-            ]);
-        } catch (\Exception $e) {
-            \Log::warning("Error obteniendo firma para trazabilidad: " . $e->getMessage(), [
-                'envio_id' => $id,
-                'envio_codigo' => $envio->codigo ?? null
-            ]);
         }
+        
+        // Obtener nombre del transportista para mostrar como fallback
+        $transportistaNombre = $envio->asignacion && $envio->asignacion->transportista 
+            ? $envio->asignacion->transportista->name 
+            : ($envio->transportista_nombre ?? 'N/A');
 
         // Calcular tiempo total
         $tiempoTotal = null;
@@ -1901,6 +1933,10 @@ class ReporteController extends Controller
         }
 
         return view('reportes.trazabilidad-vista', compact(
+            'envio', 'planta', 'incidentes', 'tiempoTotal', 'tiempoTransito',
+            'fechaCreacion', 'fechaAsignacion', 'fechaAceptacion', 'fechaInicioTransito', 'fechaEntrega',
+            'firmaTransportista', 'transportistaNombre'
+        ));
             'envio', 'planta', 'incidentes', 'tiempoTotal', 'tiempoTransito',
             'fechaCreacion', 'fechaAsignacion', 'fechaAceptacion', 'fechaInicioTransito', 'fechaEntrega',
             'firmaTransportista'
@@ -1933,27 +1969,39 @@ class ReporteController extends Controller
         $fechaInicioTransito = $envio->fecha_inicio_transito;
         $fechaEntrega = $envio->fecha_entrega;
 
-        // Obtener firma del checklist desde Node.js
+        // Obtener firma del transportista
+        // Prioridad: 1) firma_transportista del envío (si es base64), 2) Node.js API, 3) null
         $firmaTransportista = null;
-        try {
-            $nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
+        
+        // Primero verificar si hay una firma base64 guardada directamente en el envío
+        if ($envio->firma_transportista) {
+            $firma = $envio->firma_transportista;
             
-            // Intentar primero con el ID del envío
-            $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
-                'envio_id' => $id,
-                'tipo' => 'salida'
-            ]);
-            
-            if ($response->successful()) {
-                $checklists = $response->json();
-                $checklistSalida = collect($checklists['checklists'] ?? [])->first();
-                $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+            // Si empieza con "data:image", es base64 completo
+            if (strpos($firma, 'data:image') === 0) {
+                // Extraer solo la parte base64
+                $firma = preg_replace('#^data:image/[^;]+;base64,#', '', $firma);
             }
             
-            // Si no se encontró con el ID, intentar con el código del envío
-            if (!$firmaTransportista && $envio->codigo) {
-                $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
+            // Verificar si parece ser base64 válido (solo caracteres base64 y longitud razonable)
+            if (preg_match('/^[A-Za-z0-9+\/]+=*$/', $firma) && strlen($firma) > 100) {
+                $firmaTransportista = $firma;
+                \Log::info("Firma base64 encontrada en envío para trazabilidad", [
+                    'envio_id' => $id,
                     'envio_codigo' => $envio->codigo,
+                    'firma_length' => strlen($firma)
+                ]);
+            }
+        }
+        
+        // Si no hay firma en el envío, buscar en Node.js
+        if (!$firmaTransportista) {
+            try {
+                $nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
+                
+                // Intentar primero con el ID del envío
+                $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
+                    'envio_id' => $id,
                     'tipo' => 'salida'
                 ]);
                 
@@ -1962,37 +2010,57 @@ class ReporteController extends Controller
                     $checklistSalida = collect($checklists['checklists'] ?? [])->first();
                     $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
                 }
-            }
-            
-            // Si aún no se encontró, intentar buscar todos los checklists y filtrar
-            if (!$firmaTransportista) {
-                $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists");
                 
-                if ($response->successful()) {
-                    $checklists = $response->json();
-                    $allChecklists = $checklists['checklists'] ?? [];
+                // Si no se encontró con el ID, intentar con el código del envío
+                if (!$firmaTransportista && $envio->codigo) {
+                    $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
+                        'envio_codigo' => $envio->codigo,
+                        'tipo' => 'salida'
+                    ]);
                     
-                    // Buscar por ID o código
-                    $checklistSalida = collect($allChecklists)->first(function($checklist) use ($id, $envio) {
-                        return ($checklist['envio_id'] == $id || $checklist['envio_codigo'] == $envio->codigo) 
-                            && ($checklist['tipo'] == 'salida' || $checklist['tipo'] == 'checklist_salida');
-                    });
-                    
-                    $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                    if ($response->successful()) {
+                        $checklists = $response->json();
+                        $checklistSalida = collect($checklists['checklists'] ?? [])->first();
+                        $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                    }
                 }
+                
+                // Si aún no se encontró, intentar buscar todos los checklists y filtrar
+                if (!$firmaTransportista) {
+                    $response = \Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists");
+                    
+                    if ($response->successful()) {
+                        $checklists = $response->json();
+                        $allChecklists = $checklists['checklists'] ?? [];
+                        
+                        // Buscar por ID o código
+                        $checklistSalida = collect($allChecklists)->first(function($checklist) use ($id, $envio) {
+                            return ($checklist['envio_id'] == $id || $checklist['envio_codigo'] == $envio->codigo) 
+                                && ($checklist['tipo'] == 'salida' || $checklist['tipo'] == 'checklist_salida');
+                        });
+                        
+                        $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                    }
+                }
+                
+                \Log::info("Firma obtenida para trazabilidad (PDF)", [
+                    'envio_id' => $id,
+                    'envio_codigo' => $envio->codigo,
+                    'tiene_firma' => !empty($firmaTransportista),
+                    'fuente' => $firmaTransportista ? 'nodejs' : 'ninguna'
+                ]);
+            } catch (\Exception $e) {
+                \Log::warning("Error obteniendo firma para trazabilidad: " . $e->getMessage(), [
+                    'envio_id' => $id,
+                    'envio_codigo' => $envio->codigo ?? null
+                ]);
             }
-            
-            \Log::info("Firma obtenida para trazabilidad (PDF)", [
-                'envio_id' => $id,
-                'envio_codigo' => $envio->codigo,
-                'tiene_firma' => !empty($firmaTransportista)
-            ]);
-        } catch (\Exception $e) {
-            \Log::warning("Error obteniendo firma para trazabilidad: " . $e->getMessage(), [
-                'envio_id' => $id,
-                'envio_codigo' => $envio->codigo ?? null
-            ]);
         }
+        
+        // Obtener nombre del transportista para mostrar como fallback
+        $transportistaNombre = $envio->asignacion && $envio->asignacion->transportista 
+            ? $envio->asignacion->transportista->name 
+            : ($envio->transportista_nombre ?? 'N/A');
 
         // Calcular tiempo total
         $tiempoTotal = null;
@@ -2021,7 +2089,7 @@ class ReporteController extends Controller
         $pdf = Pdf::loadView('reportes.pdf.trazabilidad', compact(
             'envio', 'planta', 'incidentes', 'tiempoTotal', 'tiempoTransito',
             'fechaCreacion', 'fechaAsignacion', 'fechaAceptacion', 'fechaInicioTransito', 'fechaEntrega',
-            'firmaTransportista'
+            'firmaTransportista', 'transportistaNombre'
         ));
         
         $pdf->setPaper('a4', 'portrait');
