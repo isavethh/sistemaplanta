@@ -506,6 +506,66 @@ class DocumentoController extends Controller
             color: #666;
             margin-top: 5px;
         }
+        .firma-container-solo {
+            margin-top: 40px;
+            padding: 30px 20px;
+            border-top: 2px solid #4CAF50;
+            padding-top: 40px;
+            text-align: center;
+        }
+        .firma-box-solo {
+            display: inline-block;
+            text-align: center;
+            max-width: 400px;
+        }
+        .firma-imagen-solo {
+            max-width: 300px;
+            max-height: 180px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 15px;
+            background: white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            margin: 0 auto 20px;
+            display: block;
+        }
+        .firma-placeholder-solo {
+            width: 300px;
+            height: 180px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f9f9f9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .firma-placeholder-text-solo {
+            color: #666;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .firma-line-solo {
+            border-top: 3px solid #333;
+            padding-top: 15px;
+            margin-top: 15px;
+            display: inline-block;
+            min-width: 300px;
+        }
+        .firma-label-solo {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .firma-nombre-solo {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
         .footer {
             margin-top: 50px;
             padding-top: 20px;
