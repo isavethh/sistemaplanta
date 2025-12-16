@@ -142,6 +142,12 @@ Route::prefix('envios')->group(function () {
     Route::post('/{id}/aprobar-rechazar', [EnvioApiController::class, 'aprobarRechazarTrazabilidad']);
 });
 
+// Rutas de incidentes
+Route::prefix('incidentes')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\IncidenteController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\IncidenteController::class, 'show']);
+});
+
 // Rutas de envíos (API) - Usando apiResource para rutas estándar REST (debe ir DESPUÉS de rutas personalizadas)
 // Nota: Usamos nombres diferentes para evitar conflicto con rutas web
 Route::apiResource('envios', EnvioApiController::class)

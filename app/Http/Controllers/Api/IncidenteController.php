@@ -357,6 +357,110 @@ class IncidenteController extends Controller
     }
 
     /**
+     * Listar incidentes
+     * GET /api/incidentes
+     */
+    public function index(Request $request)
+    {
+        try {
+            $query = Incidente::with(['envio.almacenDestino', 'transportista']);
+            
+            // Filtrar por transportista si se proporciona
+            if ($request->has('transportista_id')) {
+                $query->where('transportista_id', $request->transportista_id);
+            }
+            
+            // Filtrar por estado si se proporciona
+            if ($request->has('estado')) {
+                $query->where('estado', $request->estado);
+            }
+            
+            // Ordenar por fecha más reciente primero
+            $incidentes = $query->orderBy('fecha_reporte', 'desc')
+                                ->orderBy('created_at', 'desc')
+                                ->get()
+                                ->map(function($incidente) {
+                                    return [
+                                        'id' => $incidente->id,
+                                        'envio_id' => $incidente->envio_id,
+                                        'envio_codigo' => $incidente->envio->codigo ?? null,
+                                        'transportista_id' => $incidente->transportista_id,
+                                        'transportista_nombre' => $incidente->transportista->name ?? null,
+                                        'tipo_incidente' => $incidente->tipo_incidente,
+                                        'descripcion' => $incidente->descripcion,
+                                        'foto_url' => $incidente->foto_url ? asset('storage/' . $incidente->foto_url) : null,
+                                        'accion' => $incidente->accion,
+                                        'estado' => $incidente->estado,
+                                        'ubicacion_lat' => $incidente->ubicacion_lat,
+                                        'ubicacion_lng' => $incidente->ubicacion_lng,
+                                        'fecha_reporte' => $incidente->fecha_reporte,
+                                        'created_at' => $incidente->created_at,
+                                        'almacen_nombre' => $incidente->envio->almacenDestino->nombre ?? null,
+                                        'respuesta' => $incidente->notas_resolucion,
+                                    ];
+                                });
+            
+            return response()->json($incidentes);
+        } catch (\Exception $e) {
+            Log::error('Error al listar incidentes', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al listar incidentes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Obtener un incidente por ID
+     * GET /api/incidentes/{id}
+     */
+    public function show($id)
+    {
+        try {
+            $incidente = Incidente::with(['envio.almacenDestino', 'transportista'])->findOrFail($id);
+            
+            return response()->json([
+                'id' => $incidente->id,
+                'envio_id' => $incidente->envio_id,
+                'envio_codigo' => $incidente->envio->codigo ?? null,
+                'transportista_id' => $incidente->transportista_id,
+                'transportista_nombre' => $incidente->transportista->name ?? null,
+                'tipo_incidente' => $incidente->tipo_incidente,
+                'descripcion' => $incidente->descripcion,
+                'foto_url' => $incidente->foto_url ? Storage::url($incidente->foto_url) : null,
+                'accion' => $incidente->accion,
+                'estado' => $incidente->estado,
+                'ubicacion_lat' => $incidente->ubicacion_lat,
+                'ubicacion_lng' => $incidente->ubicacion_lng,
+                'fecha_reporte' => $incidente->fecha_reporte,
+                'created_at' => $incidente->created_at,
+                'almacen_nombre' => $incidente->envio->almacenDestino->nombre ?? null,
+                'respuesta' => $incidente->respuesta,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Incidente no encontrado'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Error al obtener incidente', [
+                'incidente_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener incidente: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Generar PDF de cancelación del envío
      */
     private function generarPdfCancelacion(Envio $envio, Incidente $incidente, array $datos): ?string
