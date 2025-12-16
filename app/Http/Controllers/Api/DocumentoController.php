@@ -74,10 +74,39 @@ class DocumentoController extends Controller
     }
 
     /**
-     * Obtener firma del transportista desde Node.js
+     * Obtener firma del transportista
+     * Prioridad: 1) firma_transportista del envío (si es base64), 2) Node.js API, 3) null
      */
     private function obtenerFirmaTransportista(Envio $envio): ?string
     {
+        // Primero verificar si hay una firma base64 guardada directamente en el envío
+        if ($envio->firma_transportista) {
+            // Verificar si es base64 (empieza con data:image o es una cadena base64 válida)
+            $firma = $envio->firma_transportista;
+            
+            // Si empieza con "data:image", es base64 completo
+            if (strpos($firma, 'data:image') === 0) {
+                // Extraer solo la parte base64
+                $firma = preg_replace('#^data:image/[^;]+;base64,#', '', $firma);
+            }
+            
+            // Verificar si parece ser base64 válido (solo caracteres base64 y longitud razonable)
+            if (preg_match('/^[A-Za-z0-9+\/]+=*$/', $firma) && strlen($firma) > 100) {
+                \Log::info("Firma base64 encontrada en envío", [
+                    'envio_id' => $envio->id,
+                    'envio_codigo' => $envio->codigo,
+                    'firma_length' => strlen($firma)
+                ]);
+                return $firma;
+            }
+            
+            // Si no es base64, es texto y no la usamos aquí (se mostrará como texto en el documento)
+            \Log::debug("Firma en envío es texto, no base64", [
+                'envio_id' => $envio->id
+            ]);
+        }
+        
+        // Si no hay firma en el envío, buscar en Node.js
         try {
             $nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
             
@@ -92,7 +121,7 @@ class DocumentoController extends Controller
                 $checklistSalida = collect($checklists['checklists'] ?? [])->first();
                 $firma = $checklistSalida['firma_base64'] ?? null;
                 if ($firma) {
-                    \Log::info("Firma obtenida para documento", [
+                    \Log::info("Firma obtenida desde Node.js (por ID)", [
                         'envio_id' => $envio->id,
                         'envio_codigo' => $envio->codigo,
                         'tiene_firma' => true
@@ -113,7 +142,7 @@ class DocumentoController extends Controller
                     $checklistSalida = collect($checklists['checklists'] ?? [])->first();
                     $firma = $checklistSalida['firma_base64'] ?? null;
                     if ($firma) {
-                        \Log::info("Firma obtenida para documento (por código)", [
+                        \Log::info("Firma obtenida desde Node.js (por código)", [
                             'envio_id' => $envio->id,
                             'envio_codigo' => $envio->codigo,
                             'tiene_firma' => true
@@ -138,7 +167,7 @@ class DocumentoController extends Controller
                 
                 $firma = $checklistSalida['firma_base64'] ?? null;
                 if ($firma) {
-                    \Log::info("Firma obtenida para documento (búsqueda completa)", [
+                    \Log::info("Firma obtenida desde Node.js (búsqueda completa)", [
                         'envio_id' => $envio->id,
                         'envio_codigo' => $envio->codigo,
                         'tiene_firma' => true
@@ -147,12 +176,12 @@ class DocumentoController extends Controller
                 }
             }
             
-            \Log::warning("No se encontró firma para documento", [
+            \Log::warning("No se encontró firma base64 para documento", [
                 'envio_id' => $envio->id,
                 'envio_codigo' => $envio->codigo
             ]);
         } catch (\Exception $e) {
-            \Log::warning("Error obteniendo firma para documento: " . $e->getMessage(), [
+            \Log::warning("Error obteniendo firma desde Node.js: " . $e->getMessage(), [
                 'envio_id' => $envio->id,
                 'envio_codigo' => $envio->codigo ?? null
             ]);
@@ -286,19 +315,46 @@ class DocumentoController extends Controller
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             border-radius: 5px;
             overflow: hidden;
+            table-layout: fixed; /* Forzar ancho fijo para evitar desbordamiento */
         }
         th, td {
-            padding: 14px 12px;
+            padding: 12px 8px;
             text-align: left;
             border-bottom: 1px solid #e0e0e0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
         }
         th {
             background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+        td {
+            font-size: 13px;
+        }
+        /* Anchos específicos para columnas */
+        th:nth-child(1), td:nth-child(1) {
+            width: 35%; /* Producto - más espacio */
+        }
+        th:nth-child(2), td:nth-child(2) {
+            width: 12%; /* Cantidad */
+            text-align: center;
+        }
+        th:nth-child(3), td:nth-child(3) {
+            width: 15%; /* Peso */
+            text-align: right;
+        }
+        th:nth-child(4), td:nth-child(4) {
+            width: 18%; /* Precio Unit */
+            text-align: right;
+        }
+        th:nth-child(5), td:nth-child(5) {
+            width: 20%; /* Total */
+            text-align: right;
         }
         tbody tr {
             transition: background 0.2s;
@@ -545,11 +601,11 @@ class DocumentoController extends Controller
 
         foreach ($envio->productos as $producto) {
             $html .= '<tr>
-                        <td>' . $producto->producto_nombre . '</td>
-                        <td>' . $producto->cantidad . '</td>
-                        <td>' . number_format($producto->peso_unitario, 2) . '</td>
-                        <td>Bs ' . number_format($producto->precio_unitario, 2) . '</td>
-                        <td>Bs ' . number_format($producto->total_precio, 2) . '</td>
+                        <td style="word-break: break-word; max-width: 200px;">' . htmlspecialchars($producto->producto_nombre) . '</td>
+                        <td style="text-align: center;">' . $producto->cantidad . '</td>
+                        <td style="text-align: right;">' . number_format($producto->peso_unitario ?? $producto->total_peso ?? 0, 2) . '</td>
+                        <td style="text-align: right;">Bs ' . number_format($producto->precio_unitario ?? 0, 2) . '</td>
+                        <td style="text-align: right; font-weight: bold;">Bs ' . number_format($producto->total_precio ?? 0, 2) . '</td>
                     </tr>';
         }
 

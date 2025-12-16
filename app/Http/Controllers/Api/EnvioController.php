@@ -124,8 +124,20 @@ class EnvioController extends Controller
 
             $envio->estado = 'aceptado';
             
-            // Guardar firma digital del transportista automáticamente al aceptar
-            if ($envio->asignacion && $envio->asignacion->transportista) {
+            // Guardar firma del transportista
+            // Si viene firma_base64 en el request, usarla; si no, generar firma de texto
+            $request = request();
+            $firmaBase64 = $request->input('firma_base64');
+            
+            if ($firmaBase64) {
+                // Guardar firma base64 directamente
+                $envio->firma_transportista = $firmaBase64;
+                Log::info('Firma base64 recibida y guardada', [
+                    'envio_id' => $envio->id,
+                    'firma_length' => strlen($firmaBase64)
+                ]);
+            } elseif ($envio->asignacion && $envio->asignacion->transportista) {
+                // Generar firma de texto como fallback
                 $transportista = $envio->asignacion->transportista;
                 $firma = "FIRMA DIGITAL DE ACEPTACIÓN\n\n";
                 $firma .= "Yo, {$transportista->name}, con documento de identidad, ";
@@ -146,6 +158,9 @@ class EnvioController extends Controller
                 $firma .= "\nEsta firma digital certifica que el transportista ha aceptado el envío y asume la responsabilidad de su entrega.";
                 
                 $envio->firma_transportista = $firma;
+                Log::info('Firma de texto generada como fallback', [
+                    'envio_id' => $envio->id
+                ]);
             }
             
             $envio->save();

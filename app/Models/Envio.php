@@ -37,6 +37,7 @@ class Envio extends Model
         'cancelacion_pdf_path',
         'disconformidad_almacen',
         'disconformidad_trazabilidad',
+        'firma_transportista', // Firma del transportista (texto o base64)
     ];
 
     protected $casts = [
