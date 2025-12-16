@@ -203,10 +203,10 @@
             </div>
             <div class="card-body">
                 @foreach($incidentes as $incidente)
-                <div class="alert alert-danger">
+                <div class="alert alert-danger" id="incidente-{{ $incidente->id }}" style="color: #721c24 !important;">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <strong>
+                            <strong style="color: #721c24 !important;">
                                 @php
                                     $tiposTexto = [
                                         'producto_danado' => 'Producto Dañado',
@@ -224,7 +224,7 @@
                                 {{ strtoupper($incidente->estado ?? 'pendiente') }}
                             </span>
                         </div>
-                        <small class="text-muted">
+                        <small style="color: #721c24 !important;">
                             @if($incidente->fecha_reporte)
                                 {{ \Carbon\Carbon::parse($incidente->fecha_reporte)->format('d/m/Y H:i') }}
                             @elseif($incidente->created_at)
@@ -234,9 +234,9 @@
                             @endif
                         </small>
                     </div>
-                    <hr class="my-2">
-                    <p class="mb-2"><strong>Descripción:</strong></p>
-                    <p class="mb-2" style="background: #fff; padding: 10px; border-radius: 5px; border-left: 4px solid #dc3545;">
+                    <hr class="my-2" style="border-color: #721c24;">
+                    <p class="mb-2"><strong style="color: #721c24 !important;">Descripción:</strong></p>
+                    <p class="mb-2" style="background: #fff; padding: 10px; border-radius: 5px; border-left: 4px solid #dc3545; color: #333 !important;">
                         {{ $incidente->descripcion ?? 'Sin descripción' }}
                     </p>
                     <a href="{{ route('incidentes.show', $incidente->id) }}" class="btn btn-sm btn-danger">
@@ -356,6 +356,21 @@
         background-color: #6f42c1 !important;
         color: white !important;
     }
+    /* Asegurar que los incidentes siempre sean visibles */
+    .alert-danger[id^="incidente-"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: #721c24 !important;
+    }
+    .alert-danger[id^="incidente-"] strong,
+    .alert-danger[id^="incidente-"] p,
+    .alert-danger[id^="incidente-"] small {
+        color: #721c24 !important;
+    }
+    .alert-danger[id^="incidente-"] p[style*="background: #fff"] {
+        color: #333 !important;
+    }
 </style>
 <style>
     .card {
@@ -370,4 +385,29 @@
         transform: scale(1.02);
     }
 </style>
+@endsection
+
+@section('js')
+<script>
+    // Asegurar que los incidentes siempre sean visibles
+    document.addEventListener('DOMContentLoaded', function() {
+        const incidentes = document.querySelectorAll('[id^="incidente-"]');
+        incidentes.forEach(function(incidente) {
+            // Forzar visibilidad
+            incidente.style.display = 'block';
+            incidente.style.visibility = 'visible';
+            incidente.style.opacity = '1';
+        });
+    });
+    
+    // También asegurar después de que todo cargue
+    window.addEventListener('load', function() {
+        const incidentes = document.querySelectorAll('[id^="incidente-"]');
+        incidentes.forEach(function(incidente) {
+            incidente.style.display = 'block';
+            incidente.style.visibility = 'visible';
+            incidente.style.opacity = '1';
+        });
+    });
+</script>
 @endsection
