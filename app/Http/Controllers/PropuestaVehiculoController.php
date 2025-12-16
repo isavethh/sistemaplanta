@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PropuestaVehiculo;
 use App\Models\Envio;
 use App\Services\PropuestaVehiculosService;
+use App\Services\CubicajeInteligenteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -147,9 +148,105 @@ class PropuestaVehiculoController extends Controller
      */
     public function show($id)
     {
-        $propuesta = PropuestaVehiculo::with(['envio.almacenDestino', 'envio.productos.producto', 'aprobadoPor'])
+        $propuesta = PropuestaVehiculo::with(['envio.almacenDestino', 'envio.productos.producto', 'envio.productos.tipoEmpaque', 'aprobadoPor'])
             ->findOrFail($id);
 
-        return view('propuestas-vehiculos.show', compact('propuesta'));
+        if (!$propuesta->envio) {
+            abort(404, 'El envío asociado a esta propuesta no existe');
+        }
+
+        $envio = $propuesta->envio;
+        
+        // Obtener datos de la propuesta (recalcular si no tiene)
+        if ($propuesta->propuesta_data && isset($propuesta->propuesta_data['totales'])) {
+            $propuestaData = $propuesta->propuesta_data;
+        } else {
+            $propuestaService = new PropuestaVehiculosService();
+            $propuestaData = $propuestaService->calcularPropuestaVehiculos($envio);
+        }
+
+        // Convertir al formato que espera la vista de trazabilidad (CubicajeInteligenteService)
+        $cubicaje = $this->formatearCubicajeParaVista($propuestaData, $envio);
+
+        // Crear objeto similar a PedidoAlmacen para la vista
+        $pedido = (object)[
+            'id' => $propuesta->id,
+            'codigo' => $propuesta->codigo_envio,
+            'almacen' => $envio->almacenDestino,
+            'propietario' => null,
+            'fecha_requerida' => $envio->fecha_estimada_entrega ?? now(),
+            'hora_requerida' => $envio->hora_estimada ?? null,
+            'estado' => $propuesta->estado === 'pendiente' ? 'propuesta_enviada' : ($propuesta->estado === 'aprobada' ? 'propuesta_aceptada' : 'propuesta_rechazada'),
+            'direccion_completa' => $envio->almacenDestino->direccion_completa ?? null,
+            'latitud' => $envio->almacenDestino->latitud ?? null,
+            'longitud' => $envio->almacenDestino->longitud ?? null,
+            'productos' => $envio->productos,
+        ];
+
+        return view('trazabilidad.ver-propuesta', compact('pedido', 'cubicaje'));
+    }
+
+    /**
+     * Formatear propuesta al formato que espera la vista (CubicajeInteligenteService)
+     */
+    private function formatearCubicajeParaVista($propuestaData, $envio)
+    {
+        $formateado = [
+            'totales' => [
+                'peso_kg' => $propuestaData['totales']['peso_kg'] ?? 0,
+                'volumen_m3' => $propuestaData['totales']['volumen_m3'] ?? 0,
+                'cantidad_productos' => $propuestaData['totales']['cantidad_productos'] ?? 0,
+            ],
+        ];
+
+        // Tipo de transporte
+        if (isset($propuestaData['tipo_transporte_requerido'])) {
+            $formateado['tipo_transporte'] = $propuestaData['tipo_transporte_requerido'];
+        }
+
+        // Vehículo recomendado (usar el primero de los vehículos propuestos)
+        if (isset($propuestaData['vehiculos_propuestos']) && count($propuestaData['vehiculos_propuestos']) > 0) {
+            $vehiculoProp = $propuestaData['vehiculos_propuestos'][0];
+            if (isset($vehiculoProp['vehiculo']) && $vehiculoProp['vehiculo']) {
+                $vehiculo = $vehiculoProp['vehiculo'];
+                $formateado['vehiculo_recomendado'] = [
+                    'vehiculo' => $vehiculo,
+                    'capacidad_carga_kg' => $vehiculo->capacidad_carga ?? ($vehiculoProp['peso_asignado_kg'] * 1.2),
+                    'capacidad_volumen_m3' => $vehiculo->capacidad_volumen ?? 0,
+                    'porcentaje_uso' => $vehiculoProp['porcentaje_uso'] ?? 0,
+                    'tipo_transporte' => $vehiculoProp['tipo_transporte'] ?? null,
+                    'tamano' => $vehiculoProp['tamano'] ?? null,
+                    'transportista' => isset($vehiculo->transportista) ? $vehiculo->transportista : null,
+                ];
+            }
+        }
+
+        // Capacidad requerida si no hay vehículo
+        if (!isset($formateado['vehiculo_recomendado'])) {
+            $formateado['capacidad_requerida'] = [
+                'peso_minimo_kg' => ($formateado['totales']['peso_kg'] * 1.2),
+            ];
+        }
+
+        // Recomendación de empaque
+        $formateado['recomendacion_empaque'] = [];
+        foreach ($envio->productos as $producto) {
+            if ($producto->tipoEmpaque) {
+                $formateado['recomendacion_empaque'][] = [
+                    'producto' => $producto->producto_nombre,
+                    'tipo_empaque' => $producto->tipoEmpaque,
+                    'cantidad_cajas' => max(1, ceil($producto->cantidad / 10)),
+                    'cantidad_producto' => $producto->cantidad,
+                    'items_por_caja' => 10,
+                    'dimensiones_caja' => [
+                        'largo_cm' => 50,
+                        'ancho_cm' => 40,
+                        'alto_cm' => 30,
+                    ],
+                ];
+            }
+        }
+
+        return $formateado;
     }
 }

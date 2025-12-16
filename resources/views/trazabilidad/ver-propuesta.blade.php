@@ -4,12 +4,26 @@
     <div class="d-flex justify-content-between align-items-center">
         <h1><i class="fas fa-clipboard-check"></i> Propuesta de Envío - {{ $pedido->codigo }}</h1>
         <div>
-            <a href="{{ route('trazabilidad.propuestas.descargar-pdf', $pedido->id) }}" class="btn btn-danger mr-2" target="_blank">
-                <i class="fas fa-file-pdf"></i> Descargar PDF
-            </a>
-            <a href="{{ route('trazabilidad.propuestas-envios') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
+            @php
+                $tieneRutaPdf = \Route::has('trazabilidad.propuestas.descargar-pdf');
+                $tieneRutaPropuestas = \Route::has('trazabilidad.propuestas-envios');
+                $tieneRutaVehiculos = \Route::has('propuestas-vehiculos.index');
+            @endphp
+            @if($tieneRutaPdf)
+                <a href="{{ route('trazabilidad.propuestas.descargar-pdf', $pedido->id) }}" class="btn btn-danger mr-2" target="_blank">
+                    <i class="fas fa-file-pdf"></i> Descargar PDF
+                </a>
+            @endif
+            @if($tieneRutaPropuestas)
+                <a href="{{ route('trazabilidad.propuestas-envios') }}" class="btn btn-secondary mr-2">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            @endif
+            @if($tieneRutaVehiculos)
+                <a href="{{ route('propuestas-vehiculos.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver a Propuestas
+                </a>
+            @endif
         </div>
     </div>
 @endsection
@@ -408,20 +422,28 @@
                 <h3 class="card-title text-white"><i class="fas fa-tasks"></i> Acciones</h3>
             </div>
             <div class="card-body">
-                <a href="{{ route('trazabilidad.propuestas.descargar-pdf', $pedido->id) }}" class="btn btn-danger btn-lg mr-2" target="_blank">
-                    <i class="fas fa-file-pdf"></i> Descargar PDF
-                </a>
+                @php
+                    $tieneRutaPdf = \Route::has('trazabilidad.propuestas.descargar-pdf');
+                    $tieneRutaAprobar = \Route::has('trazabilidad.propuestas.aprobar');
+                @endphp
+                @if($tieneRutaPdf)
+                    <a href="{{ route('trazabilidad.propuestas.descargar-pdf', $pedido->id) }}" class="btn btn-danger btn-lg mr-2" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Descargar PDF
+                    </a>
+                @endif
                 
-                <form action="{{ route('trazabilidad.propuestas.aprobar', $pedido->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Está seguro de aprobar esta propuesta?');">
-                    @csrf
-                    <button type="submit" class="btn btn-success btn-lg mr-2">
-                        <i class="fas fa-check"></i> Aprobar Propuesta
+                @if($tieneRutaAprobar)
+                    <form action="{{ route('trazabilidad.propuestas.aprobar', $pedido->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Está seguro de aprobar esta propuesta?');">
+                        @csrf
+                        <button type="submit" class="btn btn-success btn-lg mr-2">
+                            <i class="fas fa-check"></i> Aprobar Propuesta
+                        </button>
+                    </form>
+                    
+                    <button type="button" class="btn btn-warning btn-lg" data-toggle="modal" data-target="#rechazarModal">
+                        <i class="fas fa-times"></i> Rechazar Propuesta
                     </button>
-                </form>
-                
-                <button type="button" class="btn btn-warning btn-lg" data-toggle="modal" data-target="#rechazarModal">
-                    <i class="fas fa-times"></i> Rechazar Propuesta
-                </button>
+                @endif
             </div>
         </div>
     </div>
@@ -437,6 +459,10 @@
                     <span>&times;</span>
                 </button>
             </div>
+            @php
+                $tieneRutaRechazar = \Route::has('trazabilidad.propuestas.rechazar');
+            @endphp
+            @if($tieneRutaRechazar)
             <form action="{{ route('trazabilidad.propuestas.rechazar', $pedido->id) }}" method="POST">
                 @csrf
                 <div class="modal-body">

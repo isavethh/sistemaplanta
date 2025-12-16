@@ -264,5 +264,37 @@
     .img-thumbnail:hover {
         transform: scale(1.02);
     }
+    
+    /* Prevenir movimiento del modal en hover */
+    .modal.show .modal-dialog,
+    .modal.show .modal-content,
+    .modal.show .modal-header,
+    .modal.show .modal-body,
+    .modal.show .modal-footer,
+    .modal.show .modal-dialog:hover,
+    .modal.show .modal-content:hover,
+    .modal.show .modal-header:hover,
+    .modal.show .modal-body:hover,
+    .modal.show .modal-footer:hover {
+        transform: none !important;
+        position: relative !important;
+    }
+    
+    /* Prevenir cualquier transformación en hover para elementos dentro del modal cuando está visible */
+    .modal.show [id^="modalResolver"] .modal-content *:hover,
+    .modal.show [id^="modalResolver"] .modal-content:hover,
+    .modal.show [id^="modalResolver"] .modal-dialog:hover {
+        transform: none !important;
+    }
+    
+    /* Mantener la animación de apertura del modal */
+    .modal.fade .modal-dialog {
+        transition: transform .3s ease-out;
+        transform: translate(0, -50px);
+    }
+    
+    .modal.show .modal-dialog {
+        transform: none;
+    }
 </style>
 @endsection
