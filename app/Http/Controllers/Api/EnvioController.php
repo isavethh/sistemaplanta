@@ -135,6 +135,9 @@ class EnvioController extends Controller
                 'envio_codigo' => $envio->codigo,
                 'tiene_firma_base64' => !empty($firmaBase64),
                 'firma_length' => $firmaBase64 ? strlen($firmaBase64) : 0,
+                'firma_preview' => $firmaBase64 ? substr($firmaBase64, 0, 50) : 'N/A',
+                'firma_starts_with' => $firmaBase64 ? substr($firmaBase64, 0, 20) : 'N/A',
+                'request_keys' => array_keys($request->all()),
                 'request_all' => $request->all()
             ]);
             
