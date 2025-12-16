@@ -118,7 +118,6 @@ class AsignacionMultipleController extends Controller
             
             $pesoTotal = 0;
             $fechasDistintas = [];
-            $almacenesDistintos = [];
             
             foreach ($envios as $envio) {
                 $pesoTotal += floatval($envio->total_peso ?? 0);
@@ -130,13 +129,6 @@ class AsignacionMultipleController extends Controller
                         $fechasDistintas[] = $fecha;
                     }
                 }
-                
-                // Verificar que todos sean al mismo almacén
-                if ($envio->almacen_destino_id) {
-                    if (!in_array($envio->almacen_destino_id, $almacenesDistintos)) {
-                        $almacenesDistintos[] = $envio->almacen_destino_id;
-                    }
-                }
             }
             
             // VALIDACIÓN: Todos deben ser del mismo día
@@ -145,12 +137,8 @@ class AsignacionMultipleController extends Controller
                 return back()->with('error', '❌ ERROR: Solo se pueden asignar envíos del MISMO DÍA. Fechas encontradas: ' . implode(', ', $fechasDistintas));
             }
             
-            // VALIDACIÓN: Todos deben ser al mismo almacén
-            if (count($almacenesDistintos) > 1) {
-                DB::rollBack();
-                $almacenesNombres = \App\Models\Almacen::whereIn('id', $almacenesDistintos)->pluck('nombre')->toArray();
-                return back()->with('error', '❌ ERROR: Solo se pueden asignar envíos al MISMO ALMACÉN en el mismo día. Almacenes encontrados: ' . implode(', ', $almacenesNombres));
-            }
+            // OPTIMIZAR ORDEN DE ALMACENES: Ordenar envíos por distancia desde la planta (nearest neighbor)
+            $enviosOrdenados = $this->optimizarOrdenAlmacenes($envios);
             
             // VALIDACIÓN: No exceder capacidad del vehículo
             $porcentajeUso = ($pesoTotal / $capacidadMaxima) * 100;
@@ -172,10 +160,10 @@ class AsignacionMultipleController extends Controller
                 );
             }
             
-            // Asignar cada envío
+            // Asignar cada envío en el orden optimizado
             $enviosAsignados = [];
             
-            foreach ($envios as $envio) {
+            foreach ($enviosOrdenados as $envio) {
                 // Actualizar o crear asignación
                 // Si ya existe una asignación para este envío, la actualizamos
                 // El transportista se obtiene a través del vehículo
@@ -211,7 +199,8 @@ class AsignacionMultipleController extends Controller
             $rutaMultiEntrega = null;
             try {
                 $nodeApiUrl = env('NODE_API_URL', 'http://localhost:3001/api');
-                $enviosIds = $envios->pluck('id')->toArray();
+                // Usar IDs en el orden optimizado
+                $enviosIds = collect($enviosOrdenados)->pluck('id')->toArray();
                 
                 \Log::info("🛣️ Creando ruta multi-entrega para asignación múltiple con " . count($enviosIds) . " envíos");
                 
@@ -226,8 +215,8 @@ class AsignacionMultipleController extends Controller
                     $rutaMultiEntrega = $response->json('ruta');
                     \Log::info("✅ Ruta multi-entrega creada: {$rutaMultiEntrega['codigo']} (ID: {$rutaMultiEntrega['id']})");
                     
-                    // Actualizar los envíos para que apunten a la ruta
-                    foreach ($envios as $envio) {
+                    // Actualizar los envíos para que apunten a la ruta (orden optimizado)
+                    foreach ($enviosOrdenados as $envio) {
                         $envio->update(['ruta_entrega_id' => $rutaMultiEntrega['id']]);
                     }
                 } else {
@@ -243,7 +232,7 @@ class AsignacionMultipleController extends Controller
             DB::commit();
             
             // Sincronizar con app móvil (si existe el endpoint)
-            $this->sincronizarConApp($transportista->id, $envios);
+            $this->sincronizarConApp($transportista->id, collect($enviosOrdenados));
             
             $numEnvios = count($enviosAsignados);
             $porcentajeFormateado = number_format($porcentajeUso, 1);
@@ -275,6 +264,98 @@ class AsignacionMultipleController extends Controller
             \Log::error("❌ Error en asignación múltiple: " . $e->getMessage());
             return back()->with('error', '❌ Error al asignar: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Optimizar orden de almacenes usando algoritmo Nearest Neighbor
+     * Ordena los envíos de forma que la ruta sea eficiente (menor distancia total)
+     */
+    private function optimizarOrdenAlmacenes($envios)
+    {
+        // Obtener coordenadas de la planta (origen)
+        $planta = \App\Models\Almacen::where('es_planta', true)->first();
+        if (!$planta) {
+            // Si no hay planta, devolver en orden original
+            return $envios->toArray();
+        }
+        
+        $plantaLat = floatval($planta->latitud ?? -17.7833);
+        $plantaLng = floatval($planta->longitud ?? -63.1821);
+        
+        // Cargar almacenes de destino con coordenadas
+        $envios->load('almacenDestino');
+        
+        // Algoritmo Nearest Neighbor: empezar desde la planta, ir al más cercano, luego al siguiente más cercano...
+        $ruta = [];
+        $visitados = [];
+        $posicionActual = ['lat' => $plantaLat, 'lng' => $plantaLng];
+        $enviosArray = $envios->all(); // Obtener como array de modelos
+        
+        while (count($ruta) < count($enviosArray)) {
+            $masCercano = null;
+            $menorDistancia = PHP_INT_MAX;
+            $indiceMasCercano = -1;
+            
+            // Buscar el almacén más cercano no visitado
+            foreach ($enviosArray as $indice => $envio) {
+                if (in_array($indice, $visitados)) {
+                    continue;
+                }
+                
+                $almacen = $envio->almacenDestino;
+                if (!$almacen || !$almacen->latitud || !$almacen->longitud) {
+                    continue;
+                }
+                
+                $destinoLat = floatval($almacen->latitud);
+                $destinoLng = floatval($almacen->longitud);
+                
+                // Calcular distancia euclidiana (suficiente para optimización)
+                $distancia = sqrt(
+                    pow($destinoLat - $posicionActual['lat'], 2) + 
+                    pow($destinoLng - $posicionActual['lng'], 2)
+                );
+                
+                if ($distancia < $menorDistancia) {
+                    $menorDistancia = $distancia;
+                    $masCercano = $envio;
+                    $indiceMasCercano = $indice;
+                }
+            }
+            
+            // Agregar el más cercano a la ruta
+            if ($masCercano && $indiceMasCercano >= 0) {
+                $ruta[] = $masCercano;
+                $visitados[] = $indiceMasCercano;
+                
+                // Actualizar posición actual al almacén visitado
+                $almacen = $masCercano->almacenDestino;
+                if ($almacen) {
+                    $posicionActual = [
+                        'lat' => floatval($almacen->latitud ?? $plantaLat),
+                        'lng' => floatval($almacen->longitud ?? $plantaLng)
+                    ];
+                }
+            } else {
+                // Si no se encontró más cercano, agregar los restantes en orden
+                foreach ($enviosArray as $indice => $envio) {
+                    if (!in_array($indice, $visitados)) {
+                        $ruta[] = $envio;
+                        $visitados[] = $indice;
+                    }
+                }
+                break;
+            }
+        }
+        
+        // $ruta ya contiene los modelos Eloquent en orden optimizado
+        $enviosOrdenados = $ruta;
+        
+        \Log::info("🛣️ Orden optimizado de almacenes: " . implode(' -> ', array_map(function($e) {
+            return $e->almacenDestino->nombre ?? 'N/A';
+        }, $enviosOrdenados)));
+        
+        return $enviosOrdenados;
     }
     
     /**

@@ -104,8 +104,8 @@ class AsignacionController extends Controller
                 \Log::info("✅ Transportista {$transportista->name} (ID: {$request->transportista_id}) asignado al vehículo {$vehiculo->placa}");
             }
 
-            // Verificar que el vehículo no esté ocupado con envíos a otros almacenes o días diferentes
-            // PERMITIR asignaciones múltiples MANUALES solo si son al mismo almacén en el mismo día
+            // Verificar que el vehículo no esté ocupado con envíos en días diferentes
+            // PERMITIR asignaciones múltiples MANUALES solo si son en el mismo día (pueden ser distintos almacenes)
             $envio->load('almacenDestino');
             $fechaEnvio = $envio->fecha_estimada_entrega ? \Carbon\Carbon::parse($envio->fecha_estimada_entrega)->format('Y-m-d') : null;
             
@@ -117,27 +117,21 @@ class AsignacionController extends Controller
                 ->where('vehiculo_id', $request->vehiculo_id)
                 ->get();
             
-            // Si hay envíos activos, verificar que sean al mismo almacén y mismo día
+            // Si hay envíos activos, verificar que sean en el mismo día (pueden ser distintos almacenes)
             if ($enviosActivosVehiculo->count() > 0) {
                 foreach ($enviosActivosVehiculo as $asignacionExistente) {
                     $envioExistente = $asignacionExistente->envio;
                     
-                    // Si hay un envío a un almacén diferente o día diferente, bloquear
-                    if ($envioExistente->almacen_destino_id != $envio->almacen_destino_id) {
-                        DB::rollBack();
-                        return back()->with('error', 'El vehículo seleccionado ya está asignado a un envío activo a otro almacén. Para asignaciones múltiples, use la opción de "Asignación Múltiple" y solo para envíos al mismo almacén en el mismo día.');
-                    }
-                    
-                    // Si hay fecha, verificar que sea el mismo día
+                    // Si hay fecha, verificar que sea el mismo día (múltiples almacenes están permitidos)
                     if ($fechaEnvio && $envioExistente->fecha_estimada_entrega) {
                         $fechaExistente = \Carbon\Carbon::parse($envioExistente->fecha_estimada_entrega)->format('Y-m-d');
                         if ($fechaExistente != $fechaEnvio) {
                             DB::rollBack();
-                            return back()->with('error', 'El vehículo seleccionado ya está asignado a un envío activo en otro día. Para asignaciones múltiples, use la opción de "Asignación Múltiple" y solo para envíos al mismo almacén en el mismo día.');
+                            return back()->with('error', 'El vehículo seleccionado ya está asignado a un envío activo en otro día. Para asignaciones múltiples, use la opción de "Asignación Múltiple" para envíos del mismo día (pueden ser distintos almacenes).');
                         }
                     }
                 }
-                // Si llegamos aquí, todos los envíos existentes son al mismo almacén y mismo día
+                // Si llegamos aquí, todos los envíos existentes son del mismo día (almacenes diferentes están permitidos)
                 // Permitir la asignación múltiple manual
             }
 
