@@ -1060,6 +1060,52 @@ function verEnMapa(id, codigo, lat, lng) {
     document.getElementById('info-panel').innerHTML = 
         `<i class="fas fa-truck"></i> Siguiendo envío <strong>${codigo}</strong> en tiempo real - Actualizando cada 2 segundos`;
     document.getElementById('info-panel').className = 'alert alert-success mb-3';
+    
+    // IMPORTANTE: Actualizar barra de progreso con el valor actual (no resetear a 0%)
+    // Primero intentar obtener el progreso desde ultimoProgresoWS (más preciso, viene del WebSocket)
+    let progresoActual = ultimoProgresoWS[id];
+    
+    // Si no existe en ultimoProgresoWS, buscar en el mapeo por código
+    if (progresoActual === undefined && mapeoEnvioIdCodigo[id]) {
+        const codigoMapeado = mapeoEnvioIdCodigo[id];
+        progresoActual = ultimoProgresoWS[codigoMapeado];
+    }
+    
+    // Si aún no existe, intentar calcularlo desde los datos del envío en la lista
+    if (progresoActual === undefined) {
+        // Buscar en la lista de envíos en tránsito usando el atributo data-fecha-inicio
+        const enTransito = document.querySelectorAll('[data-envio-id]');
+        for (const card of enTransito) {
+            const cardId = String(card.dataset.envioId);
+            const searchId = String(id);
+            if (cardId === searchId || card.dataset.envioId == id) {
+                const fechaInicio = card.dataset.fechaInicio || card.getAttribute('data-fecha-inicio');
+                if (fechaInicio) {
+                    progresoActual = calcularProgreso(id, fechaInicio);
+                }
+                break;
+            }
+        }
+    }
+    
+    // Si aún no tenemos progreso, usar 0 como fallback
+    if (progresoActual === undefined || progresoActual === null || isNaN(progresoActual)) {
+        progresoActual = 0;
+    }
+    
+    // Actualizar la barra de progreso con el valor actual
+    const progresoPercent = Math.round(progresoActual * 100);
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progreso-texto');
+    if (progressBar) {
+        progressBar.style.width = progresoPercent + '%';
+        progressBar.textContent = progresoPercent + '%';
+    }
+    if (progressText) {
+        progressText.textContent = progresoPercent + '%';
+    }
+    
+    console.log(`✅ Actualizado progreso al hacer focus: ${progresoPercent}% para envío ${id}`);
 }
 
 function cerrarSeguimiento() {
