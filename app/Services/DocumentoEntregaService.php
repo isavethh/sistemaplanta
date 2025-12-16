@@ -120,8 +120,10 @@ class DocumentoEntregaService
             $firmaTransportista = null;
             
             try {
-                $nodeApiUrl = env('NODE_API_URL', 'http://localhost:3000');
-                $response = Http::timeout(5)->get("{$nodeApiUrl}/api/rutas-entrega/checklists", [
+                $nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
+                
+                // Intentar primero con el ID del envío
+                $response = Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
                     'envio_id' => $envio->id,
                     'tipo' => 'salida'
                 ]);
@@ -130,6 +132,45 @@ class DocumentoEntregaService
                     $checklists = $response->json();
                     $checklistSalida = collect($checklists['checklists'] ?? [])->first();
                     $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                }
+                
+                // Si no se encontró con el ID, intentar con el código del envío
+                if (!$firmaTransportista && $envio->codigo) {
+                    $response = Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
+                        'envio_codigo' => $envio->codigo,
+                        'tipo' => 'salida'
+                    ]);
+                    
+                    if ($response->successful()) {
+                        $checklists = $response->json();
+                        $checklistSalida = collect($checklists['checklists'] ?? [])->first();
+                        $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                    }
+                }
+                
+                // Si aún no se encontró, intentar buscar todos los checklists y filtrar
+                if (!$firmaTransportista) {
+                    $response = Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists");
+                    
+                    if ($response->successful()) {
+                        $checklists = $response->json();
+                        $allChecklists = $checklists['checklists'] ?? [];
+                        
+                        // Buscar por ID o código
+                        $checklistSalida = collect($allChecklists)->first(function($checklist) use ($envio) {
+                            return ($checklist['envio_id'] == $envio->id || $checklist['envio_codigo'] == $envio->codigo) 
+                                && ($checklist['tipo'] == 'salida' || $checklist['tipo'] == 'checklist_salida');
+                        });
+                        
+                        $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                    }
+                }
+                
+                Log::info("Firma obtenida para nota de entrega", [
+                    'envio_id' => $envio->id,
+                    'envio_codigo' => $envio->codigo,
+                    'tiene_firma' => !empty($firmaTransportista)
+                ]);
                     
                     // Obtener evidencias si hay items no marcados
                     if ($checklistSalida && isset($checklistSalida['datos'])) {
@@ -216,8 +257,10 @@ class DocumentoEntregaService
             // Obtener firma del checklist desde Node.js
             $firmaTransportista = null;
             try {
-                $nodeApiUrl = env('NODE_API_URL', 'http://localhost:3000');
-                $response = Http::timeout(5)->get("{$nodeApiUrl}/api/rutas-entrega/checklists", [
+                $nodeApiUrl = env('NODE_API_URL', 'http://bomberos.dasalas.shop/api');
+                
+                // Intentar primero con el ID del envío
+                $response = Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
                     'envio_id' => $envio->id,
                     'tipo' => 'salida'
                 ]);
@@ -227,8 +270,49 @@ class DocumentoEntregaService
                     $checklistSalida = collect($checklists['checklists'] ?? [])->first();
                     $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
                 }
+                
+                // Si no se encontró con el ID, intentar con el código del envío
+                if (!$firmaTransportista && $envio->codigo) {
+                    $response = Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists", [
+                        'envio_codigo' => $envio->codigo,
+                        'tipo' => 'salida'
+                    ]);
+                    
+                    if ($response->successful()) {
+                        $checklists = $response->json();
+                        $checklistSalida = collect($checklists['checklists'] ?? [])->first();
+                        $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                    }
+                }
+                
+                // Si aún no se encontró, intentar buscar todos los checklists y filtrar
+                if (!$firmaTransportista) {
+                    $response = Http::timeout(5)->get("{$nodeApiUrl}/rutas-entrega/checklists");
+                    
+                    if ($response->successful()) {
+                        $checklists = $response->json();
+                        $allChecklists = $checklists['checklists'] ?? [];
+                        
+                        // Buscar por ID o código
+                        $checklistSalida = collect($allChecklists)->first(function($checklist) use ($envio) {
+                            return ($checklist['envio_id'] == $envio->id || $checklist['envio_codigo'] == $envio->codigo) 
+                                && ($checklist['tipo'] == 'salida' || $checklist['tipo'] == 'checklist_salida');
+                        });
+                        
+                        $firmaTransportista = $checklistSalida['firma_base64'] ?? null;
+                    }
+                }
+                
+                Log::info("Firma obtenida para trazabilidad en DocumentoEntregaService", [
+                    'envio_id' => $envio->id,
+                    'envio_codigo' => $envio->codigo,
+                    'tiene_firma' => !empty($firmaTransportista)
+                ]);
             } catch (\Exception $e) {
-                Log::warning("Error obteniendo firma para trazabilidad: " . $e->getMessage());
+                Log::warning("Error obteniendo firma para trazabilidad: " . $e->getMessage(), [
+                    'envio_id' => $envio->id,
+                    'envio_codigo' => $envio->codigo ?? null
+                ]);
             }
 
             // Calcular tiempos
