@@ -43,6 +43,11 @@ Route::middleware(['auth'])->group(function () {
     })->name('home');
 
     Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('dashboard');
+    
+    // ============================================================================
+    // TEST - FIRMAS GUARDADAS
+    // ============================================================================
+    Route::get('/test/firmas', [App\Http\Controllers\TestFirmasController::class, 'index'])->name('test.firmas');
 });
 
 // ============================================================================
