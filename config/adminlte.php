@@ -422,34 +422,37 @@ return [
         // =============================================
         // MENÚ PARA ALMACÉN
         // =============================================
-        ['header' => '📦 MIS RECEPCIONES', 'role' => 'almacen'],
-        ['text' => 'Inventario', 'url' => 'inventarios', 'icon' => 'fas fa-boxes', 'icon_color' => 'info', 'role' => 'almacen'],
-        ['text' => 'Monitorización en Tiempo Real', 'url' => 'almacenes/monitoreo', 'icon' => 'fas fa-route', 'icon_color' => 'primary', 'role' => 'almacen'],
+        ['header' => '📦 MIS RECEPCIONES', 'role' => 'almacen', 'exclude_admin' => true],
+        ['text' => 'Inventario', 'url' => 'inventarios', 'icon' => 'fas fa-boxes', 'icon_color' => 'info', 'role' => 'almacen', 'exclude_admin' => true],
+        ['text' => 'Monitorización en Tiempo Real', 'url' => 'almacenes/monitoreo', 'icon' => 'fas fa-route', 'icon_color' => 'primary', 'role' => 'almacen', 'exclude_admin' => true],
 
         // =============================================
         // MENÚ PARA PROPIETARIO (ALMACENES)
         // =============================================
-        ['header' => '🏪 GESTIÓN DE ALMACENES', 'role' => 'propietario'],
+        ['header' => '🏪 GESTIÓN DE ALMACENES', 'role' => 'propietario', 'exclude_admin' => true],
         [
             'text' => 'Mis Almacenes',
             'url' => 'almacenes',
             'icon' => 'fas fa-warehouse',
             'icon_color' => 'info',
-            'role' => 'propietario'
+            'role' => 'propietario',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         [
             'text' => 'Crear Almacén',
             'route' => 'almacenes.create',
             'icon' => 'fas fa-plus',
             'icon_color' => 'success',
-            'role' => 'propietario'
+            'role' => 'propietario',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         [
             'text' => 'Inventario de Almacenes',
             'url' => 'inventarios',
             'icon' => 'fas fa-boxes',
             'icon_color' => 'warning',
-            'role' => 'propietario'
+            'role' => 'propietario',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         
         ['header' => '📋 GESTIÓN DE PEDIDOS', 'role' => 'propietario', 'exclude_admin' => true],
@@ -506,7 +509,7 @@ return [
             'exclude_admin' => true, // Ocultar para admin
         ],
         
-        ['header' => '📦 RECEPCIÓN Y ENVÍOS', 'role' => 'propietario'],
+        ['header' => '📦 RECEPCIÓN Y ENVÍOS', 'role' => 'propietario', 'exclude_admin' => true],
         [
             'text' => 'Envíos Recibidos',
             'route' => 'envios.index',
@@ -514,36 +517,41 @@ return [
             'icon_color' => 'primary',
             'role' => 'propietario',
             'url' => 'envios?tipo=recibidos',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         [
             'text' => 'Historial de Envíos',
             'route' => 'envios.index',
             'icon' => 'fas fa-history',
             'icon_color' => 'secondary',
-            'role' => 'propietario'
+            'role' => 'propietario',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         
-        ['header' => '📊 REPORTES Y ANÁLISIS', 'role' => 'propietario'],
+        ['header' => '📊 REPORTES Y ANÁLISIS', 'role' => 'propietario', 'exclude_admin' => true],
         [
             'text' => 'Productos Disponibles',
             'url' => 'productos',
             'icon' => 'fas fa-shopping-bag',
             'icon_color' => 'info',
-            'role' => 'propietario'
+            'role' => 'propietario',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         [
             'text' => 'Estadísticas de Pedidos',
             'url' => 'reportes',
             'icon' => 'fas fa-chart-bar',
             'icon_color' => 'success',
-            'role' => 'propietario'
+            'role' => 'propietario',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         [
             'text' => 'Reportes de Inventario',
             'url' => 'reportes/operaciones',
             'icon' => 'fas fa-file-alt',
             'icon_color' => 'primary',
-            'role' => 'propietario'
+            'role' => 'propietario',
+            'exclude_admin' => true, // Ocultar para admin
         ],
 
         // =============================================
