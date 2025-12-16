@@ -1937,10 +1937,6 @@ class ReporteController extends Controller
             'fechaCreacion', 'fechaAsignacion', 'fechaAceptacion', 'fechaInicioTransito', 'fechaEntrega',
             'firmaTransportista', 'transportistaNombre'
         ));
-            'envio', 'planta', 'incidentes', 'tiempoTotal', 'tiempoTransito',
-            'fechaCreacion', 'fechaAsignacion', 'fechaAceptacion', 'fechaInicioTransito', 'fechaEntrega',
-            'firmaTransportista'
-        ));
     }
 
     /**
