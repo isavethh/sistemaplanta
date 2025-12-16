@@ -145,10 +145,11 @@
         const descripcion = document.getElementById('descripcion').value.trim();
         if (descripcion.length < 10) {
             e.preventDefault();
-            alert('La descripción debe tener al menos 10 caracteres.');
+            showAlert('La descripción debe tener al menos 10 caracteres.', 'Validación', 'fa-exclamation-triangle', 'bg-warning');
             return false;
         }
     });
 </script>
+@include('partials.modal-alert')
 @endsection
 

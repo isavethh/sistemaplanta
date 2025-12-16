@@ -449,7 +449,7 @@ function agregarProducto() {
         const container = document.getElementById('productos-container');
         if (!container) {
             console.error('❌ No se encontró el contenedor productos-container');
-            alert('Error: No se encontró el contenedor de productos');
+            showAlert('Error: No se encontró el contenedor de productos', 'Error', 'fa-exclamation-circle', 'bg-danger');
             return;
         }
         
@@ -664,7 +664,7 @@ function agregarProducto() {
         console.log('✅ Producto #' + (index + 1) + ' agregado exitosamente');
     } catch (error) {
         console.error('❌ Error en agregarProducto():', error);
-        alert('Error al agregar producto: ' + error.message);
+        showAlert('Error al agregar producto: ' + error.message, 'Error', 'fa-exclamation-circle', 'bg-danger');
     }
 }
 
@@ -767,7 +767,7 @@ document.getElementById('formEnvio').addEventListener('submit', function(e) {
     
     if (productos.length === 0) {
         e.preventDefault();
-        alert('Debe agregar al menos un producto');
+        showAlert('Debe agregar al menos un producto', 'Validación', 'fa-exclamation-triangle', 'bg-warning');
         return false;
     }
 });
@@ -987,4 +987,5 @@ function toggleMedidasProducto(index) {
 
 console.log('✅ Calculador de empaques con animación cargado correctamente');
 </script>
+@include('partials.modal-alert')
 @endsection

@@ -268,7 +268,7 @@
         
         // Validar que el peso unitario no sea mayor a 10 (probablemente está en gramos)
         if (pesoUnitario > 10) {
-            alert('⚠️ Advertencia: El peso parece estar en gramos. Por favor, ingrese el peso en kilogramos.\n\nEjemplo: Para 900g, ingrese 0.900 kg');
+            showAlert('⚠️ Advertencia: El peso parece estar en gramos. Por favor, ingrese el peso en kilogramos.<br><br>Ejemplo: Para 900g, ingrese 0.900 kg', 'Advertencia', 'fa-exclamation-triangle', 'bg-warning');
             // Convertir automáticamente de gramos a kilogramos
             pesoUnitario = pesoUnitario / 1000;
             $(`.producto-item[data-index="${index}"] .peso-input`).val(pesoUnitario.toFixed(2));
@@ -307,7 +307,7 @@
     $('#formPedido').on('submit', function(e) {
         if (productosAgregados.length === 0) {
             e.preventDefault();
-            alert('Debe agregar al menos un producto al pedido.');
+            showAlert('Debe agregar al menos un producto al pedido.', 'Validación', 'fa-exclamation-triangle', 'bg-warning');
             return false;
         }
         
@@ -323,10 +323,11 @@
         
         if (!productosValidos) {
             e.preventDefault();
-            alert('Por favor complete todos los datos de los productos.');
+            showAlert('Por favor complete todos los datos de los productos.', 'Validación', 'fa-exclamation-triangle', 'bg-warning');
             return false;
         }
     });
 </script>
+@include('partials.modal-alert')
 @endsection
 

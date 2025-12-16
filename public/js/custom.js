@@ -178,3 +178,45 @@ function loadData(url, containerId) {
     });
 }
 
+// Función para mostrar alertas usando modal en lugar de alert() nativo
+function showAlert(message, title = 'Información', iconClass = 'fa-info-circle', headerClass = 'bg-info') {
+    // Asegurar que el modal existe, si no, crear uno dinámicamente
+    if ($('#modalAlert').length === 0) {
+        $('body').append(`
+            <div class="modal fade" id="modalAlert" tabindex="-1" role="dialog">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title" id="modalAlertTitle">
+                                <i class="fas fa-info-circle"></i> Información
+                            </h5>
+                            <button type="button" class="close text-white" data-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="modalAlertMessage"></p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-dismiss="modal">Aceptar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+    }
+    
+    $('#modalAlertTitle').html('<i class="fas ' + iconClass + '"></i> ' + title);
+    $('#modalAlertMessage').html(message.replace(/\n/g, '<br>'));
+    $('#modalAlert .modal-header').removeClass('bg-info bg-warning bg-danger bg-success').addClass(headerClass);
+    $('#modalAlert').modal('show');
+}
+
+// Reemplazar alert() nativo globalmente
+if (typeof window.alert === 'function') {
+    window._nativeAlert = window.alert;
+    window.alert = function(message) {
+        showAlert(message);
+    };
+}
+

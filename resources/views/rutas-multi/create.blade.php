@@ -903,7 +903,7 @@ $(document).ready(function() {
     // Optimizar ruta (ordenar por distancia desde planta)
     $('#btnOptimizarRuta').click(function() {
         if (enviosSeleccionados.length < 2) {
-            alert('Necesitas al menos 2 envíos para optimizar la ruta');
+            showAlert('Necesitas al menos 2 envíos para optimizar la ruta', 'Información', 'fa-info-circle', 'bg-info');
             return;
         }
 
@@ -991,19 +991,19 @@ $(document).ready(function() {
     $('#formCrearRuta').submit(function(e) {
         if (enviosSeleccionados.length === 0) {
             e.preventDefault();
-            alert('Debe seleccionar al menos un envío para crear la ruta');
+            showAlert('Debe seleccionar al menos un envío para crear la ruta', 'Validación', 'fa-exclamation-triangle', 'bg-warning');
             return false;
         }
         
         if (!$('#transportista_id').val()) {
             e.preventDefault();
-            alert('Debe seleccionar un transportista');
+            showAlert('Debe seleccionar un transportista', 'Validación', 'fa-exclamation-triangle', 'bg-warning');
             return false;
         }
         
         if (!$('#vehiculo_id').val()) {
             e.preventDefault();
-            alert('Debe seleccionar un vehículo');
+            showAlert('Debe seleccionar un vehículo', 'Validación', 'fa-exclamation-triangle', 'bg-warning');
             return false;
         }
 
@@ -1013,4 +1013,5 @@ $(document).ready(function() {
     });
 });
 </script>
+@include('partials.modal-alert')
 @stop

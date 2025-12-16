@@ -612,7 +612,7 @@
             });
 
             if (seleccionados.length === 0) {
-                alert('Debe seleccionar al menos un envío');
+                showAlert('Debe seleccionar al menos un envío', 'Validación', 'fa-exclamation-triangle', 'bg-warning');
                 return;
             }
 
@@ -720,6 +720,7 @@
         $('#animacion-camion-container').slideDown(300);
     }
 </script>
+@include('partials.modal-alert')
 @endsection
 
 @section('css')
