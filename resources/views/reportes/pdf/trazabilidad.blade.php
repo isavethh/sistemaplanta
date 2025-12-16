@@ -149,64 +149,87 @@
             font-size: 9px;
         }
         .firma-section {
-            margin-top: 30px;
+            margin-top: 25px;
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 20px;
-            padding: 15px 10px;
+            justify-content: space-around;
+            align-items: center;
+            gap: 15px;
+            padding: 20px 5px;
             border-top: 2px solid #4CAF50;
             page-break-inside: avoid;
             width: 100%;
+            box-sizing: border-box;
         }
         .firma-box {
             text-align: center;
-            flex: 1;
-            min-width: 0;
-            max-width: 48%;
+            flex: 0 1 45%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 120px;
         }
         .firma-line {
             border-top: 2px solid #333;
-            margin-top: 10px;
-            padding-top: 5px;
-            display: inline-block;
+            margin-top: 8px;
+            padding-top: 4px;
             width: 100%;
-            max-width: 140px;
+            max-width: 130px;
+            font-size: 8px;
+        }
+        .firma-line strong {
+            font-size: 9px;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .firma-line small {
+            font-size: 8px;
         }
         .firma-stamp {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 10px;
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 8px;
             display: block;
+            flex-shrink: 0;
         }
         .firma-imagen-container {
-            margin: 0 auto 10px;
-            display: block;
-        }
-        .firma-imagen-container img {
-            width: 120px;
-            max-height: 70px;
-            border: 2px solid #4CAF50;
-            border-radius: 6px;
-            padding: 8px;
-            background: white;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        .firma-placeholder-box {
-            width: 120px;
-            height: 70px;
-            border: 2px dashed #ccc;
-            border-radius: 6px;
+            margin: 0 auto 8px;
+            width: 100px;
+            height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 10px;
+        }
+        .firma-imagen-container img {
+            max-width: 100px;
+            max-height: 60px;
+            width: auto;
+            height: auto;
+            border: 2px solid #4CAF50;
+            border-radius: 4px;
+            padding: 5px;
+            background: white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            object-fit: contain;
+        }
+        .firma-placeholder-box {
+            width: 100px;
+            height: 60px;
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
             background: #f9f9f9;
+            flex-shrink: 0;
         }
         .firma-placeholder-text {
             color: #999;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: bold;
+            text-align: center;
+            padding: 5px;
         }
         .page-break {
             page-break-after: always;
