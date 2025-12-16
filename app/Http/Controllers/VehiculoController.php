@@ -36,13 +36,19 @@ class VehiculoController extends Controller
             'unidad_medida_carga_id' => 'nullable|exists:unidades_medida,id',
         ]);
 
+        // Convertir cadenas vacías a null para campos nullable
+        $tipoTransporteId = $request->tipo_transporte_id === '' ? null : $request->tipo_transporte_id;
+        $tamanoVehiculoId = $request->tamano_vehiculo_id === '' ? null : $request->tamano_vehiculo_id;
+        $capacidadCarga = $request->capacidad_carga === '' || $request->capacidad_carga === null ? null : $request->capacidad_carga;
+        $unidadMedidaCargaId = $request->unidad_medida_carga_id === '' ? null : $request->unidad_medida_carga_id;
+
         Vehiculo::create([
             'placa' => $request->placa,
-            'tipo_transporte_id' => $request->tipo_transporte_id,
-            'tamano_vehiculo_id' => $request->tamano_vehiculo_id,
+            'tipo_transporte_id' => $tipoTransporteId,
+            'tamano_vehiculo_id' => $tamanoVehiculoId,
             'licencia_requerida' => $request->licencia_requerida,
-            'capacidad_carga' => $request->capacidad_carga,
-            'unidad_medida_carga_id' => $request->unidad_medida_carga_id,
+            'capacidad_carga' => $capacidadCarga,
+            'unidad_medida_carga_id' => $unidadMedidaCargaId,
             'disponible' => true,
             'estado' => 'activo',
         ]);
@@ -50,17 +56,30 @@ class VehiculoController extends Controller
         return redirect()->route('vehiculos.index')->with('success', 'Vehículo creado correctamente');
     }
 
-    public function edit(Vehiculo $vehiculo)
+    public function edit($id)
     {
-        $tiposTransporte = TipoTransporte::all();
-        $tamanosVehiculo = TamanoVehiculo::all();
-        $unidadesMedida = UnidadMedida::all();
-        
-        return view('vehiculos.edit', compact('vehiculo', 'tiposTransporte', 'tamanosVehiculo', 'unidadesMedida'));
+        try {
+            $vehiculo = Vehiculo::findOrFail($id);
+            $tiposTransporte = TipoTransporte::all();
+            $tamanosVehiculo = TamanoVehiculo::all();
+            $unidadesMedida = UnidadMedida::all();
+            
+            return view('vehiculos.edit', compact('vehiculo', 'tiposTransporte', 'tamanosVehiculo', 'unidadesMedida'));
+        } catch (\Exception $e) {
+            \Log::error('Error en VehiculoController@edit: ' . $e->getMessage(), [
+                'vehiculo_id' => $id ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('vehiculos.index')
+                ->with('error', 'Error al cargar el formulario de edición: ' . $e->getMessage());
+        }
     }
 
-    public function update(Request $request, Vehiculo $vehiculo)
+    public function update(Request $request, $id)
     {
+        $vehiculo = Vehiculo::findOrFail($id);
+        
         $request->validate([
             'placa' => 'required|string|max:50|unique:vehiculos,placa,' . $vehiculo->id,
             'tipo_transporte_id' => 'nullable|exists:tipos_transporte,id',
@@ -72,13 +91,19 @@ class VehiculoController extends Controller
             'estado' => 'nullable|in:activo,mantenimiento,inactivo',
         ]);
 
+        // Convertir cadenas vacías a null para campos nullable
+        $tipoTransporteId = $request->tipo_transporte_id === '' ? null : $request->tipo_transporte_id;
+        $tamanoVehiculoId = $request->tamano_vehiculo_id === '' ? null : $request->tamano_vehiculo_id;
+        $capacidadCarga = $request->capacidad_carga === '' || $request->capacidad_carga === null ? null : $request->capacidad_carga;
+        $unidadMedidaCargaId = $request->unidad_medida_carga_id === '' ? null : $request->unidad_medida_carga_id;
+
         $vehiculo->update([
             'placa' => $request->placa,
-            'tipo_transporte_id' => $request->tipo_transporte_id,
-            'tamano_vehiculo_id' => $request->tamano_vehiculo_id,
+            'tipo_transporte_id' => $tipoTransporteId,
+            'tamano_vehiculo_id' => $tamanoVehiculoId,
             'licencia_requerida' => $request->licencia_requerida,
-            'capacidad_carga' => $request->capacidad_carga,
-            'unidad_medida_carga_id' => $request->unidad_medida_carga_id,
+            'capacidad_carga' => $capacidadCarga,
+            'unidad_medida_carga_id' => $unidadMedidaCargaId,
             'disponible' => $request->has('disponible'),
             'estado' => $request->estado ?? 'activo',
         ]);

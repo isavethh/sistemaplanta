@@ -452,13 +452,14 @@ return [
             'role' => 'propietario'
         ],
         
-        ['header' => '📋 GESTIÓN DE PEDIDOS', 'role' => 'propietario'],
+        ['header' => '📋 GESTIÓN DE PEDIDOS', 'role' => 'propietario', 'exclude_admin' => true],
         [
             'text' => 'Crear Pedido',
             'route' => 'pedidos-almacen.create',
             'icon' => 'fas fa-plus-circle',
             'icon_color' => 'success',
-            'role' => 'propietario'
+            'role' => 'propietario',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         [
             'text' => 'Mis Pedidos',
@@ -466,6 +467,7 @@ return [
             'icon' => 'fas fa-list',
             'icon_color' => 'primary',
             'role' => 'propietario',
+            'exclude_admin' => true, // Ocultar para admin
             'badge' => [
                 'text' => function() {
                     $count = \App\Models\PedidoAlmacen::where('usuario_propietario_id', auth()->id())
@@ -501,6 +503,7 @@ return [
             'icon_color' => 'info',
             'role' => 'propietario',
             'url' => 'pedidos-almacen?estado=entregado',
+            'exclude_admin' => true, // Ocultar para admin
         ],
         
         ['header' => '📦 RECEPCIÓN Y ENVÍOS', 'role' => 'propietario'],
