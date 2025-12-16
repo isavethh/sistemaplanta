@@ -87,8 +87,13 @@
                                                              style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: white;">
                                                     </div>
                                                 @else
-                                                    <div class="alert alert-info">
-                                                        <pre style="white-space: pre-wrap; word-wrap: break-word;">{{ $item['firmaTexto'] }}</pre>
+                                                    <div class="card">
+                                                        <div class="card-body">
+                                                            <h6 class="card-title">Contenido de la Firma (Texto):</h6>
+                                                            <div class="firma-texto-container">
+                                                                <pre class="firma-texto-pre">{{ htmlspecialchars($item['firmaTexto'], ENT_QUOTES, 'UTF-8') }}</pre>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 @endif
                                             </div>
@@ -129,8 +134,30 @@
         .table th {
             background-color: #f8f9fa;
         }
-        pre {
-            max-height: 400px;
+        .firma-texto-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            padding: 15px;
+        }
+        .firma-texto-pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #333;
+            background: transparent;
+            border: none;
+            max-height: none;
+            overflow: visible;
+        }
+        .modal-body {
+            max-height: 70vh;
             overflow-y: auto;
         }
     </style>
