@@ -136,6 +136,7 @@ let posicionesWebSocket = {};
 let ultimaActualizacionWS = {};
 let ultimoProgresoWS = {};
 let intervaloProgreso = null;
+let mapeoEnvioIdCodigo = {}; // Mapeo entre ID numérico y código del envío {id: codigo, codigo: id}
 
 // Obtener ruta desde seguimiento_envio (puntos reales de Google Directions)
 async function obtenerRutaDesdeSeguimiento(envioId) {
@@ -374,9 +375,51 @@ function inicializarWebSocket() {
 
         socket.on('posicion-actualizada', (data) => {
             console.log('📍 Posición actualizada recibida:', data);
-            const { envioId, posicion, progreso } = data;
-            if (envioId && posicion && progreso !== undefined) {
-                actualizarPosicionCamion(envioId, posicion, progreso);
+            const { envioId, envioCodigo, posicion, progreso } = data;
+            
+            // Normalizar el ID del envío: convertir a string para comparación consistente
+            let idEnvio = envioId || envioCodigo;
+            
+            if (!idEnvio) {
+                console.error('⚠️ No se recibió envioId ni envioCodigo en posicion-actualizada');
+                return;
+            }
+            
+            // Convertir a string para consistencia
+            idEnvio = String(idEnvio);
+            
+            // Si recibimos un ID numérico, buscar el código correspondiente
+            let codigoEnvio = idEnvio;
+            if (mapeoEnvioIdCodigo[idEnvio]) {
+                codigoEnvio = mapeoEnvioIdCodigo[idEnvio];
+                console.log(`🔄 Mapeo encontrado: ID ${idEnvio} -> Código ${codigoEnvio}`);
+            } else if (envioCodigo) {
+                codigoEnvio = envioCodigo;
+                mapeoEnvioIdCodigo[idEnvio] = codigoEnvio;
+                mapeoEnvioIdCodigo[codigoEnvio] = idEnvio;
+                console.log(`📝 Nuevo mapeo creado: ID ${idEnvio} <-> Código ${codigoEnvio}`);
+            }
+            
+            // Intentar usar el código primero, luego el ID
+            let idMarcador = codigoEnvio !== idEnvio ? codigoEnvio : idEnvio;
+            
+            // Si no existe el marcador con el código, intentar con el ID
+            if (!marcadores[idMarcador] || !marcadores[idMarcador].vehiculo) {
+                // Intentar con el ID numérico
+                if (marcadores[idEnvio] && marcadores[idEnvio].vehiculo) {
+                    idMarcador = idEnvio;
+                } else {
+                    console.log(`⚠️ Marcador no existe para envío ${idEnvio} (código: ${codigoEnvio}), intentando crear...`);
+                    // Buscar el envío en la lista para obtener sus datos
+                    const envioData = buscarEnvioPorId(idEnvio) || buscarEnvioPorCodigo(codigoEnvio);
+                    if (envioData && posicion) {
+                        crearMarcadorDesdeSimulacion(idMarcador, envioData, posicion);
+                    }
+                }
+            }
+            
+            if (idEnvio && posicion && progreso !== undefined) {
+                actualizarPosicionCamion(idEnvio, posicion, progreso);
             }
         });
 
@@ -612,10 +655,17 @@ function renderizarListaEnvios(enTransito, esperando) {
             
             const progreso = calcularProgreso(envio.id, envio.fecha_inicio_transito);
             
+            // Guardar mapeo ID <-> Código
+            mapeoEnvioIdCodigo[envio.id] = envio.codigo;
+            mapeoEnvioIdCodigo[envio.codigo] = envio.id;
+            
             html += `
                 <div class="envio-card mb-2 p-3 border rounded bg-info text-white ${claseNuevo} ${envioSeleccionado == envio.id ? 'activo' : ''}" 
                      onclick="seleccionarEnvio(${envio.id}, '${envio.codigo}', ${envio.destino_lat || -17.78}, ${envio.destino_lng || -63.18}, this)"
                      data-envio-id="${envio.id}"
+                     data-envio-codigo="${envio.codigo}"
+                     data-destino-lat="${envio.destino_lat || -17.78}"
+                     data-destino-lng="${envio.destino_lng || -63.18}"
                      data-fecha-inicio="${envio.fecha_inicio_transito || ''}">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
@@ -819,6 +869,38 @@ function verEnMapa(id, codigo, lat, lng) {
     envioSeleccionado = id;
     const destino = [lat, lng];
     
+    // Obtener el progreso actual del envío
+    let progresoActual;
+    // 1. Intentar obtener desde el último progreso del WebSocket
+    if (ultimoProgresoWS[id] !== undefined) {
+        progresoActual = ultimoProgresoWS[id];
+    } else {
+        // 2. Si no, intentar obtenerlo desde el código mapeado (si el ID es diferente)
+        const codigoMapeado = mapeoEnvioIdCodigo[id];
+        if (codigoMapeado && ultimoProgresoWS[codigoMapeado] !== undefined) {
+            progresoActual = ultimoProgresoWS[codigoMapeado];
+        }
+    }
+    
+    // 3. Si aún no existe, intentar calcularlo desde los datos del envío en la lista
+    if (progresoActual === undefined) {
+        const enTransito = document.querySelectorAll('[data-envio-id]');
+        for (const card of enTransito) {
+            if (String(card.dataset.envioId) === String(id)) {
+                const fechaInicio = card.dataset.fechaInicio;
+                if (fechaInicio) {
+                    progresoActual = calcularProgreso(id, fechaInicio);
+                }
+                break;
+            }
+        }
+    }
+    
+    // Si aún no tenemos progreso, usar 0 como fallback
+    if (progresoActual === undefined || progresoActual === null || isNaN(progresoActual)) {
+        progresoActual = 0;
+    }
+    
     // LIMPIAR TODAS LAS RUTAS Y MARCADORES EXCEPTO EL SELECCIONADO
     Object.keys(marcadores).forEach(envioId => {
         if (envioId != id) {
@@ -861,19 +943,8 @@ function verEnMapa(id, codigo, lat, lng) {
         `<i class="fas fa-truck"></i> Siguiendo envío <strong>${codigo}</strong> en tiempo real - Actualizando cada 2 segundos`;
     document.getElementById('info-panel').className = 'alert alert-success mb-3';
     
-    // Actualizar progreso en el card azul
-    const envioCard = document.querySelector(`[data-envio-id="${id}"]`);
-    let progreso = 0;
-    if (ultimoProgresoWS[id] !== undefined) {
-        progreso = ultimoProgresoWS[id];
-    } else if (envioCard) {
-        const fechaInicio = envioCard.dataset.fechaInicio;
-        if (fechaInicio) {
-            progreso = calcularProgreso(id, fechaInicio);
-        }
-    }
-    
-    const progresoPercent = Math.round(progreso * 100);
+    // Actualizar la barra de progreso con el valor actual
+    const progresoPercent = Math.round(progresoActual * 100);
     const progressBar = document.getElementById('progress-bar');
     const progresoTexto = document.getElementById('progreso-texto');
     if (progressBar) {

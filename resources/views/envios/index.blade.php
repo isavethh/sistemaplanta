@@ -117,6 +117,11 @@
                             <a href="{{ route('envios.show', $envio) }}" class="btn btn-info" title="Ver Detalle">
                                 <i class="fas fa-eye"></i>
                             </a>
+                            @if($envio->estado == 'entregado')
+                                <a href="{{ route('trazabilidad.pdf', $envio->id) }}" class="btn btn-danger" title="Ver PDF Trazabilidad" target="_blank">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                            @endif
                             @if($envio->estado == 'pendiente_aprobacion_trazabilidad' && auth()->user()->hasRole('admin'))
                                 <form action="{{ route('envios.aprobarTrazabilidad', $envio) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Está seguro de aprobar este envío de Trazabilidad? Una vez aprobado, podrá ser asignado a un transportista.')">
                                     @csrf

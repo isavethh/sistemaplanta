@@ -1,12 +1,17 @@
 @extends('adminlte::page')
 @section('title', 'Detalle Envío - ' . $envio->codigo)
 @section('content_header')
-    <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center">
         <h1><i class="fas fa-box text-primary"></i> Envío {{ $envio->codigo }}</h1>
         <div>
             <a href="{{ route('reportes.trazabilidad', $envio->id) }}" class="btn btn-info">
                 <i class="fas fa-route"></i> Trazabilidad Completa
             </a>
+            @if($envio->estado == 'entregado')
+                <a href="{{ route('trazabilidad.pdf', $envio->id) }}" class="btn btn-danger" target="_blank">
+                    <i class="fas fa-file-pdf"></i> PDF Trazabilidad
+                </a>
+            @endif
             <a href="{{ route('envios.index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Volver
             </a>
@@ -297,6 +302,12 @@
                 <a href="{{ route('envios.tracking', $envio) }}" class="btn btn-info btn-block">
                     <i class="fas fa-map-marker-alt"></i> Ver Tracking
                 </a>
+
+                @if($envio->estado == 'entregado')
+                    <a href="{{ route('trazabilidad.pdf', $envio->id) }}" class="btn btn-danger btn-block" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Ver PDF Trazabilidad
+                    </a>
+                @endif
 
                 @if(auth()->user()->hasRole('admin'))
                     <hr>

@@ -98,46 +98,98 @@ class RutaApiController extends Controller
      */
     public function enviosActivosPorAlmacen($almacenId)
     {
-        // Envíos en tránsito hacia este almacén
-        $enTransito = DB::select("
-            SELECT 
-                e.id,
-                e.codigo,
-                e.estado,
-                e.fecha_inicio_transito,
-                a.nombre as almacen_nombre,
-                a.latitud as destino_lat,
-                a.longitud as destino_lng,
-                a.direccion_completa,
-                u.name as transportista_nombre,
-                v.placa as vehiculo_placa
-            FROM envios e
-            LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
-            LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
-            LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
-            LEFT JOIN users u ON v.transportista_id = u.id
-            WHERE e.estado = 'en_transito' AND e.almacen_destino_id = ?
-            ORDER BY e.fecha_inicio_transito DESC
-        ", [$almacenId]);
+        $user = auth()->user();
         
-        // Envíos esperando inicio (asignados o aceptados) hacia este almacén
-        $esperando = DB::select("
-            SELECT 
-                e.id,
-                e.codigo,
-                e.estado,
-                a.nombre as almacen_nombre,
-                a.latitud as destino_lat,
-                a.longitud as destino_lng,
-                u.name as transportista_nombre
-            FROM envios e
-            LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
-            LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
-            LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
-            LEFT JOIN users u ON v.transportista_id = u.id
-            WHERE e.estado IN ('asignado', 'aceptado') AND e.almacen_destino_id = ?
-            ORDER BY e.created_at DESC
-        ", [$almacenId]);
+        // Si el usuario es propietario, filtrar por sus pedidos
+        if ($user && method_exists($user, 'esPropietario') && $user->esPropietario()) {
+            // Envíos en tránsito del propietario hacia este almacén
+            $enTransito = DB::select("
+                SELECT DISTINCT
+                    e.id,
+                    e.codigo,
+                    e.estado,
+                    e.fecha_inicio_transito,
+                    a.nombre as almacen_nombre,
+                    a.latitud as destino_lat,
+                    a.longitud as destino_lng,
+                    a.direccion_completa,
+                    u.name as transportista_nombre,
+                    v.placa as vehiculo_placa
+                FROM envios e
+                LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+                LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+                LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
+                LEFT JOIN users u ON v.transportista_id = u.id
+                LEFT JOIN pedidos_almacen pa ON e.pedido_almacen_id = pa.id
+                WHERE e.estado = 'en_transito' 
+                    AND e.almacen_destino_id = ?
+                    AND pa.usuario_propietario_id = ?
+                ORDER BY e.fecha_inicio_transito DESC
+            ", [$almacenId, $user->id]);
+            
+            // Envíos esperando inicio (asignados o aceptados) del propietario
+            $esperando = DB::select("
+                SELECT DISTINCT
+                    e.id,
+                    e.codigo,
+                    e.estado,
+                    a.nombre as almacen_nombre,
+                    a.latitud as destino_lat,
+                    a.longitud as destino_lng,
+                    u.name as transportista_nombre
+                FROM envios e
+                LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+                LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+                LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
+                LEFT JOIN users u ON v.transportista_id = u.id
+                LEFT JOIN pedidos_almacen pa ON e.pedido_almacen_id = pa.id
+                WHERE e.estado IN ('asignado', 'aceptado') 
+                    AND e.almacen_destino_id = ?
+                    AND pa.usuario_propietario_id = ?
+                ORDER BY e.created_at DESC
+            ", [$almacenId, $user->id]);
+        } else {
+            // Si no es propietario, solo filtrar por almacén destino
+            $enTransito = DB::select("
+                SELECT 
+                    e.id,
+                    e.codigo,
+                    e.estado,
+                    e.fecha_inicio_transito,
+                    a.nombre as almacen_nombre,
+                    a.latitud as destino_lat,
+                    a.longitud as destino_lng,
+                    a.direccion_completa,
+                    u.name as transportista_nombre,
+                    v.placa as vehiculo_placa
+                FROM envios e
+                LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+                LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+                LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
+                LEFT JOIN users u ON v.transportista_id = u.id
+                WHERE e.estado = 'en_transito' AND e.almacen_destino_id = ?
+                ORDER BY e.fecha_inicio_transito DESC
+            ", [$almacenId]);
+            
+            // Envíos esperando inicio (asignados o aceptados) hacia este almacén
+            $esperando = DB::select("
+                SELECT 
+                    e.id,
+                    e.codigo,
+                    e.estado,
+                    a.nombre as almacen_nombre,
+                    a.latitud as destino_lat,
+                    a.longitud as destino_lng,
+                    u.name as transportista_nombre
+                FROM envios e
+                LEFT JOIN almacenes a ON e.almacen_destino_id = a.id
+                LEFT JOIN envio_asignaciones ea ON e.id = ea.envio_id
+                LEFT JOIN vehiculos v ON ea.vehiculo_id = v.id
+                LEFT JOIN users u ON v.transportista_id = u.id
+                WHERE e.estado IN ('asignado', 'aceptado') AND e.almacen_destino_id = ?
+                ORDER BY e.created_at DESC
+            ", [$almacenId]);
+        }
         
         return response()->json([
             'success' => true,
